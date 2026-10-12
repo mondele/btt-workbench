@@ -58,13 +58,37 @@ linker warnings are harmless.
   JSON keys. Never translate or rename them casually.
 - Exit codes: 0 means OK, 1 means the module failed, 2 means usage error.
 - Modules that change BTT-Writer data must check before acting, refuse
-  rather than guess, and support `--dry-run`.
+  rather than guess, and support a `dry-run` flag. The GUI turns `dry-run`
+  into a **Check** button, and runs it automatically when the GUI is started
+  with `btt-workbench <module> [options]` (this is how double-clicked
+  `.tstudio` files land on the import check).
+- Choice options (`ChoiceOptionDef`) show as dropdowns. Their values are
+  stable API, like option names.
+- Default to BTT-Writer's data via `WBDataPaths`. `BTT_WRITER_DATA`
+  overrides it, and modules that write should also take a `--target-dir`
+  so tests never touch real data.
+- Compatibility target: **BTT-Writer Desktop 1.6.0**, installed at
+  `/usr/lib/btt-writer/resources/app/src/`. That is newer than the
+  `../BTT-Writer-Desktop` checkout and the `bttw-deb` package. Check
+  behaviour there. Project manifests are `package_version` 8. Conflicts
+  must be *committed* with `<<<<<<< HEAD` / `>>>>>>> <40-hex sha>` markers;
+  `render.js` rejects anything else. To check that against the real
+  parser, run it with `ELECTRON_RUN_AS_NODE=1 /usr/lib/btt-writer/BTT-Writer
+  script.js`.
+- Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
+  drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps
   BTT-Writer's tab-indented layout so the project's git diff shows only
   real changes.
 - Lazarus only loads `.po` entries that have a `#:` reference line.
   rstconv output always has them; hand-written test `.po` files need them.
 - Don't name things `IsRightToLeft`: it clashes with `TControl.IsRightToLeft`.
+- `for S in ['a', 'bbb']` with string literals makes fixed-length
+  shortstrings sized to the first literal and truncates the rest. Use a
+  typed `array of string` const.
+- `TProcess.ExitStatus` is the raw wait status (exit 1 reads as 256). Use
+  `ExitCode`.
+- `Out` is a reserved word; it can't be a parameter or variable name.
 
 ## Conventions (from btt-writer-two / chunkCounter)
 

@@ -7,7 +7,10 @@ unit WorkbenchForm;
   the modules, and switching language just rebuilds the window.
 
   The option panel is generated from each module's OptionDefs, so a new
-  module shows up here with no GUI code.
+  module shows up here with no GUI code. A module's 'dry-run' flag becomes
+  a Check button next to Run. StartWith opens a module with options from
+  the command line and, if it has a check, runs it straight away: that is
+  how a double-clicked .tstudio file lands on a preflight report.
 
   Modules run on the GUI thread for now; the reporter pumps messages so
   the log stays live. Move to a worker thread once a module is slow. }
@@ -23,6 +26,7 @@ type
     Def: TWBOptionDef;
     Edit: TEdit;
     Check: TCheckBox;
+    Combo: TComboBox;
   end;
 
   TWorkbenchForm = class(TForm)
@@ -33,6 +37,8 @@ type
     FDescLabel: TLabel;
     FOptionsPanel: TPanel;
     FRunButton: TButton;
+    FCheckButton: TButton;
+    FHasCheck: Boolean;
     FLog: TMemo;
     FEditors: array of TOptionEditor;
     FLanguages: TStringArray;
@@ -44,8 +50,11 @@ type
     procedure LangComboChange(Sender: TObject);
     procedure BrowseClick(Sender: TObject);
     procedure RunClick(Sender: TObject);
+    procedure AutoCheck(Data: PtrInt);
   public
     constructor Create(TheOwner: TComponent); override;
+    { Select Module, fill its fields from Options, run its check if any. }
+    procedure StartWith(Module: TWBModule; Options: TStrings);
   end;
 
 var
@@ -62,6 +71,9 @@ resourcestring
   rsModules = 'Modules';
   rsBrowse = 'Browse…';
   rsRun = 'Run';
+  rsCheck = 'Check';
+  rsCheckOk = 'Check finished. Nothing has been changed yet; press Run to go ahead.';
+  rsCheckFail = 'Check found problems (code %d). Nothing has been changed.';
   rsWarningPrefix = 'Warning: ';
   rsErrorPrefix = 'Error: ';
   rsFinishedOk = 'Finished.';
@@ -206,9 +218,18 @@ begin
     Buttons.BorderSpacing.Top := 6;
     Buttons.BorderSpacing.Bottom := 6;
 
+    FCheckButton := TButton.Create(Self);
+    FCheckButton.Parent := Buttons;
+    FCheckButton.Align := alLeft;
+    FCheckButton.AutoSize := True;
+    FCheckButton.Caption := rsCheck;
+    FCheckButton.OnClick := @RunClick;
+
     FRunButton := TButton.Create(Self);
     FRunButton.Parent := Buttons;
     FRunButton.Align := alLeft;
+    FRunButton.Left := 1000;     // right of Check
+    FRunButton.BorderSpacing.Left := 6;
     FRunButton.AutoSize := True;
     FRunButton.Caption := rsRun;
     FRunButton.OnClick := @RunClick;
@@ -231,6 +252,7 @@ begin
   begin
     FTitleLabel.Caption := rsNoModules;
     FRunButton.Enabled := False;
+    FCheckButton.Visible := False;
   end
   else
   begin
@@ -256,9 +278,10 @@ var
   Row: TPanel;
   Lbl: TLabel;
   Btn: TButton;
-  I: Integer;
+  I, J: Integer;
 begin
   FSelected := Index;
+  FHasCheck := False;
   M := ModuleAt(Index);
   FTitleLabel.Caption := M.Title;
   FDescLabel.Caption := M.Description;
@@ -275,6 +298,12 @@ begin
       FEditors[I].Def := Defs[I];
       FEditors[I].Edit := nil;
       FEditors[I].Check := nil;
+      FEditors[I].Combo := nil;
+      if (Defs[I].Kind = okFlag) and (Defs[I].Name = 'dry-run') then
+      begin
+        FHasCheck := True;     // shown as the Check button, not a checkbox
+        Continue;
+      end;
 
       Row := TPanel.Create(Self);
       Row.Parent := FOptionsPanel;
@@ -307,6 +336,26 @@ begin
       if Defs[I].Required then
         Lbl.Caption := Lbl.Caption + ' *';
 
+      if Defs[I].Kind = okChoice then
+      begin
+        FEditors[I].Combo := TComboBox.Create(Self);
+        FEditors[I].Combo.Parent := Row;
+        FEditors[I].Combo.Align := alLeft;
+        FEditors[I].Combo.Left := 1000;  // right of the label (alLeft orders by Left)
+        FEditors[I].Combo.Width := 200;
+        FEditors[I].Combo.Style := csDropDownList;
+        FEditors[I].Combo.Hint := Defs[I].Help;
+        FEditors[I].Combo.ShowHint := True;
+        for J := 0 to High(Defs[I].Choices) do
+        begin
+          FEditors[I].Combo.Items.Add(Defs[I].Choices[J]);
+          if Defs[I].Choices[J] = Defs[I].Default then
+            FEditors[I].Combo.ItemIndex := J;
+        end;
+        Continue;
+      end;
+
+
       if Defs[I].Kind in [okDirectory, okFile] then
       begin
         Btn := TButton.Create(Self);
@@ -331,6 +380,41 @@ begin
   finally
     FOptionsPanel.EnableAutoSizing;
   end;
+  FCheckButton.Visible := FHasCheck;
+end;
+
+procedure TWorkbenchForm.StartWith(Module: TWBModule; Options: TStrings);
+var
+  I, Idx: Integer;
+  Value: string;
+begin
+  Idx := -1;
+  for I := 0 to ModuleCount - 1 do
+    if ModuleAt(I) = Module then
+      Idx := I;
+  if Idx < 0 then
+    Exit;
+  FModuleList.ItemIndex := Idx;
+  ShowModule(Idx);
+  for I := 0 to High(FEditors) do
+  begin
+    Value := Options.Values[FEditors[I].Def.Name];
+    if Value = '' then
+      Continue;
+    if FEditors[I].Edit <> nil then
+      FEditors[I].Edit.Text := Value
+    else if FEditors[I].Check <> nil then
+      FEditors[I].Check.Checked := OptionIsSet(Options, FEditors[I].Def.Name)
+    else if FEditors[I].Combo <> nil then
+      FEditors[I].Combo.ItemIndex := FEditors[I].Combo.Items.IndexOf(Value);
+  end;
+  if FHasCheck then
+    Application.QueueAsyncCall(@AutoCheck, 0);
+end;
+
+procedure TWorkbenchForm.AutoCheck(Data: PtrInt);
+begin
+  RunClick(FCheckButton);
 end;
 
 procedure TWorkbenchForm.ModuleListSelectionChange(Sender: TObject; User: Boolean);
@@ -388,11 +472,14 @@ var
   Reporter: TMemoReporter;
   E: TOptionEditor;
   Code: Integer;
+  IsCheck: Boolean;
 begin
+  IsCheck := Sender = FCheckButton;
   M := ModuleAt(FSelected);
   Options := TStringList.Create;
   Reporter := TMemoReporter.Create(FLog);
   FRunButton.Enabled := False;
+  FCheckButton.Enabled := False;
   Screen.BeginWaitCursor;
   try
     FLog.Clear;
@@ -402,12 +489,24 @@ begin
         if E.Check.Checked then
           Options.Values[E.Def.Name] := 'true';
       end
-      else if Trim(E.Edit.Text) <> '' then
+      else if E.Combo <> nil then
+      begin
+        if E.Combo.ItemIndex >= 0 then
+          Options.Values[E.Def.Name] := E.Combo.Items[E.Combo.ItemIndex];
+      end
+      else if (E.Edit <> nil) and (Trim(E.Edit.Text) <> '') then
         Options.Values[E.Def.Name] := Trim(E.Edit.Text);
+    if IsCheck then
+      Options.Values['dry-run'] := 'true';
     if M.ValidateOptions(Options, Reporter) then
     begin
       Code := M.Execute(Options, Reporter);
-      if Code = 0 then
+      FLog.Lines.Add('');
+      if IsCheck and (Code = 0) then
+        FLog.Lines.Add(rsCheckOk)
+      else if IsCheck then
+        FLog.Lines.Add(Format(rsCheckFail, [Code]))
+      else if Code = 0 then
         FLog.Lines.Add(rsFinishedOk)
       else
         FLog.Lines.Add(Format(rsFinishedFail, [Code]));
@@ -415,6 +514,7 @@ begin
   finally
     Screen.EndWaitCursor;
     FRunButton.Enabled := True;
+    FCheckButton.Enabled := True;
     Reporter.Free;
     Options.Free;
   end;

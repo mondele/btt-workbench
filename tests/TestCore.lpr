@@ -10,7 +10,8 @@ uses
   cthreads,
   {$ENDIF}
   Classes, SysUtils, fpjson, jsonparser,
-  WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules;
+  WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules,
+  TestUtil, TestTStudioImport;
 
 const
   { Real BTT-Writer layout: tabs, non-ASCII names, empty object and array,
@@ -40,72 +41,7 @@ const
     '}';
 
 var
-  Failures: Integer = 0;
-  Checks: Integer = 0;
   TempRoot: string;
-
-procedure Check(Condition: Boolean; const What: string);
-begin
-  Inc(Checks);
-  if Condition then
-    WriteLn('  ok   ', What)
-  else
-  begin
-    Inc(Failures);
-    WriteLn('  FAIL ', What);
-  end;
-end;
-
-procedure Section(const Name: string);
-begin
-  WriteLn;
-  WriteLn(Name);
-end;
-
-function ReadFileText(const Path: string): string;
-var
-  S: TStringStream;
-begin
-  S := TStringStream.Create('');
-  try
-    S.LoadFromFile(Path);
-    Result := S.DataString;
-  finally
-    S.Free;
-  end;
-end;
-
-procedure WriteFileText(const Path, Text: string);
-var
-  S: TStringStream;
-begin
-  S := TStringStream.Create(Text);
-  try
-    S.SaveToFile(Path);
-  finally
-    S.Free;
-  end;
-end;
-
-procedure DeleteTree(const Dir: string);
-var
-  SR: TSearchRec;
-begin
-  if FindFirst(IncludeTrailingPathDelimiter(Dir) + '*', faAnyFile, SR) = 0 then
-  try
-    repeat
-      if (SR.Name = '.') or (SR.Name = '..') then
-        Continue;
-      if (SR.Attr and faDirectory) <> 0 then
-        DeleteTree(IncludeTrailingPathDelimiter(Dir) + SR.Name)
-      else
-        DeleteFile(IncludeTrailingPathDelimiter(Dir) + SR.Name);
-    until FindNext(SR) <> 0;
-  finally
-    FindClose(SR);
-  end;
-  RemoveDir(Dir);
-end;
 
 function MakeProject(const FolderName, ResId, ResName: string): string;
 begin
@@ -113,34 +49,6 @@ begin
   ForceDirectories(Result + PathDelim + '01');
   WriteFileText(Result + PathDelim + 'manifest.json', Format(ManifestTemplate, [ResId, ResName]));
   WriteFileText(Result + PathDelim + '01' + PathDelim + '01.txt', '\c 1 \v 1 Text');
-end;
-
-function RunModule(const ModuleId: string; const Args: array of string;
-  out Reporter: TWBListReporter): Integer;
-var
-  ArgList, Options: TStringList;
-  ErrorMsg, A: string;
-  M: TWBModule;
-begin
-  M := FindModule(ModuleId);
-  Reporter := TWBListReporter.Create;
-  ArgList := TStringList.Create;
-  Options := TStringList.Create;
-  try
-    for A in Args do
-      ArgList.Add(A);
-    if not ParseModuleArgs(M, ArgList, Options, ErrorMsg) then
-    begin
-      Reporter.Error(ErrorMsg);
-      Exit(2);
-    end;
-    if not M.ValidateOptions(Options, Reporter) then
-      Exit(2);
-    Result := M.Execute(Options, Reporter);
-  finally
-    ArgList.Free;
-    Options.Free;
-  end;
 end;
 
 procedure TestRegistry;
@@ -304,6 +212,7 @@ begin
     TestCommandLine;
     TestUlb2Reg;
     TestI18n;
+    TestTStudioImportModule(TempRoot);
   finally
     DeleteTree(TempRoot);
   end;

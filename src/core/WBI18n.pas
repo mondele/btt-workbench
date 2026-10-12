@@ -92,8 +92,11 @@ end;
 function LocateLanguageFile(const Lang, ExtraDir: string): string;
 var
   Dir, Code: string;
+  Codes: array[0..1] of string;
 begin
-  for Code in [Lang, BaseLanguage(Lang)] do
+  Codes[0] := Lang;
+  Codes[1] := BaseLanguage(Lang);
+  for Code in Codes do
     for Dir in LocaleDirs(ExtraDir) do
     begin
       Result := Dir + Code + PathDelim + LocaleDomain + '.po';

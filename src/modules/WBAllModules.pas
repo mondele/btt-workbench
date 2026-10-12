@@ -9,7 +9,8 @@ unit WBAllModules;
 interface
 
 uses
-  ModUlb2Reg;
+  ModUlb2Reg,
+  ModTStudioImport;
 
 implementation
 

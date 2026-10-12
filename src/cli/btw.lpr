@@ -29,6 +29,7 @@ resourcestring
   rsModules = 'Modules:';
   rsOptions = 'Options:';
   rsRequired = '(required)';
+  rsDefault = '(default: %s)';
   rsUnknownModule = 'Unknown module: %s. Run "btw list" to see modules.';
   rsUnknownGlobal = 'Unknown option: %s';
   rsWarningPrefix = 'warning: ';
@@ -73,6 +74,8 @@ begin
       Usage := Usage + ' <' + Def.Name + '>'
     else if Def.Kind = okFlag then
       Usage := Usage + ' [--' + Def.Name + ']'
+    else if Def.Kind = okChoice then
+      Usage := Usage + ' [--' + Def.Name + ' ' + String.Join('|', Def.Choices) + ']'
     else
       Usage := Usage + ' [--' + Def.Name + ' <' + OptionKindName(Def.Kind) + '>]';
   WriteLn(M.Title);
@@ -85,11 +88,15 @@ begin
   for Def in M.OptionDefs do
   begin
     Left := '--' + Def.Name;
-    if Def.Kind <> okFlag then
+    if Def.Kind = okChoice then
+      Left := Left + ' ' + String.Join('|', Def.Choices)
+    else if Def.Kind <> okFlag then
       Left := Left + ' <' + OptionKindName(Def.Kind) + '>';
     Write('  ', Left.PadRight(26), Def.Caption, ': ', Def.Help);
     if Def.Required then
       Write(' ', rsRequired);
+    if Def.Default <> '' then
+      Write(' ', Format(rsDefault, [Def.Default]));
     WriteLn;
   end;
 end;

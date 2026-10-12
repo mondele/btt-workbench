@@ -14,7 +14,7 @@ library btw;
     char* btw_list_modules(void);
           -> [{"id", "title", "description",
                "options": [{"name", "kind", "required", "positional",
-                            "caption", "help"}]}]
+                            "caption", "help", "default", "choices"}]}]
     char* btw_run_module(const char* id, const char* options_json);
           options_json: {"project": "/path", "dry-run": true}
           -> {"exit_code": 0, "messages": [{"level": "info", "text": "..."}]}
@@ -77,7 +77,8 @@ end;
 
 function btw_list_modules: PChar; cdecl;
 var
-  Arr, Opts: TJSONArray;
+  Arr, Opts, Choices: TJSONArray;
+  Choice: string;
   ModObj, OptObj: TJSONObject;
   M: TWBModule;
   Def: TWBOptionDef;
@@ -102,6 +103,11 @@ begin
         OptObj.Add('positional', Def.Positional);
         OptObj.Add('caption', Def.Caption);
         OptObj.Add('help', Def.Help);
+        OptObj.Add('default', Def.Default);
+        Choices := TJSONArray.Create;
+        for Choice in Def.Choices do
+          Choices.Add(Choice);
+        OptObj.Add('choices', Choices);
         Opts.Add(OptObj);
       end;
       ModObj.Add('options', Opts);

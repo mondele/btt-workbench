@@ -25,6 +25,10 @@ msgstr ""
 msgid "(required)"
 msgstr ""
 
+#: btw:rsdefault
+msgid "(default: %s)"
+msgstr ""
+
 #: btw:rsunknownmodule
 msgid "Unknown module: %s. Run \"btw list\" to see modules."
 msgstr ""
@@ -39,6 +43,258 @@ msgstr ""
 
 #: btw:rserrorprefix
 msgid "error: "
+msgstr ""
+
+#: modtstudioimport:rstitle
+msgid "Import .tstudio package"
+msgstr ""
+
+#: modtstudioimport:rsdescription
+msgid ""
+"Imports a BTT-Writer project package (.tstudio) into the BTT-Writer projects "
+"folder. Check first: it tells you whether the project is new or already "
+"here, and which chunks a merge would leave in conflict."
+msgstr ""
+
+#: modtstudioimport:rsoptfile
+msgid "Package file"
+msgstr ""
+
+#: modtstudioimport:rsoptfilehelp
+msgid "The .tstudio file to import"
+msgstr ""
+
+#: modtstudioimport:rsoptonexisting
+msgid "If the project exists"
+msgstr ""
+
+#: modtstudioimport:rsoptonexistinghelp
+msgid ""
+"stop: change nothing; merge: combine with the existing project (as BTT-"
+"Writer does); overwrite: replace it (the old copy is kept in workbench-"
+"backups)"
+msgstr ""
+
+#: modtstudioimport:rsopttargetdir
+msgid "Projects folder"
+msgstr ""
+
+#: modtstudioimport:rsopttargetdirhelp
+msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
+msgstr ""
+
+#: modtstudioimport:rsoptdryrun
+msgid "Check only"
+msgstr ""
+
+#: modtstudioimport:rsoptdryrunhelp
+msgid "Report what the import would do without changing anything"
+msgstr ""
+
+#: modtstudioimport:rsnogit
+msgid ""
+"git was not found. BTT-Writer projects are git repositories; install git "
+"first."
+msgstr ""
+
+#: modtstudioimport:rsnofile
+msgid "File not found: %s"
+msgstr ""
+
+#: modtstudioimport:rsnotzip
+msgid "Not a readable .tstudio package (%s)"
+msgstr ""
+
+#: modtstudioimport:rsunsafeentry
+msgid "The package contains an unsafe path (%s). Nothing was imported."
+msgstr ""
+
+#: modtstudioimport:rsnopackagemanifest
+msgid "The package has no manifest.json."
+msgstr ""
+
+#: modtstudioimport:rsbadpackageversion
+msgid "Unsupported package version %s."
+msgstr ""
+
+#: modtstudioimport:rsemptypackage
+msgid "The package contains no projects."
+msgstr ""
+
+#: modtstudioimport:rspackageinfo
+msgid "Package: %s, made by %s on %s, %d project(s)."
+msgstr ""
+
+#: modtstudioimport:rstargetdir
+msgid "Projects folder: %s"
+msgstr ""
+
+#: modtstudioimport:rstargetdirmissing
+msgid "The projects folder does not exist yet; it will be created."
+msgstr ""
+
+#: modtstudioimport:rsbadentrypath
+msgid "Project entry has an unsafe or missing path: \"%s\". Skipped."
+msgstr ""
+
+#: modtstudioimport:rsentrymissing
+msgid "Project folder %s is listed but not in the package. Skipped."
+msgstr ""
+
+#: modtstudioimport:rsnoprojectmanifest
+msgid "%s has no manifest.json. Skipped."
+msgstr ""
+
+#: modtstudioimport:rsbadprojectmanifest
+msgid "%s: manifest.json could not be read (%s). Skipped."
+msgstr ""
+
+#: modtstudioimport:rsoldprojectversion
+msgid ""
+"%s is an older project format (version %s). Import it with BTT-Writer, which "
+"can upgrade it. Skipped."
+msgstr ""
+
+#: modtstudioimport:rsmigratedv7
+msgid "Upgraded the project format from version 7 to 8, as BTT-Writer does."
+msgstr ""
+
+#: modtstudioimport:rsrenamedbranch
+msgid ""
+"Renamed the package's branch \"%s\" to \"master\", which BTT-Writer expects."
+msgstr ""
+
+#: modtstudioimport:rsnewprojectversion
+msgid ""
+"%s uses a newer project format (version %s) than this tool knows. Skipped."
+msgstr ""
+
+#: modtstudioimport:rsnogitrepo
+msgid "%s has no git history in the package. Skipped."
+msgstr ""
+
+#: modtstudioimport:rsproject
+msgid "Project %s: %s, %s (last change %s)."
+msgstr ""
+
+#: modtstudioimport:rspackagedirty
+msgid ""
+"The package had uncommitted changes; they were committed in the temporary "
+"copy."
+msgstr ""
+
+#: modtstudioimport:rsnewproject
+msgid "New project: will be added as %s."
+msgstr ""
+
+#: modtstudioimport:rsadded
+msgid "Imported %s."
+msgstr ""
+
+#: modtstudioimport:rsexists
+msgid "A project named %s already exists."
+msgstr ""
+
+#: modtstudioimport:rslocalnotrepo
+msgid ""
+"The existing %s is not a git repository, so it cannot be merged. Use "
+"overwrite (the old copy is backed up) or fix it first."
+msgstr ""
+
+#: modtstudioimport:rslocalmidmerge
+msgid ""
+"The existing %s has an unfinished merge. Finish or abort it in BTT-Writer "
+"first. Nothing changed."
+msgstr ""
+
+#: modtstudioimport:rslocaldirty
+msgid ""
+"The existing project has uncommitted changes. A merge will commit them "
+"first; the conflict list below does not include them."
+msgstr ""
+
+#: modtstudioimport:rsuptodate
+msgid ""
+"The existing project already contains everything in the package. Nothing to "
+"import."
+msgstr ""
+
+#: modtstudioimport:rsfastforward
+msgid ""
+"The package only adds newer work to the existing project. A merge will have "
+"no conflicts."
+msgstr ""
+
+#: modtstudioimport:rscleanmerge
+msgid "Both copies have changes. A merge will combine them with no conflicts."
+msgstr ""
+
+#: modtstudioimport:rsunrelated
+msgid ""
+"The two copies were started separately (no shared history), so every chunk "
+"that differs will conflict."
+msgstr ""
+
+#: modtstudioimport:rsconflictcount
+msgid ""
+"A merge would leave %d chunk(s) in conflict, to be resolved in BTT-Writer: %s"
+msgstr ""
+
+#: modtstudioimport:rsconflictfiles
+msgid "Other files in conflict: %s"
+msgstr ""
+
+#: modtstudioimport:rsreopened
+msgid "These finished chunks would be marked unfinished again: %s"
+msgstr ""
+
+#: modtstudioimport:rsmanifestmerged
+msgid ""
+"manifest.json differs; it is merged automatically (translators and finished "
+"chunks are combined)."
+msgstr ""
+
+#: modtstudioimport:rschooseaction
+msgid "To import it, choose merge or overwrite."
+msgstr ""
+
+#: modtstudioimport:rsstopped
+msgid ""
+"%s already exists. Choose merge or overwrite to import it. Nothing changed."
+msgstr ""
+
+#: modtstudioimport:rspreflightfailed
+msgid "Could not check the merge: %s"
+msgstr ""
+
+#: modtstudioimport:rssnapshot
+msgid "Committed uncommitted changes in the existing project first."
+msgstr ""
+
+#: modtstudioimport:rsmerged
+msgid "Merged into %s."
+msgstr ""
+
+#: modtstudioimport:rsmergedconflicts
+msgid ""
+"Merged into %s with %d chunk(s) in conflict. Open the project in BTT-Writer "
+"to choose between the versions."
+msgstr ""
+
+#: modtstudioimport:rsmergefailed
+msgid "Merge failed: %s. The existing project was left as it was."
+msgstr ""
+
+#: modtstudioimport:rsbackedup
+msgid "The existing project was moved to %s."
+msgstr ""
+
+#: modtstudioimport:rsoverwritten
+msgid "Replaced %s with the imported copy."
+msgstr ""
+
+#: modtstudioimport:rsmovefailed
+msgid "Could not move %s to %s. Nothing changed."
 msgstr ""
 
 #: modulb2reg:rstitle
@@ -128,6 +384,10 @@ msgstr ""
 msgid "Missing required option: %s (%s)"
 msgstr ""
 
+#: wbmodule:rsbadchoice
+msgid "Option --%s must be one of: %s"
+msgstr ""
+
 #: workbenchform:rsapptitle
 msgid "BTT Workbench"
 msgstr ""
@@ -146,6 +406,18 @@ msgstr ""
 
 #: workbenchform:rsrun
 msgid "Run"
+msgstr ""
+
+#: workbenchform:rscheck
+msgid "Check"
+msgstr ""
+
+#: workbenchform:rscheckok
+msgid "Check finished. Nothing has been changed yet; press Run to go ahead."
+msgstr ""
+
+#: workbenchform:rscheckfail
+msgid "Check found problems (code %d). Nothing has been changed."
 msgstr ""
 
 #: workbenchform:rswarningprefix
