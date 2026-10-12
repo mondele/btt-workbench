@@ -1,0 +1,37 @@
+# Build output
+/bin/
+/lib/
+*.o
+*.ppu
+*.compiled
+*.or
+*.rsj
+*.rst
+*.res
+link*.res
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Lazarus session/backup files
+*.lps
+backup/
+*.bak
+*~
+
+# Android (when it exists)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# Editors / OS / agents
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+GTAGS
+GRTAGS
+GPATH

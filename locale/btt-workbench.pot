@@ -1,0 +1,169 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: btw:rsusage
+msgid ""
+"Usage:\n"
+"  btw [--lang <code>] list               List modules\n"
+"  btw [--lang <code>] help <module>      Show a module's options\n"
+"  btw [--lang <code>] <module> [options] Run a module\n"
+"  btw --version"
+msgstr ""
+
+#: btw:rsmodules
+msgid "Modules:"
+msgstr ""
+
+#: btw:rsoptions
+msgid "Options:"
+msgstr ""
+
+#: btw:rsrequired
+msgid "(required)"
+msgstr ""
+
+#: btw:rsunknownmodule
+msgid "Unknown module: %s. Run \"btw list\" to see modules."
+msgstr ""
+
+#: btw:rsunknownglobal
+msgid "Unknown option: %s"
+msgstr ""
+
+#: btw:rswarningprefix
+msgid "warning: "
+msgstr ""
+
+#: btw:rserrorprefix
+msgid "error: "
+msgstr ""
+
+#: modulb2reg:rstitle
+msgid "Convert ULB project to REG"
+msgstr ""
+
+#: modulb2reg:rsdescription
+msgid ""
+"Changes a BTT-Writer target translation from ULB to REG: updates manifest."
+"json and renames the project folder from *_ulb to *_reg."
+msgstr ""
+
+#: modulb2reg:rsoptproject
+msgid "Project folder"
+msgstr ""
+
+#: modulb2reg:rsoptprojecthelp
+msgid "The target translation folder, e.g. en_mat_text_ulb"
+msgstr ""
+
+#: modulb2reg:rsoptdryrun
+msgid "Dry run"
+msgstr ""
+
+#: modulb2reg:rsoptdryrunhelp
+msgid "Show what would change without changing anything"
+msgstr ""
+
+#: modulb2reg:rsnotafolder
+msgid "Not a folder: %s"
+msgstr ""
+
+#: modulb2reg:rsnotulbname
+msgid "Folder name does not end in _ulb: %s"
+msgstr ""
+
+#: modulb2reg:rsnomanifest
+msgid "No manifest.json in %s"
+msgstr ""
+
+#: modulb2reg:rsbadmanifest
+msgid "Could not read manifest.json: %s"
+msgstr ""
+
+#: modulb2reg:rsmanifestnotulb
+msgid ""
+"manifest.json says the resource is \"%s\", not \"ulb\". Nothing changed."
+msgstr ""
+
+#: modulb2reg:rstargetexists
+msgid "Cannot rename: %s already exists. Nothing changed."
+msgstr ""
+
+#: modulb2reg:rswillconvert
+msgid "Converting %s -> %s"
+msgstr ""
+
+#: modulb2reg:rsdryrun
+msgid "Dry run: no changes made."
+msgstr ""
+
+#: modulb2reg:rsrenamefailed
+msgid "Could not rename %s to %s. Nothing changed."
+msgstr ""
+
+#: modulb2reg:rswritefailed
+msgid "Could not write manifest.json (%s). Folder name restored."
+msgstr ""
+
+#: modulb2reg:rsdone
+msgid "Done: %s is now a REG project."
+msgstr ""
+
+#: wbcommandline:rsmissingvalue
+msgid "Option --%s needs a value"
+msgstr ""
+
+#: wbcommandline:rsflagnovalue
+msgid "Option --%s does not take a value"
+msgstr ""
+
+#: wbcommandline:rsextraargument
+msgid "Unexpected argument: %s"
+msgstr ""
+
+#: wbmodule:rsmissingoption
+msgid "Missing required option: %s (%s)"
+msgstr ""
+
+#: workbenchform:rsapptitle
+msgid "BTT Workbench"
+msgstr ""
+
+#: workbenchform:rslanguage
+msgid "Language:"
+msgstr ""
+
+#: workbenchform:rsmodules
+msgid "Modules"
+msgstr ""
+
+#: workbenchform:rsbrowse
+msgid "Browse…"
+msgstr ""
+
+#: workbenchform:rsrun
+msgid "Run"
+msgstr ""
+
+#: workbenchform:rswarningprefix
+msgid "Warning: "
+msgstr ""
+
+#: workbenchform:rserrorprefix
+msgid "Error: "
+msgstr ""
+
+#: workbenchform:rsfinishedok
+msgid "Finished."
+msgstr ""
+
+#: workbenchform:rsfinishedfail
+msgid "Finished with errors (code %d)."
+msgstr ""
+
+#: workbenchform:rsnomodules
+msgid "No modules are installed."
+msgstr ""
