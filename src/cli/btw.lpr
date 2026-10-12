@@ -70,7 +70,9 @@ var
 begin
   Usage := 'btw ' + M.Id;
   for Def in M.OptionDefs do
-    if Def.Positional then
+    if Def.Positional and Def.Multiple then
+      Usage := Usage + ' <' + Def.Name + '>...'
+    else if Def.Positional then
       Usage := Usage + ' <' + Def.Name + '>'
     else if Def.Kind = okFlag then
       Usage := Usage + ' [--' + Def.Name + ']'

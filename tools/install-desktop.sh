@@ -56,7 +56,7 @@ cat > "$DESKTOP" <<EOF
 Type=Application
 Name=BTT Workbench
 Comment=Technician's toolbox for BTT-Writer projects
-Exec="$EXE" tstudio-import %f
+Exec="$EXE" tstudio-import %F
 TryExec=$EXE
 Terminal=false
 Categories=Utility;

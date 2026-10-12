@@ -33,7 +33,16 @@ unit ModTStudioImport;
      instead of deleting it (Desktop deletes it).
 
    The preflight never touches the existing project: it fetches into a
-   throwaway shared bare clone and asks git merge-tree (git 2.38+). *)
+   throwaway shared bare clone and asks git merge-tree (git 2.38+).
+
+   Several packages (copies of one project from different devices, say)
+   are imported in the order given. The check runs them in that order too:
+   each package is imported into a scratch copy of the project, so the next
+   one is checked against the result. Under 'stop' the check assumes merge,
+   since that is what the user will be choosing. A chunk that conflicts
+   again on top of an unresolved conflict gets nested markers; Desktop's
+   parser (render.js parseConflicts) unwraps those into one list of all the
+   versions, so that is reported, not refused. *)
 
 interface
 
@@ -62,8 +71,8 @@ resourcestring
     'BTT-Writer projects folder. Check first: it tells you whether the ' +
     'project is new or already here, and which chunks a merge would leave ' +
     'in conflict.';
-  rsOptFile = 'Package file';
-  rsOptFileHelp = 'The .tstudio file to import';
+  rsOptFile = 'Package files';
+  rsOptFileHelp = 'The .tstudio file(s) to import, in order';
   rsOptOnExisting = 'If the project exists';
   rsOptOnExistingHelp = 'stop: change nothing; merge: combine with the ' +
     'existing project (as BTT-Writer does); overwrite: replace it (the old ' +
@@ -135,6 +144,18 @@ resourcestring
   rsBackedUp = 'The existing project was moved to %s.';
   rsOverwritten = 'Replaced %s with the imported copy.';
   rsMoveFailed = 'Could not move %s to %s. Nothing changed.';
+  rsCheckInOrder = 'Checking %d packages in the order given, each as if the ' +
+    'ones before it had been imported.';
+  rsCheckAssumesMerge = 'Where a project already exists, the check assumes ' +
+    'you will choose merge.';
+  rsDuplicateFile = '%s is listed more than once; importing it once.';
+  rsExistsEarlier = '%s is also in an earlier package; checking against that ' +
+    'result.';
+  rsStacked = 'These chunks already have an unresolved conflict, so the ' +
+    'conflicts will stack. BTT-Writer will offer every version to choose ' +
+    'from: %s';
+  rsSimulateFailed = 'Could not simulate importing %s; checks of later ' +
+    'packages for this project may be incomplete.';
 
 const
   ProjectManifestVersion = 8;
@@ -153,10 +174,12 @@ type
   TImportContext = record
     PackageFile: string;
     TargetDir: string;
-    WorkRoot: string;
+    WorkRoot: string;     // this package's scratch folder
+    SimRoot: string;      // check of several packages: projects as imported so far
     BackupRoot: string;
     OnExisting: string;
     DryRun: Boolean;
+    Simulate: Boolean;    // DryRun with more than one package
     Reporter: TWBReporter;
   end;
 
@@ -411,16 +434,37 @@ begin
   end;
 end;
 
-procedure ReportConflicts(const Info: TPreflight; LocalManifest: TJSONObject;
-  Reporter: TWBReporter);
+{ True if the file already holds committed conflict markers. }
+function HasConflictMarkers(const FileName: string): Boolean;
+var
+  L: TStringList;
+  Line: string;
+begin
+  Result := False;
+  if not FileExists(FileName) then
+    Exit;
+  L := TStringList.Create;
+  try
+    L.LoadFromFile(FileName);
+    for Line in L do
+      if Copy(Line, 1, 8) = '<<<<<<< ' then
+        Exit(True);
+  finally
+    L.Free;
+  end;
+end;
+
+procedure ReportConflicts(const Info: TPreflight; const LocalDir: string;
+  LocalManifest: TJSONObject; Reporter: TWBReporter);
 var
   P, C: string;
-  Chunks, Others, Reopened: TStringArray;
+  Chunks, Others, Reopened, Stacked: TStringArray;
   Finished: TStringArray;
 begin
   Chunks := nil;
   Others := nil;
   Reopened := nil;
+  Stacked := nil;
   Finished := StringsOf(LocalManifest.Find('finished_chunks'));
   for P in Info.ConflictPaths do
   begin
@@ -432,6 +476,8 @@ begin
       Chunks := Concat(Chunks, [C]);
       if Contains(Finished, C) then
         Reopened := Concat(Reopened, [C]);
+      if HasConflictMarkers(LocalDir + PathDelim + SetDirSeparators(P)) then
+        Stacked := Concat(Stacked, [C]);
     end
     else
       Others := Concat(Others, [P]);
@@ -444,6 +490,8 @@ begin
     Reporter.Warn(Format(rsConflictFiles, [JoinNames(Others)]));
   if Length(Reopened) > 0 then
     Reporter.Warn(Format(rsReopened, [JoinNames(Reopened)]));
+  if Length(Stacked) > 0 then
+    Reporter.Warn(Format(rsStacked, [JoinNames(Stacked)]));
 end;
 
 { --- actions --- }
@@ -547,11 +595,68 @@ begin
   Result := 0;
 end;
 
+{ --- check of several packages: keep a scratch copy of each project as
+  the earlier packages would leave it --- }
+
+function SimDir(const Ctx: TImportContext; const Name: string): string;
+begin
+  Result := Ctx.SimRoot + PathDelim + Name;
+end;
+
+{ The imported copy becomes the project (new project, or overwrite). }
+procedure SimulatePlace(const Ctx: TImportContext; const Name, Src: string);
+begin
+  if DirectoryExists(SimDir(Ctx, Name)) then
+    DeleteTree(SimDir(Ctx, Name));
+  ForceDirectories(Ctx.SimRoot);
+  if not RenameFile(Src, SimDir(Ctx, Name)) then
+    Ctx.Reporter.Warn(Format(rsSimulateFailed, [ExtractFileName(Ctx.PackageFile)]));
+end;
+
+{ Merge into the scratch copy, cloning the real project first if needed.
+  The real project is only read (a --shared clone borrows its objects). }
+procedure SimulateMerge(const Ctx: TImportContext; const Name, LocalDir, Src: string;
+  ImportedManifest: TJSONObject);
+var
+  Sim: string;
+  Quiet: TWBListReporter;
+  QuietCtx: TImportContext;
+  SimManifest: TJSONObject;
+  Ok: Boolean;
+begin
+  Sim := SimDir(Ctx, Name);
+  ForceDirectories(Ctx.SimRoot);
+  if (LocalDir <> Sim) and
+     (RunGit(Ctx.SimRoot, ['clone', '-q', '--shared', '--no-tags', LocalDir, Sim]).ExitCode <> 0) then
+  begin
+    Ctx.Reporter.Warn(Format(rsSimulateFailed, [ExtractFileName(Ctx.PackageFile)]));
+    Exit;
+  end;
+  Quiet := TWBListReporter.Create;
+  SimManifest := nil;
+  try
+    QuietCtx := Ctx;
+    QuietCtx.Reporter := Quiet;
+    try
+      SimManifest := ReadJSONObjectFile(Sim + PathDelim + 'manifest.json');
+      Ok := DoMerge(QuietCtx, Sim, Src, SimManifest, ImportedManifest) = 0;
+    except
+      Ok := False;
+    end;
+    if not Ok then
+      Ctx.Reporter.Warn(Format(rsSimulateFailed, [ExtractFileName(Ctx.PackageFile)]));
+  finally
+    SimManifest.Free;
+    Quiet.Free;
+  end;
+end;
+
 function ImportEntry(const Ctx: TImportContext; Entry: TJSONObject): Integer;
 var
-  EntryPath, Src, Name, Dest, ErrorMsg, Version, Branch: string;
+  EntryPath, Src, Name, Dest, Local, ErrorMsg, Version, Branch: string;
   Manifest, LocalManifest: TJSONObject;
   Info: TPreflight;
+  InSim: Boolean;
 begin
   Result := 1;
   EntryPath := StrField(Entry, 'path');
@@ -607,6 +712,13 @@ begin
       Exit;
     end;
     Dest := Ctx.TargetDir + Name;
+    { What the project looks like now: the real one, or in a check of
+      several packages, the result of the earlier ones. }
+    InSim := Ctx.Simulate and DirectoryExists(SimDir(Ctx, Name));
+    if InSim then
+      Local := SimDir(Ctx, Name)
+    else
+      Local := Dest;
     Ctx.Reporter.Info(Format(rsProject, [Name,
       StrField(Manifest, 'target_language.name'), StrField(Manifest, 'project.name'),
       CommitDate(Src)]));
@@ -628,11 +740,15 @@ begin
        (RunGit(Src, ['branch', '-m', Branch, 'master']).ExitCode = 0) then
       Ctx.Reporter.Info(Format(rsRenamedBranch, [Branch]));
 
-    if not DirectoryExists(Dest) then
+    if not DirectoryExists(Local) then
     begin
       Ctx.Reporter.Info(Format(rsNewProject, [Dest]));
       if Ctx.DryRun then
+      begin
+        if Ctx.Simulate then
+          SimulatePlace(Ctx, Name, Src);
         Exit(0);
+      end;
       ForceDirectories(Ctx.TargetDir);
       if not RenameFile(Src, Dest) then
       begin
@@ -643,32 +759,39 @@ begin
       Exit(0);
     end;
 
-    Ctx.Reporter.Warn(Format(rsExists, [Name]));
+    if InSim then
+      Ctx.Reporter.Info(Format(rsExistsEarlier, [Name]))
+    else
+      Ctx.Reporter.Warn(Format(rsExists, [Name]));
 
-    if not IsRepo(Dest) then
+    if not IsRepo(Local) then
     begin
       if (Ctx.OnExisting = 'overwrite') and not Ctx.DryRun then
         Exit(DoOverwrite(Ctx, Dest, Src));
       if Ctx.DryRun then
-        Ctx.Reporter.Warn(Format(rsLocalNotRepo, [Name]))
+      begin
+        Ctx.Reporter.Warn(Format(rsLocalNotRepo, [Name]));
+        if Ctx.Simulate and (Ctx.OnExisting = 'overwrite') then
+          SimulatePlace(Ctx, Name, Src);
+      end
       else
         Ctx.Reporter.Error(Format(rsLocalNotRepo, [Name]));
       Exit(Ord(not Ctx.DryRun));
     end;
-    if FileExists(Dest + PathDelim + '.git' + PathDelim + 'MERGE_HEAD') then
+    if FileExists(Local + PathDelim + '.git' + PathDelim + 'MERGE_HEAD') then
     begin
       Ctx.Reporter.Error(Format(rsLocalMidMerge, [Name]));
       Exit;
     end;
-    if IsDirty(Dest) then
+    if IsDirty(Local) then
       Ctx.Reporter.Warn(rsLocalDirty);
 
-    if not AnalyzeMerge(Dest, Src, Ctx.WorkRoot, Info, ErrorMsg) then
+    if not AnalyzeMerge(Local, Src, Ctx.WorkRoot, Info, ErrorMsg) then
     begin
       Ctx.Reporter.Error(Format(rsPreflightFailed, [ErrorMsg]));
       Exit;
     end;
-    LocalManifest := ReadJSONObjectFile(Dest + PathDelim + 'manifest.json');
+    LocalManifest := ReadJSONObjectFile(Local + PathDelim + 'manifest.json');
     case Info.Kind of
       mkUpToDate:    Ctx.Reporter.Info(rsUpToDate);
       mkFastForward: Ctx.Reporter.Info(rsFastForward);
@@ -677,7 +800,7 @@ begin
         begin
           if Info.Unrelated then
             Ctx.Reporter.Warn(rsUnrelated);
-          ReportConflicts(Info, LocalManifest, Ctx.Reporter);
+          ReportConflicts(Info, Local, LocalManifest, Ctx.Reporter);
         end;
     end;
 
@@ -685,6 +808,11 @@ begin
     begin
       if (Ctx.OnExisting = 'stop') and (Info.Kind <> mkUpToDate) then
         Ctx.Reporter.Info(rsChooseAction);
+      if Ctx.Simulate then
+        if Ctx.OnExisting = 'overwrite' then
+          SimulatePlace(Ctx, Name, Src)
+        else if Info.Kind <> mkUpToDate then
+          SimulateMerge(Ctx, Name, Local, Src, Manifest);
       Exit(0);
     end;
 
@@ -722,7 +850,7 @@ end;
 function TTStudioImportModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('file', okFile, True, True, rsOptFile, rsOptFileHelp),
+    ListOptionDef('file', okFile, True, True, rsOptFile, rsOptFileHelp),
     ChoiceOptionDef('on-existing', ['stop', 'merge', 'overwrite'], 'stop',
       rsOptOnExisting, rsOptOnExistingHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp),
@@ -765,9 +893,10 @@ begin
   end;
 end;
 
-function TTStudioImportModule.Execute(Options: TStrings; Reporter: TWBReporter): Integer;
+{ One package. Ctx.PackageFile and Ctx.WorkRoot are this package's. }
+function ImportPackage(const Ctx: TImportContext): Integer;
 var
-  Ctx: TImportContext;
+  Reporter: TWBReporter;
   Pkg: TJSONObject;
   Entries: TJSONData;
   Version: Integer;
@@ -776,32 +905,12 @@ var
   When, Generator: string;
 begin
   Result := 1;
-  Ctx.Reporter := Reporter;
-  Ctx.PackageFile := ExpandFileName(Options.Values['file']);
-  Ctx.OnExisting := OptionValue(Self, Options, 'on-existing');
-  Ctx.DryRun := OptionIsSet(Options, 'dry-run');
-  if Options.Values['target-dir'] <> '' then
-    Ctx.TargetDir := IncludeTrailingPathDelimiter(ExpandFileName(Options.Values['target-dir']))
-  else
-    Ctx.TargetDir := TargetTranslationsPath;
-  { Work and backup dirs sit next to the projects folder, on the same disk,
-    so moving a project into place is a rename. }
-  Ctx.WorkRoot := ExtractFileDir(ExcludeTrailingPathDelimiter(Ctx.TargetDir)) + PathDelim +
-    '.btw-import-' + IntToStr(GetProcessID) + '-' + IntToStr(GetTickCount64);
-  Ctx.BackupRoot := ExtractFileDir(ExcludeTrailingPathDelimiter(Ctx.TargetDir)) + PathDelim +
-    'workbench-backups';
-
-  if not GitAvailable then
-  begin
-    Reporter.Error(rsNoGit);
-    Exit;
-  end;
+  Reporter := Ctx.Reporter;
   if not FileExists(Ctx.PackageFile) then
   begin
     Reporter.Error(Format(rsNoFile, [Ctx.PackageFile]));
     Exit;
   end;
-
   if not ForceDirectories(Ctx.WorkRoot) then
   begin
     Reporter.Error(Format(rsMoveFailed, [Ctx.PackageFile, Ctx.WorkRoot]));
@@ -852,9 +961,6 @@ begin
       Generator := '?';
     Reporter.Info(Format(rsPackageInfo, [ExtractFileName(Ctx.PackageFile),
       Generator, When, Entries.Count]));
-    Reporter.Info(Format(rsTargetDir, [ExcludeTrailingPathDelimiter(Ctx.TargetDir)]));
-    if not DirectoryExists(Ctx.TargetDir) and Ctx.DryRun then
-      Reporter.Info(rsTargetDirMissing);
 
     Result := 0;
     for I := 0 to Entries.Count - 1 do
@@ -872,6 +978,74 @@ begin
   finally
     Pkg.Free;
     DeleteTree(Ctx.WorkRoot);
+  end;
+end;
+
+function TTStudioImportModule.Execute(Options: TStrings; Reporter: TWBReporter): Integer;
+var
+  Ctx: TImportContext;
+  Files, Seen: TStringArray;
+  F, SessionRoot: string;
+  I, Code: Integer;
+begin
+  Result := 1;
+  Ctx.Reporter := Reporter;
+  Ctx.OnExisting := OptionValue(Self, Options, 'on-existing');
+  Ctx.DryRun := OptionIsSet(Options, 'dry-run');
+  if Options.Values['target-dir'] <> '' then
+    Ctx.TargetDir := IncludeTrailingPathDelimiter(ExpandFileName(Options.Values['target-dir']))
+  else
+    Ctx.TargetDir := TargetTranslationsPath;
+  { Scratch and backup dirs sit next to the projects folder, on the same
+    disk, so moving a project into place is a rename. }
+  SessionRoot := ExtractFileDir(ExcludeTrailingPathDelimiter(Ctx.TargetDir)) + PathDelim +
+    '.btw-import-' + IntToStr(GetProcessID) + '-' + IntToStr(GetTickCount64);
+  Ctx.SimRoot := SessionRoot + PathDelim + 'projects';
+  Ctx.BackupRoot := ExtractFileDir(ExcludeTrailingPathDelimiter(Ctx.TargetDir)) + PathDelim +
+    'workbench-backups';
+
+  if not GitAvailable then
+  begin
+    Reporter.Error(rsNoGit);
+    Exit;
+  end;
+
+  Files := nil;
+  Seen := nil;
+  for F in OptionValues(Options, 'file') do
+    if Contains(Seen, ExpandFileName(F)) then
+      Reporter.Warn(Format(rsDuplicateFile, [ExtractFileName(F)]))
+    else
+    begin
+      Seen := Concat(Seen, [ExpandFileName(F)]);
+      Files := Concat(Files, [ExpandFileName(F)]);
+    end;
+  Ctx.Simulate := Ctx.DryRun and (Length(Files) > 1);
+
+  Reporter.Info(Format(rsTargetDir, [ExcludeTrailingPathDelimiter(Ctx.TargetDir)]));
+  if not DirectoryExists(Ctx.TargetDir) and Ctx.DryRun then
+    Reporter.Info(rsTargetDirMissing);
+  if Ctx.Simulate then
+  begin
+    Reporter.Info(Format(rsCheckInOrder, [Length(Files)]));
+    if Ctx.OnExisting = 'stop' then
+      Reporter.Info(rsCheckAssumesMerge);
+  end;
+
+  Result := 0;
+  try
+    for I := 0 to High(Files) do
+    begin
+      if Length(Files) > 1 then
+        Reporter.Info('');
+      Ctx.PackageFile := Files[I];
+      Ctx.WorkRoot := SessionRoot + PathDelim + 'package-' + IntToStr(I + 1);
+      Code := ImportPackage(Ctx);
+      if Code > Result then
+        Result := Code;
+    end;
+  finally
+    DeleteTree(SessionRoot);
   end;
 end;
 

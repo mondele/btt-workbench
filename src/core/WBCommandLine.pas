@@ -5,7 +5,9 @@ unit WBCommandLine;
 { Turns a module's command-line arguments into the name=value list that
   TWBModule.Execute takes. Accepted forms:
     --name value   --name=value   --flag   positional
-  Positional arguments fill the module's Positional options in order. }
+  Positional arguments fill the module's Positional options in order. A
+  Multiple option may be given repeatedly; if it is positional, it takes
+  every remaining positional argument. }
 
 interface
 
@@ -92,23 +94,33 @@ begin
           end;
           OptValue := Args[I];
         end;
-        Options.Values[OptName] := OptValue;
+        if Def.Multiple then
+          AddOptionValue(Options, OptName, OptValue)
+        else
+          Options.Values[OptName] := OptValue;
       end;
     end
     else
     begin
-      { Next positional option that has not been given by name. }
+      { Next positional option that has not been given by name. A Multiple
+        one stays current and collects the rest. }
       while (NextPositional <= High(Defs)) and
             (not Defs[NextPositional].Positional or
-             (Options.IndexOfName(Defs[NextPositional].Name) >= 0)) do
+             (not Defs[NextPositional].Multiple and
+              (Options.IndexOfName(Defs[NextPositional].Name) >= 0))) do
         Inc(NextPositional);
       if NextPositional > High(Defs) then
       begin
         ErrorMsg := Format(rsExtraArgument, [Arg]);
         Exit;
       end;
-      Options.Values[Defs[NextPositional].Name] := Arg;
-      Inc(NextPositional);
+      if Defs[NextPositional].Multiple then
+        AddOptionValue(Options, Defs[NextPositional].Name, Arg)
+      else
+      begin
+        Options.Values[Defs[NextPositional].Name] := Arg;
+        Inc(NextPositional);
+      end;
     end;
     Inc(I);
   end;

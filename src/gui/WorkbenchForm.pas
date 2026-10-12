@@ -11,6 +11,9 @@ unit WorkbenchForm;
   a Check button next to Run. StartWith opens a module with options from
   the command line and, if it has a check, runs it straight away: that is
   how a double-clicked .tstudio file lands on a preflight report.
+  AddFromOtherInstance does the same for a file double-clicked while the
+  window is open: it is added to the list and the check runs again.
+  A Multiple file/directory option is a multi-line field, one per line.
 
   Modules run on the GUI thread for now; the reporter pumps messages so
   the log stays live. Move to a worker thread once a module is slow. }
@@ -25,6 +28,7 @@ type
   TOptionEditor = record
     Def: TWBOptionDef;
     Edit: TEdit;
+    Memo: TMemo;        // Multiple options: one value per line
     Check: TCheckBox;
     Combo: TComboBox;
   end;
@@ -43,6 +47,9 @@ type
     FEditors: array of TOptionEditor;
     FLanguages: TStringArray;
     FSelected: Integer;
+    FBusy: Boolean;
+    FPendingModule: TWBModule;     // arrived while a module was running
+    FPendingOptions: TStringList;
     procedure BuildUI;
     procedure RebuildUI(Data: PtrInt);
     procedure ShowModule(Index: Integer);
@@ -51,10 +58,17 @@ type
     procedure BrowseClick(Sender: TObject);
     procedure RunClick(Sender: TObject);
     procedure AutoCheck(Data: PtrInt);
+    procedure ApplyPending(Data: PtrInt);
+    procedure FillFields(Options: TStrings; Append: Boolean);
   public
     constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
     { Select Module, fill its fields from Options, run its check if any. }
     procedure StartWith(Module: TWBModule; Options: TStrings);
+    { A request from another btt-workbench process: for the module already
+      shown, add its values (list options are extended) and check again;
+      otherwise like StartWith. }
+    procedure AddFromOtherInstance(Module: TWBModule; Options: TStrings);
   end;
 
 var
@@ -114,7 +128,14 @@ begin
   Height := 600;
   Position := poScreenCenter;
   FSelected := 0;
+  FPendingOptions := TStringList.Create;
   BuildUI;
+end;
+
+destructor TWorkbenchForm.Destroy;
+begin
+  FreeAndNil(FPendingOptions);
+  inherited Destroy;
 end;
 
 procedure TWorkbenchForm.BuildUI;
@@ -278,6 +299,7 @@ var
   Row: TPanel;
   Lbl: TLabel;
   Btn: TButton;
+  BtnHolder: TPanel;
   I, J: Integer;
 begin
   FSelected := Index;
@@ -297,6 +319,7 @@ begin
     begin
       FEditors[I].Def := Defs[I];
       FEditors[I].Edit := nil;
+      FEditors[I].Memo := nil;
       FEditors[I].Check := nil;
       FEditors[I].Combo := nil;
       if (Defs[I].Kind = okFlag) and (Defs[I].Name = 'dry-run') then
@@ -355,6 +378,36 @@ begin
         Continue;
       end;
 
+      if Defs[I].Multiple then
+      begin
+        Row.AutoSize := False;
+        Row.Height := 96;
+        Lbl.Layout := tlTop;
+        BtnHolder := TPanel.Create(Self);
+        BtnHolder.Parent := Row;
+        BtnHolder.Align := alRight;
+        BtnHolder.AutoSize := True;
+        BtnHolder.BevelOuter := bvNone;
+        BtnHolder.BorderSpacing.Left := 4;
+        if Defs[I].Kind in [okDirectory, okFile] then
+        begin
+          Btn := TButton.Create(Self);
+          Btn.Parent := BtnHolder;
+          Btn.Align := alTop;
+          Btn.AutoSize := True;
+          Btn.Caption := rsBrowse;
+          Btn.Tag := I;
+          Btn.OnClick := @BrowseClick;
+        end;
+        FEditors[I].Memo := TMemo.Create(Self);
+        FEditors[I].Memo.Parent := Row;
+        FEditors[I].Memo.Align := alClient;
+        FEditors[I].Memo.ScrollBars := ssAutoBoth;
+        FEditors[I].Memo.WordWrap := False;
+        FEditors[I].Memo.Hint := Defs[I].Help;
+        FEditors[I].Memo.ShowHint := True;
+        Continue;
+      end;
 
       if Defs[I].Kind in [okDirectory, okFile] then
       begin
@@ -383,10 +436,36 @@ begin
   FCheckButton.Visible := FHasCheck;
 end;
 
+procedure TWorkbenchForm.FillFields(Options: TStrings; Append: Boolean);
+var
+  I: Integer;
+  Value, V: string;
+begin
+  for I := 0 to High(FEditors) do
+  begin
+    Value := Options.Values[FEditors[I].Def.Name];
+    if Value = '' then
+      Continue;
+    if FEditors[I].Memo <> nil then
+    begin
+      if not Append then
+        FEditors[I].Memo.Clear;
+      for V in OptionValues(Options, FEditors[I].Def.Name) do
+        if FEditors[I].Memo.Lines.IndexOf(V) < 0 then
+          FEditors[I].Memo.Lines.Add(V);
+    end
+    else if FEditors[I].Edit <> nil then
+      FEditors[I].Edit.Text := Value
+    else if FEditors[I].Check <> nil then
+      FEditors[I].Check.Checked := OptionIsSet(Options, FEditors[I].Def.Name)
+    else if FEditors[I].Combo <> nil then
+      FEditors[I].Combo.ItemIndex := FEditors[I].Combo.Items.IndexOf(Value);
+  end;
+end;
+
 procedure TWorkbenchForm.StartWith(Module: TWBModule; Options: TStrings);
 var
   I, Idx: Integer;
-  Value: string;
 begin
   Idx := -1;
   for I := 0 to ModuleCount - 1 do
@@ -396,20 +475,62 @@ begin
     Exit;
   FModuleList.ItemIndex := Idx;
   ShowModule(Idx);
-  for I := 0 to High(FEditors) do
-  begin
-    Value := Options.Values[FEditors[I].Def.Name];
-    if Value = '' then
-      Continue;
-    if FEditors[I].Edit <> nil then
-      FEditors[I].Edit.Text := Value
-    else if FEditors[I].Check <> nil then
-      FEditors[I].Check.Checked := OptionIsSet(Options, FEditors[I].Def.Name)
-    else if FEditors[I].Combo <> nil then
-      FEditors[I].Combo.ItemIndex := FEditors[I].Combo.Items.IndexOf(Value);
-  end;
+  FillFields(Options, False);
   if FHasCheck then
     Application.QueueAsyncCall(@AutoCheck, 0);
+end;
+
+procedure TWorkbenchForm.AddFromOtherInstance(Module: TWBModule; Options: TStrings);
+var
+  Def: TWBOptionDef;
+  V: string;
+begin
+  if WindowState = wsMinimized then
+    WindowState := wsNormal;
+  ShowOnTop;
+  if FBusy then
+  begin
+    { Keep it until the running module finishes (RunClick picks it up). }
+    if FPendingModule <> Module then
+      FPendingOptions.Clear;
+    FPendingModule := Module;
+    for Def in Module.OptionDefs do
+      if Def.Multiple then
+      begin
+        for V in OptionValues(Options, Def.Name) do
+          AddOptionValue(FPendingOptions, Def.Name, V);
+      end
+      else if Options.Values[Def.Name] <> '' then
+        FPendingOptions.Values[Def.Name] := Options.Values[Def.Name];
+    Exit;
+  end;
+  if (ModuleCount = 0) or (ModuleAt(FSelected) <> Module) then
+  begin
+    StartWith(Module, Options);
+    Exit;
+  end;
+  FillFields(Options, True);
+  if FHasCheck then
+    Application.QueueAsyncCall(@AutoCheck, 0);
+end;
+
+procedure TWorkbenchForm.ApplyPending(Data: PtrInt);
+var
+  Module: TWBModule;
+  Options: TStringList;
+begin
+  if FPendingModule = nil then
+    Exit;
+  Module := FPendingModule;
+  Options := TStringList.Create;
+  try
+    Options.Assign(FPendingOptions);
+    FPendingModule := nil;
+    FPendingOptions.Clear;
+    AddFromOtherInstance(Module, Options);
+  finally
+    Options.Free;
+  end;
 end;
 
 procedure TWorkbenchForm.AutoCheck(Data: PtrInt);
@@ -437,8 +558,39 @@ var
   I: Integer;
   DirDlg: TSelectDirectoryDialog;
   FileDlg: TOpenDialog;
+  J: Integer;
 begin
   I := TComponent(Sender).Tag;
+  if FEditors[I].Memo <> nil then
+  begin
+    { List: add the chosen files (or folder) to the end. }
+    if FEditors[I].Def.Kind = okDirectory then
+    begin
+      DirDlg := TSelectDirectoryDialog.Create(nil);
+      try
+        DirDlg.Title := FEditors[I].Def.Caption;
+        if DirDlg.Execute and (FEditors[I].Memo.Lines.IndexOf(DirDlg.FileName) < 0) then
+          FEditors[I].Memo.Lines.Add(DirDlg.FileName);
+      finally
+        DirDlg.Free;
+      end;
+    end
+    else
+    begin
+      FileDlg := TOpenDialog.Create(nil);
+      try
+        FileDlg.Title := FEditors[I].Def.Caption;
+        FileDlg.Options := FileDlg.Options + [ofAllowMultiSelect];
+        if FileDlg.Execute then
+          for J := 0 to FileDlg.Files.Count - 1 do
+            if FEditors[I].Memo.Lines.IndexOf(FileDlg.Files[J]) < 0 then
+              FEditors[I].Memo.Lines.Add(FileDlg.Files[J]);
+      finally
+        FileDlg.Free;
+      end;
+    end;
+    Exit;
+  end;
   if FEditors[I].Def.Kind = okDirectory then
   begin
     DirDlg := TSelectDirectoryDialog.Create(nil);
@@ -473,7 +625,11 @@ var
   E: TOptionEditor;
   Code: Integer;
   IsCheck: Boolean;
+  Line: string;
 begin
+  if FBusy then
+    Exit;
+  FBusy := True;
   IsCheck := Sender = FCheckButton;
   M := ModuleAt(FSelected);
   Options := TStringList.Create;
@@ -488,6 +644,12 @@ begin
       begin
         if E.Check.Checked then
           Options.Values[E.Def.Name] := 'true';
+      end
+      else if E.Memo <> nil then
+      begin
+        for Line in E.Memo.Lines do
+          if Trim(Line) <> '' then
+            AddOptionValue(Options, E.Def.Name, Trim(Line));
       end
       else if E.Combo <> nil then
       begin
@@ -517,7 +679,10 @@ begin
     FCheckButton.Enabled := True;
     Reporter.Free;
     Options.Free;
+    FBusy := False;
   end;
+  if FPendingModule <> nil then
+    Application.QueueAsyncCall(@ApplyPending, 0);
 end;
 
 end.

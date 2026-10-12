@@ -57,11 +57,11 @@ msgid ""
 msgstr ""
 
 #: modtstudioimport:rsoptfile
-msgid "Package file"
+msgid "Package files"
 msgstr ""
 
 #: modtstudioimport:rsoptfilehelp
-msgid "The .tstudio file to import"
+msgid "The .tstudio file(s) to import, in order"
 msgstr ""
 
 #: modtstudioimport:rsoptonexisting
@@ -295,6 +295,37 @@ msgstr ""
 
 #: modtstudioimport:rsmovefailed
 msgid "Could not move %s to %s. Nothing changed."
+msgstr ""
+
+#: modtstudioimport:rscheckinorder
+msgid ""
+"Checking %d packages in the order given, each as if the ones before it had "
+"been imported."
+msgstr ""
+
+#: modtstudioimport:rscheckassumesmerge
+msgid ""
+"Where a project already exists, the check assumes you will choose merge."
+msgstr ""
+
+#: modtstudioimport:rsduplicatefile
+msgid "%s is listed more than once; importing it once."
+msgstr ""
+
+#: modtstudioimport:rsexistsearlier
+msgid "%s is also in an earlier package; checking against that result."
+msgstr ""
+
+#: modtstudioimport:rsstacked
+msgid ""
+"These chunks already have an unresolved conflict, so the conflicts will "
+"stack. BTT-Writer will offer every version to choose from: %s"
+msgstr ""
+
+#: modtstudioimport:rssimulatefailed
+msgid ""
+"Could not simulate importing %s; checks of later packages for this project "
+"may be incomplete."
 msgstr ""
 
 #: modulb2reg:rstitle

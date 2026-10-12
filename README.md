@@ -18,7 +18,7 @@ The interface is translatable from the start. All text comes from gettext
 | Module    | What it does |
 |-----------|--------------|
 | `ulb2reg` | Converts a target translation from ULB to REG: updates `manifest.json` and renames `*_ulb` to `*_reg`. Refuses if the manifest isn't ULB or the `_reg` folder already exists. Has a `--dry-run` option. |
-| `tstudio-import` | Imports a `.tstudio` package into BTT-Writer's `targetTranslations`. The check (`--dry-run`) reports whether each project is new, already up to date, or needs merging, and lists the chunks a merge would leave in conflict. If the project exists, `--on-existing` chooses `stop` (default), `merge` (as BTT-Writer does, with conflicts left for BTT-Writer to resolve) or `overwrite` (the old copy moves to `workbench-backups`). |
+| `tstudio-import` | Imports one or more `.tstudio` packages into BTT-Writer's `targetTranslations`. The check (`--dry-run`) reports whether each project is new, already up to date, or needs merging, and lists the chunks a merge would leave in conflict. Several packages (say, copies of one book from different tablets) are taken in the order given, and the check runs each one as if the earlier ones had been imported. If the project exists, `--on-existing` chooses `stop` (default), `merge` (as BTT-Writer does, with conflicts left for BTT-Writer to resolve) or `overwrite` (the old copy moves to `workbench-backups`). |
 
 ```sh
 btw list
@@ -27,6 +27,7 @@ btw ulb2reg ~/.config/BTT-Writer/targetTranslations/en_mat_text_ulb --dry-run
 btw --lang fr ulb2reg <project>
 btw tstudio-import ~/Desktop/en_tit_text_reg.tstudio --dry-run
 btw tstudio-import ~/Desktop/en_tit_text_reg.tstudio --on-existing merge
+btw tstudio-import tablet1.tstudio tablet2.tstudio --dry-run
 ```
 
 In the GUI, a module with a check gets a **Check** button next to **Run**.
@@ -40,6 +41,8 @@ tools/install-desktop.sh --remove  # undo
 
 Double-clicking a package then opens BTT Workbench on the import module and
 runs the check. Nothing changes until you choose what to do and press **Run**.
+Opening several packages at once, or double-clicking another while the
+window is open, adds them to the same list and checks them all again.
 
 Exit codes: `0` means success, `1` means the module failed, and `2` means a usage error.
 

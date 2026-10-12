@@ -16,7 +16,7 @@ implementation
 
 uses
   Classes, SysUtils, fpjson, Zipper, RegExpr,
-  WBReporter, WBGit, WBJson, TestUtil;
+  WBReporter, WBGit, WBJson, WBModule, WBCommandLine, TestUtil;
 
 const
   ProjectVersion = 8;
@@ -227,25 +227,79 @@ begin
   Result := Trim(Result);
 end;
 
-{ The checks BTT-Writer Desktop's render.js applies to a chunk's text:
-  replaceConflictCode swaps markers for <S>/<M>/<E>, then parseConflicts
-  needs a full S..M..E group and no stray markers. }
-function DesktopSeesConflict(const Text: string): Boolean;
+function Contains(const Items: TStringArray; const S: string): Boolean;
 var
-  T: string;
-  Re: TRegExpr;
+  X: string;
 begin
+  for X in Items do
+    if X = S then
+      Exit(True);
+  Result := False;
+end;
+
+{ BTT-Writer Desktop's render.js, ported: replaceConflictCode swaps the
+  markers for <S>/<M>/<E>; parseConflicts repeatedly unwraps the innermost
+  S..M..E group into @s@option@e@ pieces (so nested conflicts flatten into
+  one list), then collects the distinct options. Any marker left over is
+  Desktop's "Conflict Parsing Error", returned here as nil. }
+function DesktopConflictOptions(const Text: string): TStringArray;
+var
+  T, P3, P5, NewContent, Opt: string;
+  Re, OptRe: TRegExpr;
+begin
+  Result := nil;
   T := ReplaceRegExpr('<{7} HEAD\n', Text, '<S>', False);
   T := ReplaceRegExpr('={7}\n', T, '<M>', False);
   T := ReplaceRegExpr('>{7} \w{40}\n?', T, '<E>', False);
   Re := TRegExpr.Create('([^<>]*)(<S>)([^<>]*)(<M>)([^<>]*)(<E>)([^<>]*)');
+  OptRe := TRegExpr.Create('(@s@)([\s\S]+?)(@e@)');
   try
-    Result := Re.Exec(T);
-    if Result then
-      T := Re.Replace(T, '', False);
-    Result := Result and (Pos('<S>', T) = 0) and (Pos('<M>', T) = 0) and (Pos('<E>', T) = 0);
+    while Re.Exec(T) do
+    begin
+      P3 := Re.Match[3];
+      P5 := Re.Match[5];
+      if not OptRe.Exec(P3) then
+        P3 := '@s@' + P3 + '@e@';
+      if not OptRe.Exec(P5) then
+        P5 := '@s@' + P5 + '@e@';
+      NewContent := P3 + P5;
+      if Re.Match[1] <> '' then
+        NewContent := StringReplace(NewContent, '@s@', '@s@' + Re.Match[1], [rfReplaceAll]);
+      if Re.Match[7] <> '' then
+        NewContent := StringReplace(NewContent, '@e@', Re.Match[7] + '@e@', [rfReplaceAll]);
+      T := Copy(T, 1, Re.MatchPos[0] - 1) + NewContent +
+        Copy(T, Re.MatchPos[0] + Re.MatchLen[0], MaxInt);
+    end;
+    while OptRe.Exec(T) do
+    begin
+      Opt := Trim(OptRe.Match[2]);
+      if not Contains(Result, Opt) then
+        Result := Concat(Result, [Opt]);
+      T := Copy(T, 1, OptRe.MatchPos[0] - 1) + Copy(T, OptRe.MatchPos[0] + OptRe.MatchLen[0], MaxInt);
+    end;
+    if (Pos('<S>', T) > 0) or (Pos('<M>', T) > 0) or (Pos('<E>', T) > 0) then
+      Result := nil;
   finally
+    OptRe.Free;
     Re.Free;
+  end;
+end;
+
+function DesktopSeesConflict(const Text: string): Boolean;
+begin
+  Result := Length(DesktopConflictOptions(Text)) >= 2;
+end;
+
+function Occurrences(const Needle, Hay: string): Integer;
+var
+  P: Integer;
+begin
+  Result := 0;
+  P := Pos(Needle, Hay);
+  while P > 0 do
+  begin
+    Inc(Result);
+    P := Pos(Needle, Hay, P + Length(Needle));
   end;
 end;
 
@@ -259,8 +313,9 @@ end;
 
 procedure TestTStudioImportModule(const TempRoot: string);
 var
-  Base, Work, Local, Other, Pkg, Log, Before, Chunk: string;
+  Base, Work, Local, Other, Pkg, Pkg2, Log, Before, Chunk: string;
   Code: Integer;
+  Opts, ArgList: TStringList;
 begin
   Section('tstudio-import');
   Base := TempRoot + 'import' + PathDelim;
@@ -407,6 +462,79 @@ begin
   Check(Trim(RunGit(Local, ['status', '--porcelain']).Output) = '', '... all committed');
   Code := Import(Pack(NewProject(Root + 'v9', 9)), ['--dry-run'], Log);
   Check((Code <> 0) and (Pos('newer project format', Log) > 0), 'newer project format refused');
+
+  { List option parsing: positionals and repeated --file all collect }
+  Opts := TStringList.Create;
+  ArgList := TStringList.Create;
+  try
+    ArgList.CommaText := 'a.tstudio,--file,b.tstudio,c.tstudio,--dry-run';
+    Check(ParseModuleArgs(FindModule('tstudio-import'), ArgList, Opts, Log) and
+      (String.Join('|', OptionValues(Opts, 'file')) = 'a.tstudio|b.tstudio|c.tstudio'),
+      'several files: positionals and --file collect in order');
+  finally
+    ArgList.Free;
+    Opts.Free;
+  end;
+
+  { Two copies of a project that is new here }
+  Root := Base; Fresh('multi-new');
+  Work := NewProject(Root + 'remote');
+  Other := CloneOf(Work, Root + 'tablet2');
+  WriteChunk(Work, '01/01.txt', '\c 1 \v 1 Paul, a slave of God');
+  Commit(Work, 'tablet 1');
+  WriteChunk(Other, '01/04.txt', '\v 4 To Titus, my true child');
+  Commit(Other, 'tablet 2');
+  Pkg := Pack(Work);
+  Pkg2 := Pack(Other);
+  Code := Import(Pkg, [Pkg2, '--dry-run'], Log);
+  Check((Code = 0) and (Pos('New project', Log) > 0) and
+    (Pos('also in an earlier package', Log) > 0) and (Pos('no conflicts', Log) > 0),
+    'check of two copies: the second is checked against the first');
+  Check(not DirectoryExists(Target + 'xyz_tit_text_reg') and NoWorkDirsLeft,
+    '... and changes nothing, leaves no temp folders');
+  Code := Import(Pkg, [Pkg2, '--on-existing', 'merge'], Log);
+  Local := Target + 'xyz_tit_text_reg';
+  Check((Code = 0) and (Pos('slave', ReadFileText(Local + '/01/01.txt')) > 0) and
+    (Pos('true child', ReadFileText(Local + '/01/04.txt')) > 0), 'both copies imported and merged');
+
+  Root := Base; Fresh('multi-stop');
+  Code := Import(Pkg, [Pkg2], Log);
+  Local := Target + 'xyz_tit_text_reg';
+  Check((Code = 1) and DirectoryExists(Local) and (Pos('Choose merge or overwrite', Log) > 0) and
+    (Pos('true child', ReadFileText(Local + '/01/04.txt')) = 0),
+    'stop: first copy imported, second refused');
+
+  Code := Import(Pkg, [Pkg, '--dry-run'], Log);
+  Check(Pos('listed more than once', Log) > 0, 'a file listed twice is imported once');
+
+  { Local and two copies all change one chunk: the conflicts stack }
+  Root := Base; Fresh('multi-stack');
+  Work := NewProject(Root + 'remote');
+  Local := CloneOf(Work, Target);
+  Other := CloneOf(Work, Root + 'tablet2');
+  WriteChunk(Local, '01/01.txt', '\c 1 \v 1 Paul, a bondservant of God');
+  Commit(Local, 'local');
+  WriteChunk(Work, '01/01.txt', '\c 1 \v 1 Paul, a slave of God');
+  Commit(Work, 'tablet 1');
+  WriteChunk(Other, '01/01.txt', '\c 1 \v 1 Paul, a doulos of God');
+  Commit(Other, 'tablet 2');
+  Pkg := Pack(Work);
+  Pkg2 := Pack(Other);
+  Before := Head(Local);
+  Code := Import(Pkg, [Pkg2, '--dry-run'], Log);
+  Check((Code = 0) and (Pos('Checking 2 packages', Log) > 0) and
+    (Pos('assumes you will choose merge', Log) > 0), 'check of two packages says how it checks');
+  Check((Occurrences('1 chunk(s) in conflict', Log) = 2) and
+    (Pos('choose from: 01-01', Log) > 0), 'second copy: stacked conflict on 01-01 reported');
+  Check((Head(Local) = Before) and (Trim(RunGit(Local, ['status', '--porcelain']).Output) = '') and
+    NoWorkDirsLeft, '... the check leaves the local project alone');
+  Code := Import(Pkg, [Pkg2, '--on-existing', 'merge'], Log);
+  Check((Code = 0) and (Pos('choose from: 01-01', Log) > 0), 'merge of both reports the stacking');
+  Chunk := ReadFileText(Local + '/01/01.txt');
+  Check(String.Join('|', DesktopConflictOptions(Chunk)) =
+    '\c 1 \v 1 Paul, a bondservant of God|\c 1 \v 1 Paul, a slave of God|\c 1 \v 1 Paul, a doulos of God',
+    'stacked conflict: Desktop''s parser offers all three versions');
+  Check(Trim(RunGit(Local, ['status', '--porcelain']).Output) = '', '... all committed');
 
   { Folder name comes from the project manifest, not the zip path }
   Root := Base; Fresh('rename');

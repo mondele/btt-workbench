@@ -64,6 +64,14 @@ linker warnings are harmless.
   `.tstudio` files land on the import check).
 - Choice options (`ChoiceOptionDef`) show as dropdowns. Their values are
   stable API, like option names.
+- List options (`ListOptionDef`, `Multiple`) carry their values in one
+  name=value entry, separated by line feeds. Read them with `OptionValues`
+  and add with `AddOptionValue`. On the CLI they repeat, or take every
+  remaining positional argument. In JSON they are arrays. In the GUI they are a
+  memo, one value per line.
+- The GUI keeps one window per user (`src/gui/WBSingleWindow.pas`,
+  SimpleIPC pipe in `$XDG_RUNTIME_DIR`). A second `btt-workbench <module>
+  ...` hands its options to the open window and exits.
 - Default to BTT-Writer's data via `WBDataPaths`. `BTT_WRITER_DATA`
   overrides it, and modules that write should also take a `--target-dir`
   so tests never touch real data.
@@ -89,6 +97,9 @@ linker warnings are harmless.
 - `TProcess.ExitStatus` is the raw wait status (exit 1 reads as 256). Use
   `ExitCode`.
 - `Out` is a reserved word; it can't be a parameter or variable name.
+- Prefix new unit names with `WB`. FPC's fcl-base has `singleinstance`,
+  which `CustApp` (and so `Forms`) uses, and a project unit with the same
+  name shadows it and breaks the build.
 
 ## Conventions (from btt-writer-two / chunkCounter)
 

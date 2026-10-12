@@ -38,6 +38,7 @@ type
     Help: string;        // translated one-line help
     Choices: TStringArray; // okChoice: allowed values (stable, untranslated)
     Default: string;     // used when the option is not given ('' = none)
+    Multiple: Boolean;   // takes a list of values (see OptionValues)
   end;
   TWBOptionDefs = array of TWBOptionDef;
 
@@ -58,7 +59,14 @@ function OptionDef(const AName: string; AKind: TWBOptionKind;
   ARequired, APositional: Boolean; const ACaption, AHelp: string): TWBOptionDef;
 function ChoiceOptionDef(const AName: string; const AChoices: array of string;
   const ADefault, ACaption, AHelp: string): TWBOptionDef;
+{ OptionDef with Multiple set: a list of values. }
+function ListOptionDef(const AName: string; AKind: TWBOptionKind;
+  ARequired, APositional: Boolean; const ACaption, AHelp: string): TWBOptionDef;
 function OptionIsSet(Options: TStrings; const AName: string): Boolean;
+{ The non-empty values of a Multiple option, in order. }
+function OptionValues(Options: TStrings; const AName: string): TStringArray;
+{ Appends one value to a Multiple option. }
+procedure AddOptionValue(Options: TStrings; const AName, AValue: string);
 { The given value, or the option's Default when not given. }
 function OptionValue(Module: TWBModule; Options: TStrings; const AName: string): string;
 function OptionKindName(Kind: TWBOptionKind): string;
@@ -91,6 +99,35 @@ begin
   Result.Help := AHelp;
   Result.Choices := nil;
   Result.Default := '';
+  Result.Multiple := False;
+end;
+
+function ListOptionDef(const AName: string; AKind: TWBOptionKind;
+  ARequired, APositional: Boolean; const ACaption, AHelp: string): TWBOptionDef;
+begin
+  Result := OptionDef(AName, AKind, ARequired, APositional, ACaption, AHelp);
+  Result.Multiple := True;
+end;
+
+function OptionValues(Options: TStrings; const AName: string): TStringArray;
+var
+  V: string;
+begin
+  Result := nil;
+  for V in Options.Values[AName].Split([#10]) do
+    if Trim(V) <> '' then
+      Result := Concat(Result, [Trim(V)]);
+end;
+
+procedure AddOptionValue(Options: TStrings; const AName, AValue: string);
+var
+  Old: string;
+begin
+  Old := Options.Values[AName];
+  if Old = '' then
+    Options.Values[AName] := AValue
+  else
+    Options.Values[AName] := Old + #10 + AValue;
 end;
 
 function ChoiceOptionDef(const AName: string; const AChoices: array of string;

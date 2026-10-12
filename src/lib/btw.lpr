@@ -14,9 +14,11 @@ library btw;
     char* btw_list_modules(void);
           -> [{"id", "title", "description",
                "options": [{"name", "kind", "required", "positional",
-                            "caption", "help", "default", "choices"}]}]
+                            "caption", "help", "default", "choices",
+                            "multiple"}]}]
     char* btw_run_module(const char* id, const char* options_json);
           options_json: {"project": "/path", "dry-run": true}
+          (a "multiple" option takes an array: {"file": ["/a", "/b"]})
           -> {"exit_code": 0, "messages": [{"level": "info", "text": "..."}]}
     void  btw_free_string(char* s);
 
@@ -104,6 +106,7 @@ begin
         OptObj.Add('caption', Def.Caption);
         OptObj.Add('help', Def.Help);
         OptObj.Add('default', Def.Default);
+        OptObj.Add('multiple', Def.Multiple);
         Choices := TJSONArray.Create;
         for Choice in Def.Choices do
           Choices.Add(Choice);
@@ -127,7 +130,7 @@ var
   Options: TStringList;
   Parsed: TJSONData;
   M: TWBModule;
-  Code, I: Integer;
+  Code, I, J: Integer;
   Value: TJSONData;
 begin
   Reporter := TWBListReporter.Create;
@@ -151,7 +154,12 @@ begin
             for I := 0 to Parsed.Count - 1 do
             begin
               Value := Parsed.Items[I];
-              if Value.JSONType = jtBoolean then
+              if Value.JSONType = jtArray then
+              begin
+                for J := 0 to Value.Count - 1 do
+                  AddOptionValue(Options, TJSONObject(Parsed).Names[I], Value.Items[J].AsString);
+              end
+              else if Value.JSONType = jtBoolean then
                 Options.Values[TJSONObject(Parsed).Names[I]] := BoolToStr(Value.AsBoolean, 'true', '')
               else
                 Options.Values[TJSONObject(Parsed).Names[I]] := Value.AsString;

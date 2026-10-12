@@ -10,14 +10,18 @@ program BttWorkbench;
   A module id plus options (same syntax as btw) opens that module with its
   fields filled in, and runs its check if it has one. The .desktop file
   uses this for double-clicked .tstudio files:
-    btt-workbench tstudio-import %f }
+    btt-workbench tstudio-import %F
+
+  If a window is already open, a module request is handed to it instead
+  (WBSingleWindow), so files double-clicked one after another are added
+  to the same import list. }
 
 uses
   {$IFDEF UNIX}
   cthreads,
   {$ENDIF}
   Classes, SysUtils, Interfaces, Forms, Dialogs,
-  WBI18n, WBModule, WBCommandLine, WBAllModules, WorkbenchForm;
+  WBI18n, WBModule, WBCommandLine, WBAllModules, WorkbenchForm, WBSingleWindow;
 
 var
   Args, StartOptions: TStringList;
@@ -59,9 +63,14 @@ begin
       end;
     end;
 
+    if (StartModule <> nil) and (ErrorMsg = '') and
+       SendToRunningInstance(StartModule, StartOptions) then
+      Exit;
+
     Application.Scaled := True;
     Application.Initialize;
     Application.CreateForm(TWorkbenchForm, WorkbenchMain);
+    StartInstanceServer(@WorkbenchMain.AddFromOtherInstance);
     if StartModule <> nil then
       WorkbenchMain.StartWith(StartModule, StartOptions);
     if ErrorMsg <> '' then
