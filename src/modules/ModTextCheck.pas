@@ -42,7 +42,7 @@ resourcestring
   rsOptTypeHelp = 'Only these resources, comma-separated (reg, ulb, ...)';
   rsOptSkip = 'Skip checks';
   rsOptSkipHelp = 'Groups of checks to leave out, comma-separated: structure, ' +
-    'markers, punctuation, quotes, numbers, ascii, caps, source, words';
+    'markers, punctuation, quotes, numbers, ascii, caps, source, words, headings';
   rsOptProblemsOnly = 'Problems only';
   rsOptProblemsOnlyHelp = 'List only projects with findings';
   rsOptTargetDir = 'Projects folder';
@@ -103,6 +103,7 @@ resourcestring
   rsShortVerse = 'Verses very short compared with the source: %s';
   rsUntranslated = 'Verses that may be untranslated (many words shared with the source): %s';
   rsMixedCase = 'Words in mixed case: %s';
+  rsSectionTitle = 'Possible section titles in the text (should they be \s headings?): %s';
   rsComparedWith = 'Compared with source %s.';
   rsNoSource = 'No source text found to compare with; short verses are judged by length.';
 
@@ -157,6 +158,7 @@ begin
     ciShortVerse: Result := rsShortVerse;
     ciUntranslated: Result := rsUntranslated;
     ciMixedCase: Result := rsMixedCase;
+    ciSectionTitle: Result := rsSectionTitle;
   end;
 end;
 

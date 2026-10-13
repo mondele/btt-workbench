@@ -503,7 +503,7 @@ msgstr ""
 #: modtextcheck:rsoptskiphelp
 msgid ""
 "Groups of checks to leave out, comma-separated: structure, markers, "
-"punctuation, quotes, numbers, ascii, caps, source, words"
+"punctuation, quotes, numbers, ascii, caps, source, words, headings"
 msgstr ""
 
 #: modtextcheck:rsoptproblemsonlyhelp
@@ -704,6 +704,10 @@ msgstr ""
 
 #: modtextcheck:rsmixedcase
 msgid "Words in mixed case: %s"
+msgstr ""
+
+#: modtextcheck:rssectiontitle
+msgid "Possible section titles in the text (should they be \\s headings?): %s"
 msgstr ""
 
 #: modtextcheck:rscomparedwith

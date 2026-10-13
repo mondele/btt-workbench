@@ -14,7 +14,8 @@ procedure TestTextChecks(const TempRoot: string);
 implementation
 
 uses
-  Classes, SysUtils, WBReporter, WBUsfmChecks, WBVersification, WBSources, TestUtil;
+  Classes, SysUtils, fpjson, jsonparser, WBReporter, WBUsfmChecks, WBVersification, WBSources,
+  WBSectionTitles, TestUtil;
 
 function Chunk(const Ch, Ck, Text: string): TChunkText;
 begin
@@ -188,6 +189,72 @@ begin
   end;
 end;
 
+{ section_titles.py's functions on every input of usfm-tools'
+  test_section_titles.py (tests/fixtures/section-titles.jsonl). }
+procedure TestSectionTitlesAgainstPython;
+var
+  L: TStringList;
+  Row: TJSONData;
+  I, Bad, Total: Integer;
+  Fn, Got, Want: string;
+  Input, Heading: UnicodeString;
+  Found: Boolean;
+begin
+  L := TStringList.Create;
+  try
+    L.LoadFromFile(FixturePath('section-titles.jsonl'));
+    Bad := 0;
+    Total := 0;
+    for I := 1 to L.Count - 1 do
+    begin
+      if Trim(L[I]) = '' then
+        Continue;
+      Row := GetJSON(L[I]);
+      try
+        Fn := Row.Items[0].AsString;
+        Input := UTF8Decode(Row.Items[1].AsString);
+        if Row.Items[2].JSONType = jtNull then
+          Want := '<none>'
+        else if Row.Items[2].JSONType = jtBoolean then
+          Want := BoolToStr(Row.Items[2].AsBoolean, 'true', 'false')
+        else if Row.Items[2].JSONType = jtNumber then
+          Want := FormatFloat('0.0000', Row.Items[2].AsFloat)
+        else
+          Want := Row.Items[2].AsString;
+        if Fn = 'is_heading' then
+          Got := BoolToStr(IsHeading(Input), 'true', 'false')
+        else if Fn = 'is_possible_heading' then
+          Got := BoolToStr(IsPossibleHeading(Input), 'true', 'false')
+        else if Fn = 'is_capitalized' then
+          Got := BoolToStr(IsCapitalized(Input), 'true', 'false')
+        else if Fn = 'percent_titlecase' then
+          Got := FormatFloat('0.0000', PercentTitlecase(Input))
+        else
+        begin
+          Found := FindEolHeading(Input, Heading);
+          if Found then
+            Got := UTF8Encode(Heading)
+          else
+            Got := '<none>';
+        end;
+      finally
+        Row.Free;
+      end;
+      Inc(Total);
+      if Got <> Want then
+      begin
+        Inc(Bad);
+        WriteLn('    ', Fn, '(', StringReplace(UTF8Encode(Input), #10, '\n', [rfReplaceAll]),
+          '): got [', Got, '] section_titles.py [', Want, ']');
+      end;
+    end;
+    Check((Total >= 400) and (Bad = 0),
+      Format('section titles match section_titles.py on %d cases', [Total]));
+  finally
+    L.Free;
+  end;
+end;
+
 procedure TestStructure;
 var
   Hits: string;
@@ -227,6 +294,12 @@ begin
   Check(Pos('3 1:', Hits) = 0, 'all-ASCII verses not reported for a Latin-script text');
   Hits := HitList('JUD', [Chunk('01', '01', '\v 1 He said "go" and it''s "fine"')], [cgQuotes]);
   Check(Has(Hits, '75  4/0/1'), 'straight quotes counted, word-medial apostrophes apart');
+  Hits := HitList('JHN', [
+    Chunk('10', '01', '\v 1 Truly, I tell you, the sheep follow him.'#10'The Good Shepherd'#10'\v 2 He calls them by name.'),
+    Chunk('10', '03', '\v 3 They know his voice. Jesus Heals A Blind Man'),
+    Chunk('10', '04', '\v 4 He goes ahead of them, and they follow.')], [cgHeadings]);
+  Check(Has(Hits, '76 10-01 The Good Shepherd') and Has(Hits, '76 10-03 Jesus Heals A Blind Man') and
+    (Pos('10-04', Hits) = 0), 'possible section titles: own line and end of line');
   Hits := HitList('JUD', [Chunk('01', '01', '\v 1 Text, 12345 here')], AllCheckGroups - [cgNumbers]);
   Check(Pos('61 ', Hits) = 0, 'a skipped group is not checked');
 end;
@@ -298,6 +371,7 @@ begin
   Section('text checks (usfm-tools port)');
   TestAgainstVerifyUsfm;
   TestSentencesAgainstVerifyUsfm;
+  TestSectionTitlesAgainstPython;
   TestStructure;
   TestModule(TempRoot);
 end;

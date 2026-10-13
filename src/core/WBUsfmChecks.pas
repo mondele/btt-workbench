@@ -42,8 +42,12 @@ unit WBUsfmChecks;
      of the words shared with the source, Jaccard)
    - mixed-case words used fewer than 5 times (0.4, 0.5)
 
-   Not yet: section titles (76), footnote heuristics (43), the once-only
-   word statistic (0.2) and wordlist.tsv. *)
+   Tranche 3: possible section titles typed into the text (76), from
+   section_titles.py (WBSectionTitles), line by line as verifyUSFM's
+   reportSectionHeadings does.
+
+   Not yet: footnote heuristics (43), the once-only word statistic (0.2)
+   and wordlist.tsv. *)
 
 interface
 
@@ -52,7 +56,7 @@ uses
 
 type
   TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii,
-    cgCaps, cgSource, cgWords);
+    cgCaps, cgSource, cgWords, cgHeadings);
   TCheckGroups = set of TCheckGroup;
 
   TCheckId = (
@@ -69,7 +73,7 @@ type
     ciEmptyVerse, ciAsciiVerse,
     ciStraightQuotes, ciBackslashEol, ciNullBytes,
     ciCapsParagraph, ciCapsSentence, ciParagraphPunct,
-    ciShortVerse, ciUntranslated, ciMixedCase);
+    ciShortVerse, ciUntranslated, ciMixedCase, ciSectionTitle);
 
   TCheckHit = record
     Id: TCheckId;
@@ -101,7 +105,7 @@ function CheckChunks(const Book: string; const Chunks: TChunkTexts;
 implementation
 
 uses
-  uregexpr, Character, Generics.Collections, WBVersification;
+  uregexpr, Character, Generics.Collections, WBVersification, WBPyText, WBSectionTitles;
 
 type
   TStrMap = specialize TDictionary<string, string>;
@@ -140,10 +144,10 @@ const
     (Number: '44'; Group: cgCaps), (Number: '44.1'; Group: cgCaps),
     (Number: '26'; Group: cgCaps),
     (Number: '2'; Group: cgSource), (Number: '3.5'; Group: cgSource),
-    (Number: '0.4'; Group: cgWords));
+    (Number: '0.4'; Group: cgWords), (Number: '76'; Group: cgHeadings));
 
   GroupNames: array[TCheckGroup] of string = ('structure', 'markers',
-    'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words');
+    'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words', 'headings');
 
   { USFM 3 markers a chunk may hold (digits after a name are allowed). }
   KnownMarkers =
@@ -296,75 +300,6 @@ type
     procedure CheckCaps(const T: UnicodeString);
     procedure AddWords(const T: UnicodeString);
   end;
-
-function IsLowerChar(C: WideChar): Boolean;
-begin
-  Result := TCharacter.IsLower(C);
-end;
-
-function IsUpperChar(C: WideChar): Boolean;
-begin
-  Result := TCharacter.IsUpper(C);
-end;
-
-{ Python's str.islower / isupper: at least one cased character, all of
-  them that case. }
-function AllLower(const W: UnicodeString): Boolean;
-var
-  C: WideChar;
-  Cased: Boolean;
-begin
-  Cased := False;
-  for C in W do
-    if IsUpperChar(C) then
-      Exit(False)
-    else if IsLowerChar(C) then
-      Cased := True;
-  Result := Cased;
-end;
-
-function AllUpper(const W: UnicodeString): Boolean;
-var
-  C: WideChar;
-  Cased: Boolean;
-begin
-  Cased := False;
-  for C in W do
-    if IsLowerChar(C) then
-      Exit(False)
-    else if IsUpperChar(C) then
-      Cased := True;
-  Result := Cased;
-end;
-
-{ Python's str.istitle: upper case only after uncased, lower only after
-  cased, at least one cased. }
-function IsTitle(const W: UnicodeString): Boolean;
-var
-  C: WideChar;
-  PrevCased, Cased: Boolean;
-begin
-  PrevCased := False;
-  Cased := False;
-  for C in W do
-    if IsUpperChar(C) then
-    begin
-      if PrevCased then
-        Exit(False);
-      PrevCased := True;
-      Cased := True;
-    end
-    else if IsLowerChar(C) then
-    begin
-      if not PrevCased then
-        Exit(False);
-      PrevCased := True;
-      Cased := True;
-    end
-    else
-      PrevCased := False;
-  Result := Cased;
-end;
 
 { verifyUSFM's isMixed. }
 function IsMixed(const W: UnicodeString): Boolean;
@@ -545,31 +480,6 @@ begin
   AfterParagraph := False;
 end;
 
-type
-  TUnicodeWords = array of UnicodeString;
-
-{ Python's str.split(): runs of whitespace separate. }
-function SplitWords(const T: UnicodeString): TUnicodeWords;
-var
-  I, Start: Integer;
-begin
-  Result := nil;
-  I := 1;
-  while I <= Length(T) do
-  begin
-    while (I <= Length(T)) and (T[I] in [' ', #9, #10, #13]) do
-      Inc(I);
-    Start := I;
-    while (I <= Length(T)) and not (T[I] in [' ', #9, #10, #13]) do
-      Inc(I);
-    if I > Start then
-    begin
-      SetLength(Result, Length(Result) + 1);
-      Result[High(Result)] := Copy(T, Start, I - Start);
-    end;
-  end;
-end;
-
 { verifyUSFM's addWords, for the mixed-case check. }
 procedure TChecker.AddWords(const T: UnicodeString);
 const
@@ -707,6 +617,25 @@ begin
   end;
 end;
 
+type
+  TLines = array of UnicodeString;
+
+{ contents.split('\n'), carriage returns dropped. }
+function SplitLines(const T: UnicodeString): TLines;
+var
+  I, Start: Integer;
+begin
+  Result := nil;
+  Start := 1;
+  for I := 1 to Length(T) + 1 do
+    if (I > Length(T)) or (T[I] = #10) then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[High(Result)] := StringReplace(Copy(T, Start, I - Start), #13, '', [rfReplaceAll]);
+      Start := I + 1;
+    end;
+end;
+
 function BaseMarker(const Name: UnicodeString): string;
 var
   N: string;
@@ -756,7 +685,7 @@ var
   SrcWords, TgtWords: TStringList;
   Src, W, Info: string;
   Common, Union_, J: Integer;
-  Name: UnicodeString;
+  Name, Line, Title: UnicodeString;
 
   procedure AddVerseText(const T: UnicodeString);
   begin
@@ -803,6 +732,11 @@ begin
       Whole := Whole + Text + #10;
       C.Chapter := Ch;
       C.Verse := 0;
+
+      { Possible section titles, line by line (reportSectionHeadings) }
+      for Line in SplitLines(Text) do
+        if LineHasHeading(Line, Title) then
+          C.Hit(ciSectionTitle, Label_, A(Title));
 
       { Marker format, on the raw chunk (verifyChapterAndVerseMarkers). }
       M := Re(reBadVerse1);

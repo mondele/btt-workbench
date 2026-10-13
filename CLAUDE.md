@@ -142,7 +142,11 @@ linker warnings are harmless.
   them. `tests/fixtures/verifyusfm-samples.tsv` holds texts with what
   verifyUSFM itself reports; regenerate the expected column from the
   Python when adding samples. `WBVersification` is generated from
-  `usfm_verses.py`.
+  `usfm_verses.py`. `WBSectionTitles` ports `section_titles.py`;
+  `tests/fixtures/section-titles.jsonl` holds the Python's answers for
+  every input of usfm-tools' `test_section_titles.py`. `WBPyText` has the
+  Python string semantics (islower/isupper/istitle/split) they rely on.
+  TRegExpr's `ExecPos` searches the last `InputString`: set it first.
 - Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
   drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps
