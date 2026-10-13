@@ -503,7 +503,7 @@ msgstr ""
 #: modtextcheck:rsoptskiphelp
 msgid ""
 "Groups of checks to leave out, comma-separated: structure, markers, "
-"punctuation, quotes, numbers, ascii, caps, source, words, headings"
+"punctuation, quotes, numbers, ascii, caps, source, words, headings, footnotes"
 msgstr ""
 
 #: modtextcheck:rsoptproblemsonlyhelp
@@ -704,6 +704,20 @@ msgstr ""
 
 #: modtextcheck:rsmixedcase
 msgid "Words in mixed case: %s"
+msgstr ""
+
+#: modtextcheck:rsfootnotereference
+msgid "Chapter:verse references in the text (footnotes?): %s"
+msgstr ""
+
+#: modtextcheck:rsfootnotewheresource
+msgid ""
+"Brackets or parentheses where the source has a footnote (or the verse is "
+"optional): %s"
+msgstr ""
+
+#: modtextcheck:rsuntaggedfootnote
+msgid "Optional text or untagged footnotes in brackets: %s"
 msgstr ""
 
 #: modtextcheck:rssectiontitle

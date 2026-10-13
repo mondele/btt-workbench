@@ -30,6 +30,7 @@ type
     Verses: TVerseList;
     Texts: TStringArray;  // plain text of each verse in Verses (notes left
                           // out); '' for the 2nd.. verse of a range
+    Notes: array of Boolean;  // the verse has a footnote (<note>)
   end;
 
   TSourceChunking = class
@@ -68,6 +69,10 @@ function UsxVerses(const Text: string): TVerseList;
 function UsfmVerseMarkers(const Text: string): TVerseList;
 { The plain text of each verse UsxVerses finds, in the same order. }
 function UsxVerseTexts(const Text: string): TStringArray;
+type
+  TBoolList = array of Boolean;
+{ Whether each verse UsxVerses finds has a <note>, in the same order. }
+function UsxVerseNotes(const Text: string): TBoolList;
 
 implementation
 
@@ -220,6 +225,46 @@ begin
   end;
 end;
 
+function UsxVerseNotes(const Text: string): TBoolList;
+var
+  P, Q, A, B, V, Next: Integer;
+  Segment: string;
+begin
+  Result := nil;
+  P := Pos('<verse', Text);
+  while P > 0 do
+  begin
+    Next := Pos('<verse', Text, P + 6);
+    if Next > 0 then
+      Segment := Copy(Text, P, Next - P)
+    else
+      Segment := Copy(Text, P, MaxInt);
+    Q := P + 6;
+    while (Q <= Length(Text)) and not (Text[Q] in ['"', '<', '>']) do
+      Inc(Q);
+    if (Q <= Length(Text)) and (Text[Q] = '"') then
+    begin
+      Inc(Q);
+      A := ReadNumber(Text, Q);
+      B := A;
+      if (A >= 0) and (Q <= Length(Text)) and (Text[Q] = '-') then
+      begin
+        Inc(Q);
+        B := ReadNumber(Text, Q);
+        if B < A then
+          B := A;
+      end;
+      if A >= 0 then
+        for V := A to B do
+        begin
+          SetLength(Result, Length(Result) + 1);
+          Result[High(Result)] := Pos('<note', Segment) > 0;
+        end;
+    end;
+    P := Next;
+  end;
+end;
+
 function UsfmVerseMarkers(const Text: string): TVerseList;
 var
   P, Q, V: Integer;
@@ -329,6 +374,7 @@ var
     C.Chunks[N].Chunk := Parts[1];
     C.Chunks[N].Verses := UsxVerses(Text);
     C.Chunks[N].Texts := UsxVerseTexts(Text);
+    C.Chunks[N].Notes := UsxVerseNotes(Text);
     C.FIndex.AddObject(ChunkKey(Parts[0], Parts[1]), TObject(PtrInt(N)));
   end;
 

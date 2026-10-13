@@ -46,8 +46,14 @@ unit WBUsfmChecks;
    section_titles.py (WBSectionTitles), line by line as verifyUSFM's
    reportSectionHeadings does.
 
-   Not yet: footnote heuristics (43), the once-only word statistic (0.2)
-   and wordlist.tsv. *)
+   Footnotes (reportFootnotes): a chapter:verse reference in verse text
+   that is not a bracketed footnote (43); brackets or parentheses in a
+   verse where the source has a footnote, or that is optional (43.1);
+   other bracketed text (43.2). verifyUSFM learns the footnoted verses
+   by scanning its compare folder; here they come from the <note>s of the
+   source text compared with (none without a source).
+
+   Not ported: the once-only word statistic (0.2) and wordlist.tsv. *)
 
 interface
 
@@ -56,7 +62,7 @@ uses
 
 type
   TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii,
-    cgCaps, cgSource, cgWords, cgHeadings);
+    cgCaps, cgSource, cgWords, cgHeadings, cgFootnotes);
   TCheckGroups = set of TCheckGroup;
 
   TCheckId = (
@@ -73,7 +79,8 @@ type
     ciEmptyVerse, ciAsciiVerse,
     ciStraightQuotes, ciBackslashEol, ciNullBytes,
     ciCapsParagraph, ciCapsSentence, ciParagraphPunct,
-    ciShortVerse, ciUntranslated, ciMixedCase, ciSectionTitle);
+    ciShortVerse, ciUntranslated, ciMixedCase, ciSectionTitle,
+    ciFootnoteReference, ciFootnoteWhereSource, ciUntaggedFootnote);
 
   TCheckHit = record
     Id: TCheckId;
@@ -144,10 +151,13 @@ const
     (Number: '44'; Group: cgCaps), (Number: '44.1'; Group: cgCaps),
     (Number: '26'; Group: cgCaps),
     (Number: '2'; Group: cgSource), (Number: '3.5'; Group: cgSource),
-    (Number: '0.4'; Group: cgWords), (Number: '76'; Group: cgHeadings));
+    (Number: '0.4'; Group: cgWords), (Number: '76'; Group: cgHeadings),
+    (Number: '43'; Group: cgFootnotes), (Number: '43.1'; Group: cgFootnotes),
+    (Number: '43.2'; Group: cgFootnotes));
 
   GroupNames: array[TCheckGroup] of string = ('structure', 'markers',
-    'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words', 'headings');
+    'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words', 'headings',
+    'footnotes');
 
   { USFM 3 markers a chunk may hold (digits after a name are allowed). }
   KnownMarkers =
@@ -182,7 +192,8 @@ type
     reNumberEmbed, reNumberPrefix, reNumberSuffix, reUnsegmented, reNumberFormat,
     reLeadingZero, reNumber, reChapVerse, reEmbeddedQuote,
     reBadVerse1, reBadVerse2, reBadVerse3, reSlashVerse, reBackslashEol,
-    reEndSentence, reBadQuoted, reFirstWord, reEndSent);
+    reEndSentence, reBadQuoted, reFirstWord, reEndSent,
+    reReference, reBracketed, reParenNumber, reParenAmen);
 
 const
   Patterns: array[TRe] of UnicodeString = (
@@ -212,7 +223,12 @@ const
     '[.?!\x{0964}\x{0965}\x{1361}\x{1362}][^\w]*$',
     '^[?!\x{1361}\x{1362}]+[«“‘\-\x{2014}\x{2013}]',
     '(\w+-\w+|\w+)',
-    '[.?!\x{0964}\x{0965}\x{1361}\x{1362}].*?(\w+-\w+|\w+)');
+    '[.?!\x{0964}\x{0965}\x{1361}\x{1362}].*?(\w+-\w+|\w+)',
+    { footnotes }
+    '[\d]+[\s]*:[\s]*[\d]+',
+    '\[ *([^\]]+) *\]',
+    '\([\d, ]{0,11}\)',
+    '\( *Am[ei]+n[ae\. ]*\)');
 
 var
   Res: array[TRe] of TRegExpr;
@@ -291,6 +307,7 @@ type
     SentenceEnd, AfterParagraph: Boolean;
     Words: TCountMap;      // word -> count
     FirstRef: TStrMap;     // word -> reference of its first use
+    Footnoted: TStrMap;    // "c:v" of source verses with a footnote
     WordOrder: TStringList;
     procedure Hit(Id: TCheckId; const Ref, Detail: string);
     function VerseRef: string;
@@ -298,6 +315,7 @@ type
     procedure CheckNumbers(const T: UnicodeString; Footnote: Boolean);
     procedure TakeText(const T: UnicodeString; Footnote: Boolean);
     procedure CheckCaps(const T: UnicodeString);
+    procedure CheckFootnotes(const T: UnicodeString);
     procedure AddWords(const T: UnicodeString);
   end;
 
@@ -331,6 +349,16 @@ begin
     SetLength(Hits, 2 * HitCount + 16);
   Hits[HitCount] := H;
   Inc(HitCount);
+end;
+
+function CountChar(const T: UnicodeString; C: WideChar): Integer;
+var
+  X: WideChar;
+begin
+  Result := 0;
+  for X in T do
+    if X = C then
+      Inc(Result);
 end;
 
 function TChecker.VerseRef: string;
@@ -453,6 +481,55 @@ begin
     Hit(ciLeadingZero, VerseRef, A(Trim(Re(reLeadingZero).Match[0])));
 end;
 
+{ Non-overlapping matches of R in T (re.findall count). }
+function CountMatches(R: TRegExpr; const T: UnicodeString): Integer;
+begin
+  Result := 0;
+  if R.Exec(T) then
+    repeat
+      Inc(Result);
+    until not R.ExecNext;
+end;
+
+{ findFootnote, then reportFootnotes. }
+procedure TChecker.CheckFootnotes(const T: UnicodeString);
+var
+  Flag: UnicodeString;
+  FootnoteHere, Valid: Boolean;
+  Dummy: string;
+begin
+  if (Chapter = 0) or (Verse = 0) then
+    Exit;
+  FootnoteHere := IsOptionalVerse(Book, Chapter, Verse) or Footnoted.TryGetValue(VerseRef, Dummy);
+  Flag := '';
+  if Re(reReference).Exec(T) then
+    Flag := Re(reReference).Match[0]
+  else if ((Pos('(', T) > 0) or (Pos(')', T) > 0)) and FootnoteHere then
+  begin
+    { Numbers in parentheses (and "(Amen)") are not footnotes. }
+    if CountChar(T, '(') > CountMatches(Re(reParenNumber), T) + CountMatches(Re(reParenAmen), T) then
+      Flag := '(';
+  end
+  else if Pos('[', T) > 0 then
+  begin
+    if not Re(reBracketed).Exec(T) or (Pos(' ', Re(reBracketed).Match[1]) > 0) then
+      Flag := '[';
+  end;
+  if Flag = '' then
+    Exit;
+  if Pos(':', Flag) > 0 then
+  begin
+    { validBracketedFootnote: one bracketed part holding a reference }
+    Valid := Re(reBracketed).Exec(T) and Re(reReference).Exec(Re(reBracketed).Match[0]);
+    if not Valid then
+      Hit(ciFootnoteReference, VerseRef, A(Flag));
+  end
+  else if FootnoteHere then
+    Hit(ciFootnoteWhereSource, VerseRef, '')
+  else
+    Hit(ciUntaggedFootnote, VerseRef, '');
+end;
+
 { reportCaps, then the sentence state (sentences.py). }
 procedure TChecker.CheckCaps(const T: UnicodeString);
 var
@@ -527,6 +604,8 @@ begin
   if Pos('Conflict Parsing Error', T) > 0 then
     Hit(ciConflictParsingError, VerseRef, '');
   CheckPunctuation(T);
+  if not Footnote then
+    CheckFootnotes(T);
   if Re(rePeriod).Exec(T) then
   begin
     if Length(T) <= Re(rePeriod).MatchLen[0] + 1 then
@@ -701,6 +780,7 @@ begin
   TgtWords := TStringList.Create;
   C.Words := TCountMap.Create;
   C.FirstRef := TStrMap.Create;
+  C.Footnoted := TStrMap.Create;
   C.WordOrder := TStringList.Create;
   try
     C.Book := UpperCase(Book);
@@ -712,8 +792,13 @@ begin
       for I := 0 to High(Source.Chunks) do
         for J := 0 to High(Source.Chunks[I].Verses) do
           if (StrToIntDef(Source.Chunks[I].Chapter, 0) > 0) and (J <= High(Source.Chunks[I].Texts)) then
+          begin
             SourceText.AddOrSetValue(IntToStr(StrToInt(Source.Chunks[I].Chapter)) + ':' +
               IntToStr(Source.Chunks[I].Verses[J]), Source.Chunks[I].Texts[J]);
+            if (J <= High(Source.Chunks[I].Notes)) and Source.Chunks[I].Notes[J] then
+              C.Footnoted.AddOrSetValue(IntToStr(StrToInt(Source.Chunks[I].Chapter)) + ':' +
+                IntToStr(Source.Chunks[I].Verses[J]), '');
+          end;
     Verses := nil;
     Seen := nil;
     SetLength(Seen, ChapterCount(Book) + 1);
@@ -968,6 +1053,7 @@ begin
   finally
     C.Words.Free;
     C.FirstRef.Free;
+    C.Footnoted.Free;
     C.WordOrder.Free;
     TgtWords.Free;
     SrcWords.Free;

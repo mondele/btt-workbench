@@ -1,0 +1,65 @@
+# verifyUSFM.py reportFootnotes results: chapter, verse, text, checks. Book MAT;
+# MAT 1:1 is footnoted in the source, MAT 17:21 is optional, MAT 2:2 is neither.
+1	1	See 3:16 for more	43
+17	21	See 3:16 for more	43
+2	2	See 3:16 for more	43
+1	1	see [3:16] here	
+17	21	see [3:16] here	
+2	2	see [3:16] here	
+1	1	see [ 3 : 16 ] here	
+17	21	see [ 3 : 16 ] here	
+2	2	see [ 3 : 16 ] here	
+1	1	see [John 3:16] here	
+17	21	see [John 3:16] here	
+2	2	see [John 3:16] here	
+1	1	see [a] [3:16]	43
+17	21	see [a] [3:16]	43
+2	2	see [a] [3:16]	43
+1	1	He went (to the city).	43.1
+17	21	He went (to the city).	43.1
+2	2	He went (to the city).	
+1	1	He went (3).	
+17	21	He went (3).	
+2	2	He went (3).	
+1	1	He went (1, 2, 3).	
+17	21	He went (1, 2, 3).	
+2	2	He went (1, 2, 3).	
+1	1	(Amen.)	
+17	21	(Amen.)	
+2	2	(Amen.)	
+1	1	text (Amen) and (more words)	43.1
+17	21	text (Amen) and (more words)	43.1
+2	2	text (Amen) and (more words)	
+1	1	only ) close	
+17	21	only ) close	
+2	2	only ) close	
+1	1	a [word] here	
+17	21	a [word] here	
+2	2	a [word] here	
+1	1	a [two words] here	43.1
+17	21	a [two words] here	43.1
+2	2	a [two words] here	43.2
+1	1	orphan [ bracket	43.1
+17	21	orphan [ bracket	43.1
+2	2	orphan [ bracket	43.2
+1	1	plain text	
+17	21	plain text	
+2	2	plain text	
+1	1	x 12:5 and [y 1:2]	
+17	21	x 12:5 and [y 1:2]	
+2	2	x 12:5 and [y 1:2]	
+1	1	numbers (12345678901)	
+17	21	numbers (12345678901)	
+2	2	numbers (12345678901)	
+1	1	numbers (123456789012)	43.1
+17	21	numbers (123456789012)	43.1
+2	2	numbers (123456789012)	
+1	1	(Ameen ) end	
+17	21	(Ameen ) end	
+2	2	(Ameen ) end	
+1	1	[single]	
+17	21	[single]	
+2	2	[single]	
+1	1	text]	
+17	21	text]	
+2	2	text]	

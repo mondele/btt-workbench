@@ -255,6 +255,62 @@ begin
   end;
 end;
 
+{ reportFootnotes on tests/fixtures/verifyusfm-footnotes.tsv. }
+procedure TestFootnotesAgainstVerifyUsfm;
+var
+  L, Ids: TStringList;
+  Parts: TStringArray;
+  I, Bad, Total: Integer;
+  C: TChunkTexts;
+  H: TCheckHit;
+  Src: TSourceChunking;
+  Want: string;
+begin
+  L := TStringList.Create;
+  Ids := TStringList.Create;
+  Src := TSourceChunking.Create;
+  try
+    SetLength(Src.Chunks, 1);
+    Src.Chunks[0].Chapter := '01';
+    Src.Chunks[0].Chunk := '01';
+    Src.Chunks[0].Verses := [1];
+    Src.Chunks[0].Texts := ['x'];
+    Src.Chunks[0].Notes := [True];
+    L.LoadFromFile(FixturePath('verifyusfm-footnotes.tsv'));
+    Bad := 0;
+    Total := 0;
+    for I := 0 to L.Count - 1 do
+    begin
+      if (L[I] = '') or (L[I][1] = '#') then
+        Continue;
+      Parts := L[I].Split([#9]);
+      C := nil;
+      SetLength(C, 1);
+      C[0] := Chunk(Parts[0], Parts[1], '\v ' + Parts[1] + ' ' + Parts[2]);
+      Ids.Clear;
+      for H in CheckChunks('MAT', C, [cgFootnotes], Src) do
+        Ids.Add(CheckNumber(H.Id));
+      Ids.Sort;
+      Want := '';
+      if Length(Parts) > 3 then
+        Want := Parts[3];
+      Inc(Total);
+      if Ids.CommaText <> Want then
+      begin
+        Inc(Bad);
+        WriteLn('    ', Parts[2], ' at ', Parts[0], ':', Parts[1], ': got [', Ids.CommaText,
+          '] verifyUSFM [', Want, ']');
+      end;
+    end;
+    Check((Total >= 60) and (Bad = 0),
+      Format('footnote checks match verifyUSFM on %d cases', [Total]));
+  finally
+    Src.Free;
+    Ids.Free;
+    L.Free;
+  end;
+end;
+
 procedure TestStructure;
 var
   Hits: string;
@@ -372,6 +428,7 @@ begin
   TestAgainstVerifyUsfm;
   TestSentencesAgainstVerifyUsfm;
   TestSectionTitlesAgainstPython;
+  TestFootnotesAgainstVerifyUsfm;
   TestStructure;
   TestModule(TempRoot);
 end;
