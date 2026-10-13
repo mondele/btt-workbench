@@ -105,6 +105,9 @@ resourcestring
   rsEmptyRepo = '%s is empty. Skipped.';
   rsCloneFailed = 'Could not download %s: %s';
   rsSummary = '%d of %d repo(s) done, %d failed.';
+  rsSearching = 'Searching WACS for %s…';
+  rsGettingStates = 'Getting Primary/Active states for %d repo(s) from the BIEL ' +
+    'Public Data API (this can take a minute)…';
 
 function RepoSearchTerms(const Langs, Books: TStringArray): TStringArray;
 var
@@ -208,6 +211,10 @@ begin
       Seen := nil;
       for Term in Terms do
       begin
+        if Term <> '' then
+          Reporter.Info(Format(rsSearching, [Term]))
+        else
+          Reporter.Info(Format(rsSearching, [Trim(Options.Values['owner'])]));
         Found := Client.SearchRepos(Term, OwnerId);
         for R in Found do
           if not Contains(Seen, LowerCase(R.FullName)) and
@@ -231,10 +238,12 @@ begin
   States := nil;
   if (Length(Repos) > 0) and not OptionIsSet(Options, 'no-state') then
   begin
-    Terms := nil;
-    for R in Repos do
-      if not Contains(Terms, LowerCase(R.Name)) then
-        Terms := Concat(Terms, [LowerCase(R.Name)]);
+    { The search terms as name patterns: one short query. A pattern per
+      repo (hundreds of ILIKE clauses) takes the API many seconds. }
+    Terms := RepoSearchTerms(Langs, Books);
+    if Length(Terms) = 0 then
+      Terms := [Trim(Options.Values['owner']) + '/'];
+    Reporter.Info(Format(rsGettingStates, [Length(Repos)]));
     if not BielStates(Terms, States, Err) then
       Reporter.Warn(Format(rsStateFailed, [Err]));
   end;

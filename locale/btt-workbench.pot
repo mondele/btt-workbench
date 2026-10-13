@@ -1154,6 +1154,16 @@ msgstr ""
 msgid "%d of %d repo(s) done, %d failed."
 msgstr ""
 
+#: modwacsdownload:rssearching
+msgid "Searching WACS for %s…"
+msgstr ""
+
+#: modwacsdownload:rsgettingstates
+msgid ""
+"Getting Primary/Active states for %d repo(s) from the BIEL Public Data API "
+"(this can take a minute)…"
+msgstr ""
+
 #: modwacsupload:rstitle
 msgid "Upload to WACS"
 msgstr ""
@@ -1708,4 +1718,12 @@ msgstr ""
 
 #: workbenchform:rsfound
 msgid "Found %d item(s). Check the ones you want, then press Run."
+msgstr ""
+
+#: workbenchform:rsworking
+msgid "Working…"
+msgstr ""
+
+#: workbenchform:rsstillrunning
+msgid "A task is still running. Quit anyway?"
 msgstr ""

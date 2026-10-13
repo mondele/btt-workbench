@@ -8,7 +8,9 @@ unit WBBielCatalog;
   "<owner>/<repo>"; filtering by language id is unreliable there, so we
   filter by name with ILIKE patterns (as Sefer and the wacs-chunk-audit
   notes do). Patterns go in as GraphQL variables, so '_' and '%' in them
-  are escaped once, here. }
+  are escaped once, here. The API can take a minute to answer, so answers
+  are kept for ten minutes (per set of name fragments) for the rest of the
+  run: a second Find in the GUI is quick. }
 
 interface
 
@@ -37,7 +39,38 @@ var
 implementation
 
 uses
-  fpjson, WBHttp;
+  fpjson, syncobjs, DateUtils, Generics.Collections, WBHttp;
+
+type
+  TCached = record
+    When: TDateTime;
+    States: TBielStates;
+  end;
+
+const
+  CacheMinutes = 10;
+
+var
+  CacheLock: TCriticalSection;
+  Cache: specialize TDictionary<string, TCached>;
+
+function Endpoint: string; forward;
+
+function CacheKey(const Fragments: TStringArray): string;
+var
+  L: TStringList;
+  F: string;
+begin
+  L := TStringList.Create;
+  try
+    for F in Fragments do
+      L.Add(LowerCase(F));
+    L.Sort;
+    Result := Endpoint + '|' + L.CommaText;
+  finally
+    L.Free;
+  end;
+end;
 
 const
   Query =
@@ -85,10 +118,23 @@ var
   F, Owner, Repo: string;
   I: Integer;
   S: TBielState;
+  Key: string;
+  Hit: TCached;
 begin
   States := nil;
   ErrorMsg := '';
   Result := False;
+  Key := CacheKey(Fragments);
+  CacheLock.Enter;
+  try
+    if Cache.TryGetValue(Key, Hit) and (MinutesBetween(Now, Hit.When) < CacheMinutes) then
+    begin
+      States := Hit.States;
+      Exit(True);
+    end;
+  finally
+    CacheLock.Leave;
+  end;
   Body := TJSONObject.Create;
   try
     Ors := TJSONArray.Create;
@@ -144,6 +190,14 @@ begin
       States := Concat(States, [S]);
     end;
     Result := True;
+    Hit.When := Now;
+    Hit.States := States;
+    CacheLock.Enter;
+    try
+      Cache.AddOrSetValue(Key, Hit);
+    finally
+      CacheLock.Leave;
+    end;
   finally
     Reply.Free;
   end;
@@ -158,5 +212,13 @@ begin
       Exit(S.Status);
   Result := '';
 end;
+
+initialization
+  CacheLock := TCriticalSection.Create;
+  Cache := specialize TDictionary<string, TCached>.Create;
+
+finalization
+  Cache.Free;
+  CacheLock.Free;
 
 end.

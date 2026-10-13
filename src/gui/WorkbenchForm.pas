@@ -18,14 +18,18 @@ unit WorkbenchForm;
   check boxes: Find fills it from the module's Choices using the other
   fields as filters; nothing starts checked.
 
-  Modules run on the GUI thread for now; the reporter pumps messages so
-  the log stays live. Move to a worker thread once a module is slow. }
+  Find, Check and Run work on a background thread (TModuleJob), since
+  WACS and the BIEL Public Data API can take a minute: the window stays
+  responsive, messages reach the log as they come, and the buttons that
+  would start another job are disabled until it finishes. Modules never
+  touch the LCL, so running them off the GUI thread is safe; the log and
+  the lists are only changed on the GUI thread. }
 
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Graphics,
-  ComCtrls, WBReporter, WBModule;
+  ComCtrls, SyncObjs, WBReporter, WBModule;
 
 type
   TOptionEditor = record
@@ -37,8 +41,33 @@ type
     List: TListView;    // checklist options
   end;
 
+  TJobKind = (jkRun, jkFind);
+
+  { A module's Execute (Run, Check) or Choices (Find) on its own thread. }
+  TModuleJob = class(TThread)
+  protected
+    procedure Execute; override;
+  public
+    Kind: TJobKind;
+    Module: TWBModule;
+    Options: TStringList;
+    OptionName: string;   // jkFind: the checklist
+    EditorIndex: Integer;
+    IsCheck: Boolean;
+    Reporter: TWBReporter;
+    Valid: Boolean;       // jkRun: options passed validation
+    Code: Integer;        // jkRun
+    Found: Boolean;       // jkFind
+    List: TWBChoiceList;  // jkFind
+    destructor Destroy; override;
+  end;
+
   TWorkbenchForm = class(TForm)
   private
+    FJob: TModuleJob;
+    FLogLock: TCriticalSection;
+    FLogQueue: TStringList;   // lines from the job, waiting for the GUI thread
+    FFindButtons: array of TButton;
     FLangCombo: TComboBox;
     FModuleList: TListBox;
     FTitleLabel: TLabel;
@@ -54,6 +83,12 @@ type
     FBusy: Boolean;
     FPendingModule: TWBModule;     // arrived while a module was running
     FPendingOptions: TStringList;
+    procedure StartJob(Job: TModuleJob);
+    procedure JobDone(Sender: TObject);
+    procedure SetBusy(Value: Boolean);
+    procedure FlushLog(Data: PtrInt);
+    procedure QueueLog(const Line: string);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure BuildUI;
     procedure RebuildUI(Data: PtrInt);
     procedure ShowModule(Index: Integer);
@@ -110,30 +145,62 @@ resourcestring
   rsSelectAll = 'Select all';
   rsSelectNone = 'None';
   rsFound = 'Found %d item(s). Check the ones you want, then press Run.';
+  rsWorking = 'Working…';
+  rsStillRunning = 'A task is still running. Quit anyway?';
 
 type
-  TMemoReporter = class(TWBReporter)
+  { Hands messages from the job's thread to the form's log. }
+  TLogReporter = class(TWBReporter)
   private
-    FMemo: TMemo;
+    FForm: TWorkbenchForm;
   public
-    constructor Create(AMemo: TMemo);
+    constructor Create(AForm: TWorkbenchForm);
     procedure Message(Level: TWBMessageLevel; const Text: string); override;
   end;
 
-constructor TMemoReporter.Create(AMemo: TMemo);
+constructor TLogReporter.Create(AForm: TWorkbenchForm);
 begin
   inherited Create;
-  FMemo := AMemo;
+  FForm := AForm;
 end;
 
-procedure TMemoReporter.Message(Level: TWBMessageLevel; const Text: string);
+procedure TLogReporter.Message(Level: TWBMessageLevel; const Text: string);
 begin
   case Level of
-    mlInfo:    FMemo.Lines.Add(Text);
-    mlWarning: FMemo.Lines.Add(rsWarningPrefix + Text);
-    mlError:   FMemo.Lines.Add(rsErrorPrefix + Text);
+    mlInfo:    FForm.QueueLog(Text);
+    mlWarning: FForm.QueueLog(rsWarningPrefix + Text);
+    mlError:   FForm.QueueLog(rsErrorPrefix + Text);
   end;
-  Application.ProcessMessages;
+end;
+
+{ TModuleJob }
+
+procedure TModuleJob.Execute;
+begin
+  try
+    if Kind = jkFind then
+      Found := Module.Choices(OptionName, Options, Reporter, List)
+    else
+    begin
+      Valid := Module.ValidateOptions(Options, Reporter);
+      if Valid then
+        Code := Module.Execute(Options, Reporter);
+    end;
+  except
+    on E: Exception do
+    begin
+      Reporter.Error(E.Message);
+      Found := False;
+      Code := 2;
+    end;
+  end;
+end;
+
+destructor TModuleJob.Destroy;
+begin
+  Options.Free;
+  Reporter.Free;
+  inherited Destroy;
 end;
 
 { TWorkbenchForm }
@@ -146,13 +213,153 @@ begin
   Position := poScreenCenter;
   FSelected := 0;
   FPendingOptions := TStringList.Create;
+  FLogLock := TCriticalSection.Create;
+  FLogQueue := TStringList.Create;
+  OnCloseQuery := @FormCloseQuery;
   BuildUI;
 end;
 
 destructor TWorkbenchForm.Destroy;
 begin
   FreeAndNil(FPendingOptions);
+  FreeAndNil(FLogQueue);
+  FreeAndNil(FLogLock);
   inherited Destroy;
+end;
+
+procedure TWorkbenchForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  CanClose := not FBusy or (MessageDlg(rsStillRunning, mtConfirmation, [mbYes, mbNo], 0) = mrYes);
+end;
+
+{ Any thread: the line is shown when the GUI thread gets to it. }
+procedure TWorkbenchForm.QueueLog(const Line: string);
+begin
+  FLogLock.Enter;
+  try
+    FLogQueue.Add(Line);
+  finally
+    FLogLock.Leave;
+  end;
+  Application.QueueAsyncCall(@FlushLog, 0);
+end;
+
+procedure TWorkbenchForm.FlushLog(Data: PtrInt);
+var
+  Lines: TStringList;
+begin
+  Lines := TStringList.Create;
+  try
+    FLogLock.Enter;
+    try
+      Lines.Assign(FLogQueue);
+      FLogQueue.Clear;
+    finally
+      FLogLock.Leave;
+    end;
+    if (Lines.Count > 0) and (FLog <> nil) then
+      FLog.Lines.AddStrings(Lines);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TWorkbenchForm.SetBusy(Value: Boolean);
+var
+  B: TButton;
+begin
+  FBusy := Value;
+  FRunButton.Enabled := not Value;
+  FCheckButton.Enabled := not Value;
+  FModuleList.Enabled := not Value;
+  FLangCombo.Enabled := not Value;
+  for B in FFindButtons do
+    B.Enabled := not Value;
+  if Value then
+    Screen.Cursor := crAppStart
+  else
+    Screen.Cursor := crDefault;
+end;
+
+procedure TWorkbenchForm.StartJob(Job: TModuleJob);
+begin
+  FJob := Job;
+  SetBusy(True);
+  FLog.Clear;
+  FLog.Lines.Add(rsWorking);
+  Job.Reporter := TLogReporter.Create(Self);
+  Job.FreeOnTerminate := True;
+  Job.OnTerminate := @JobDone;
+  Job.Start;
+end;
+
+{ On the GUI thread, when the job's thread has finished. }
+procedure TWorkbenchForm.JobDone(Sender: TObject);
+var
+  Job: TModuleJob;
+  View: TListView;
+  Checked: TStringList;
+  Item: TListItem;
+  J: Integer;
+  S: string;
+begin
+  Job := TModuleJob(Sender);
+  FJob := nil;
+  FlushLog(0);
+  if (FLog.Lines.Count > 0) and (FLog.Lines[0] = rsWorking) then
+    FLog.Lines.Delete(0);
+  if Job.Kind = jkRun then
+  begin
+    if Job.Valid then
+    begin
+      FLog.Lines.Add('');
+      if Job.IsCheck and (Job.Code = 0) then
+        FLog.Lines.Add(rsCheckOk)
+      else if Job.IsCheck then
+        FLog.Lines.Add(Format(rsCheckFail, [Job.Code]))
+      else if Job.Code = 0 then
+        FLog.Lines.Add(rsFinishedOk)
+      else
+        FLog.Lines.Add(Format(rsFinishedFail, [Job.Code]));
+    end;
+  end
+  else if Job.Found and (ModuleAt(FSelected) = Job.Module) and
+          (Job.EditorIndex <= High(FEditors)) and (FEditors[Job.EditorIndex].List <> nil) then
+  begin
+    View := FEditors[Job.EditorIndex].List;
+    Checked := TStringList.Create;
+    try
+      for J := 0 to View.Items.Count - 1 do
+        if View.Items[J].Checked then
+          Checked.Add(View.Items[J].Caption);
+      View.BeginUpdate;
+      try
+        View.Items.Clear;
+        while View.Columns.Count > 1 do
+          View.Columns.Delete(View.Columns.Count - 1);
+        for S in Job.List.Headers do
+          View.Columns.Add.Caption := S;
+        for J := 0 to High(Job.List.Items) do
+        begin
+          Item := View.Items.Add;
+          Item.Caption := Job.List.Items[J].Value;
+          for S in Job.List.Items[J].Columns do
+            Item.SubItems.Add(S);
+          Item.Checked := Checked.IndexOf(Job.List.Items[J].Value) >= 0;
+        end;
+        for J := 0 to View.Columns.Count - 1 do
+          View.Columns[J].AutoSize := True;
+      finally
+        View.EndUpdate;
+      end;
+    finally
+      Checked.Free;
+    end;
+    FLog.Lines.Add(Format(rsFound, [Length(Job.List.Items)]));
+  end;
+  SetBusy(False);
+  if FPendingModule <> nil then
+    Application.QueueAsyncCall(@ApplyPending, 0);
 end;
 
 procedure TWorkbenchForm.BuildUI;
@@ -330,6 +537,7 @@ begin
   try
     while FOptionsPanel.ControlCount > 0 do
       FOptionsPanel.Controls[0].Free;
+    FFindButtons := nil;
     Defs := M.OptionDefs;
     SetLength(FEditors, Length(Defs));
     for I := 0 to High(Defs) do
@@ -414,6 +622,7 @@ begin
         Btn.Caption := rsFind;
         Btn.Tag := I;
         Btn.OnClick := @FindClick;
+        FFindButtons := Concat(FFindButtons, [Btn]);
         Btn := TButton.Create(Self);
         Btn.Parent := BtnHolder;
         Btn.Align := alTop;
@@ -761,67 +970,18 @@ end;
 
 procedure TWorkbenchForm.DoFind(Index: Integer);
 var
-  I, J: Integer;
-  M: TWBModule;
-  Options: TStringList;
-  Reporter: TMemoReporter;
-  List: TWBChoiceList;
-  View: TListView;
-  Checked: TStringList;
-  Item: TListItem;
-  S: string;
+  Job: TModuleJob;
 begin
-  if FBusy then
+  if FBusy or (Index > High(FEditors)) or (FEditors[Index].List = nil) then
     Exit;
-  FBusy := True;
-  I := Index;
-  View := FEditors[I].List;
-  M := ModuleAt(FSelected);
-  Options := TStringList.Create;
-  Checked := TStringList.Create;
-  Reporter := TMemoReporter.Create(FLog);
-  FRunButton.Enabled := False;
-  FCheckButton.Enabled := False;
-  Screen.BeginWaitCursor;
-  try
-    FLog.Clear;
-    CollectOptions(Options);
-    for J := 0 to View.Items.Count - 1 do
-      if View.Items[J].Checked then
-        Checked.Add(View.Items[J].Caption);
-    if M.Choices(FEditors[I].Def.Name, Options, Reporter, List) then
-    begin
-      View.BeginUpdate;
-      try
-        View.Items.Clear;
-        while View.Columns.Count > 1 do
-          View.Columns.Delete(View.Columns.Count - 1);
-        for S in List.Headers do
-          View.Columns.Add.Caption := S;
-        for J := 0 to High(List.Items) do
-        begin
-          Item := View.Items.Add;
-          Item.Caption := List.Items[J].Value;
-          for S in List.Items[J].Columns do
-            Item.SubItems.Add(S);
-          Item.Checked := Checked.IndexOf(List.Items[J].Value) >= 0;
-        end;
-        for J := 0 to View.Columns.Count - 1 do
-          View.Columns[J].AutoSize := True;
-      finally
-        View.EndUpdate;
-      end;
-      FLog.Lines.Add(Format(rsFound, [Length(List.Items)]));
-    end;
-  finally
-    Screen.EndWaitCursor;
-    FRunButton.Enabled := True;
-    FCheckButton.Enabled := True;
-    Reporter.Free;
-    Checked.Free;
-    Options.Free;
-    FBusy := False;
-  end;
+  Job := TModuleJob.Create(True);
+  Job.Kind := jkFind;
+  Job.Module := ModuleAt(FSelected);
+  Job.OptionName := FEditors[Index].Def.Name;
+  Job.EditorIndex := Index;
+  Job.Options := TStringList.Create;
+  CollectOptions(Job.Options);
+  StartJob(Job);
 end;
 
 procedure TWorkbenchForm.CheckAllClick(Sender: TObject);
@@ -844,50 +1004,19 @@ end;
 
 procedure TWorkbenchForm.RunClick(Sender: TObject);
 var
-  M: TWBModule;
-  Options: TStringList;
-  Reporter: TMemoReporter;
-  Code: Integer;
-  IsCheck: Boolean;
+  Job: TModuleJob;
 begin
   if FBusy then
     Exit;
-  FBusy := True;
-  IsCheck := Sender = FCheckButton;
-  M := ModuleAt(FSelected);
-  Options := TStringList.Create;
-  Reporter := TMemoReporter.Create(FLog);
-  FRunButton.Enabled := False;
-  FCheckButton.Enabled := False;
-  Screen.BeginWaitCursor;
-  try
-    FLog.Clear;
-    CollectOptions(Options);
-    if IsCheck then
-      Options.Values['dry-run'] := 'true';
-    if M.ValidateOptions(Options, Reporter) then
-    begin
-      Code := M.Execute(Options, Reporter);
-      FLog.Lines.Add('');
-      if IsCheck and (Code = 0) then
-        FLog.Lines.Add(rsCheckOk)
-      else if IsCheck then
-        FLog.Lines.Add(Format(rsCheckFail, [Code]))
-      else if Code = 0 then
-        FLog.Lines.Add(rsFinishedOk)
-      else
-        FLog.Lines.Add(Format(rsFinishedFail, [Code]));
-    end;
-  finally
-    Screen.EndWaitCursor;
-    FRunButton.Enabled := True;
-    FCheckButton.Enabled := True;
-    Reporter.Free;
-    Options.Free;
-    FBusy := False;
-  end;
-  if FPendingModule <> nil then
-    Application.QueueAsyncCall(@ApplyPending, 0);
+  Job := TModuleJob.Create(True);
+  Job.Kind := jkRun;
+  Job.Module := ModuleAt(FSelected);
+  Job.IsCheck := Sender = FCheckButton;
+  Job.Options := TStringList.Create;
+  CollectOptions(Job.Options);
+  if Job.IsCheck then
+    Job.Options.Values['dry-run'] := 'true';
+  StartJob(Job);
 end;
 
 end.
