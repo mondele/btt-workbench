@@ -3,51 +3,50 @@ unit WBSectionTitles;
 {$mode objfpc}{$H+}
 {$codepage utf8}
 
-(* Possible untagged section titles in translation text, ported from
-   usfm-tools' section_titles.py (Larry Versaw, Wycliffe Associates), which
-   verifyUSFM.py uses for its check 76. A short phrase in Title Case or
-   ALL CAPS, alone on a line or ending one, without quotes, markers or a
-   second sentence, is probably a heading the translator typed into the
-   text. The thresholds are section_titles.py's; the sentence helpers are
-   sentences.py's (firstword, nextstartpos). Strings are UnicodeString;
-   positions are 1-based. *)
+(* Possible untagged section titles, ported from usfm-tools'
+   section_titles.py (Larry Versaw, Wycliffe Associates; version of
+   2026-10). prob_heading gives a string a probability of being a heading
+   from its content only: Title Case or ALL CAPS, length, punctuation,
+   parentheses, one sentence, no quotes or markers; caseless scripts get a
+   low fixed value. verifyUSFM combines it with where the text is
+   (WBUsfmChecks). UnicodeString in, positions 1-based. *)
 
 interface
 
-{ isCapitalized: Title case word, apostrophes and hyphens allowed. }
-function IsCapitalized(const Word: UnicodeString): Boolean;
-{ percentTitlecase: share of the words that are capitalised. }
-function PercentTitlecase(const S: UnicodeString): Double;
-function IsHeading(const S: UnicodeString): Boolean;
-function IsPossibleHeading(const S: UnicodeString): Boolean;
-{ find_eol_heading: the heading ending Line, or '' (Found False). }
-function FindEolHeading(const Line: UnicodeString; out Heading: UnicodeString): Boolean;
-{ verifyUSFM's reportSectionHeadings for one line: True if the line holds
-  a possible section title; Title is it (or the line). }
-function LineHasHeading(const Line: UnicodeString; out Title: UnicodeString): Boolean;
+{ percentTitleOrCaps }
+function PercentTitleOrCaps(const S: UnicodeString): Double;
+{ prob_heading: 0.0 .. 1.0 }
+function ProbHeading(const S: UnicodeString): Double;
+{ find_parenthesized_heading: '' if none reaches RequiredProb. }
+function FindParenthesizedHeading(const Line: UnicodeString; RequiredProb: Double): UnicodeString;
+{ find_eol_heading: the line's last sentence if it reaches RequiredProb. }
+function FindEolHeading(const Line: UnicodeString; RequiredProb: Double): UnicodeString;
+{ References whose verse-ending phrases are not checked (exclude_eol_checks). }
+function EolCheckExcluded(const Reference: string): Boolean;
 
 implementation
 
 uses
-  SysUtils, uregexpr, WBPyText;
+  SysUtils, WBRegExpr, WBPyText, WBSentences;
+
+const
+  ExcludeEol = '|LEV 18:5|LEV 19:4|MAT 15:31|LUK 2:11|LUK 17:32|JHN 19:19|' +
+    'ACT 16:20|COL 3:22|2TI 4:18|REV 22:9|REV 22:20|';
 
 type
-  TPositions = array of Integer;
-  TRe = (reStartWord, reAnyMarker, reAmen, reForbidden, reSingleWordInParens,
-    reGoodStart, reFirstWord, reEndSent, reBadQuoted, reConflict);
+  TRe = (rePunct, rePPhrase, reDigit, reAnyMarker, reAmen, reSelah, reQuotes,
+    reGoodStart);
 
 const
   Patterns: array[TRe] of UnicodeString = (
-    '^[\w "‘“''\(\)]',
+    '[()*+,./:;<=>!?@[\]^{|}~\x{0964}\x{0965}\x{1361}\x{1362}\x{061F}\x{06D4}]',
+    '\([^()\n\t]+\)\s*$',
+    '\d',
     '\\[a-z]+[a-z1-5]* ?[0-9]*',
-    'Am[ei]+n',
+    '[AE]m[ei]+n',
+    'Sela',
     '["“‘‹«”›»]',
-    '^\(\s*\w+\s*\)',
-    '^[\w\(]',
-    '(\w+-\w+|\w+)',
-    '[.?!\x{0964}\x{0965}\x{1361}\x{1362}].*?(\w+-\w+|\w+)',
-    '^[?!\x{1361}\x{1362}]+[«“‘\-\x{2014}\x{2013}]',
-    '^<+ HEAD');
+    '^[\w\(]');
 
 var
   Res: array[TRe] of TRegExpr;
@@ -58,9 +57,34 @@ begin
   begin
     Res[R] := TRegExpr.Create(Patterns[R]);
     Res[R].UseUnicodeWordDetection := True;
-    Res[R].ModifierS := R = reEndSent;    // re.DOTALL
+    Res[R].ModifierI := R in [reAmen, reSelah];   // re.IGNORECASE
+    Res[R].ModifierM := R = rePPhrase;           // re.MULTILINE
   end;
   Result := Res[R];
+end;
+
+function Found(R: TRe; const S: UnicodeString): Boolean;
+begin
+  Result := (S <> '') and Re(R).Exec(S);
+end;
+
+function CountOf(R: TRe; const S: UnicodeString): Integer;
+begin
+  Result := 0;
+  if (S <> '') and Re(R).Exec(S) then
+    repeat
+      Inc(Result);
+    until not Re(R).ExecNext;
+end;
+
+function CountChar(const S: UnicodeString; C: WideChar): Integer;
+var
+  X: WideChar;
+begin
+  Result := 0;
+  for X in S do
+    if X = C then
+      Inc(Result);
 end;
 
 { str.strip(' \n') }
@@ -77,96 +101,23 @@ begin
   Result := Copy(S, A, B - A + 1);
 end;
 
-{ sentences.firstword }
-function FirstWord(const S: UnicodeString): UnicodeString;
+function WordCount(const S: UnicodeString): Integer;
 begin
-  if Re(reFirstWord).Exec(S) then
-    Result := Re(reFirstWord).Match[1]
-  else
-    Result := '';
+  Result := Length(SplitWords(S));
 end;
 
-{ sentences.nextstartpos: where each sentence (or part) starts. }
-function StartPositions(const S: UnicodeString): TPositions;
-var
-  W, E: TRegExpr;
-  NextWordEnd, SearchFrom: Integer;
-  Found: Boolean;
-begin
-  Result := nil;
-  if S = '' then
-    Exit;
-  W := Re(reFirstWord);
-  E := Re(reEndSent);
-  if not W.Exec(S) then
-    Exit;
-  E.InputString := S;     // ExecPos searches the last InputString
-  repeat
-    SetLength(Result, Length(Result) + 1);
-    Result[High(Result)] := W.MatchPos[0];
-    NextWordEnd := W.MatchPos[0] + W.MatchLen[0];
-    { endsent = endsent_re.search(str, nextword.end()), skipping matches
-      that badquoted_re matches }
-    Found := (NextWordEnd <= Length(S)) and E.ExecPos(NextWordEnd);
-    while Found and Re(reBadQuoted).Exec(E.Match[0]) do
-    begin
-      SearchFrom := E.MatchPos[0] + E.MatchLen[0];
-      Found := (SearchFrom <= Length(S)) and E.ExecPos(SearchFrom);
-    end;
-    if not Found then
-      Break;
-    { nextword = firstword_re.search(str, endsent.start() + 1) }
-    SearchFrom := E.MatchPos[0] + 1;
-    if (SearchFrom > Length(S)) or not W.ExecPos(SearchFrom) then
-      Break;
-  until False;
-end;
-
-function SentenceCount(const S: UnicodeString): Integer;
-begin
-  Result := Length(StartPositions(S));
-end;
-
-function IsCapitalized(const Word: UnicodeString): Boolean;
-var
-  Parts: array of UnicodeString;
-  Part: UnicodeString;
-  C: WideChar;
-  I: Integer;
-begin
-  if (Word = '') or not Re(reStartWord).Exec(Word) then
-    Exit(False);
-  { re.split("['’-]", word) }
-  Parts := nil;
-  Part := '';
-  for C in Word do
-    if (C = '''') or (C = '’') or (C = '-') then
-    begin
-      SetLength(Parts, Length(Parts) + 1);
-      Parts[High(Parts)] := Part;
-      Part := '';
-    end
-    else
-      Part := Part + C;
-  SetLength(Parts, Length(Parts) + 1);
-  Parts[High(Parts)] := Part;
-  Result := IsTitle(Parts[0]);
-  if Result then
-    for I := 1 to High(Parts) do
-      if not (AllLower(Parts[I]) or IsTitle(Parts[I])) then
-        Result := False;
-end;
-
-function PercentTitlecase(const S: UnicodeString): Double;
+function PercentTitleOrCaps(const S: UnicodeString): Double;
 var
   Words: TUnicodeWords;
   W: UnicodeString;
   N, Total: Integer;
 begin
+  if IsTitle(S) or AllUpper(S) then
+    Exit(1.0);
   Words := SplitWords(S);
   N := 0;
   for W in Words do
-    if IsCapitalized(W) then
+    if IsCapitalized(W) or AllUpper(W) then
       Inc(N);
   Total := Length(Words);
   if Total = 0 then
@@ -174,126 +125,156 @@ begin
   Result := N / Total;
 end;
 
-function LastWord(const S: UnicodeString): UnicodeString;
-var
-  Words: TUnicodeWords;
+{ A real constant as a Double. FPC evaluates untyped real constants in
+  extended precision on x86-64; Python adds doubles, and
+  _titlecase_threshold compares a sum with 0.67 for equality. }
+function D(X: Double): Double; inline;
 begin
-  Words := SplitWords(S);
-  if Length(Words) > 0 then
-    Result := Words[High(Words)]
-  else
-    Result := '';
+  Result := X;
 end;
 
-{ _titlecase_threshold; S already stripped. }
+{ disqualified }
+function Disqualified(const S: UnicodeString): Boolean;
+begin
+  Result := (S = '') or Found(reAnyMarker, S) or (S[1] = '\') or
+    ((Found(reAmen, S) or Found(reSelah, S)) and (WordCount(S) = 1));
+end;
+
+{ _titlecase_threshold }
 function TitlecaseThreshold(const S: UnicodeString): Double;
 var
-  I: Integer;
-  L: UnicodeString;
+  Ends, First, Last: UnicodeString;
 begin
-  if Length(S) < 5 then
-    Exit(2);
-  Result := 0.51;
-  if (S[Length(S)] = '''') or (S[Length(S)] = '’') then
-    Result := 1.2;
+  if Length(S) < 2 then
+    Exit(D(0.99));
+  Result := D(0.51);
+  if Pos(S[Length(S)], UnicodeString('''’,')) > 0 then
+    Result := D(0.99);
   if Pos(',', S) > 0 then
-    Result := Result + 0.16;
-  if Length(S) > 40 then
-    Result := Result + 0.01 * (Length(S) - 40);
-  if (S[1] = '(') and (S[Length(S)] = ')') then
-    Result := Result - 0.03;
-  if not Re(reGoodStart).Exec(S) then
-    Result := Result + 0.18;
-  for I := Length(S) - 2 to Length(S) do
-    if Pos(S[I], UnicodeString('.'#$0964#$0965#$1361#$1362)) > 0 then
+    Result := Result + D(0.16);
+  if Length(S) > 80 then
+    Result := Result + D(0.01) * (Length(S) - 80);
+  if WordCount(S) > 10 then
+    Result := Result + D(0.03) * (WordCount(S) - 10);
+  if (S[1] = '(') and (S[Length(S)] = ')') and (CountChar(S, '(') = 1) and
+     (CountChar(S, ')') = 1) then
+    Result := Result - D(0.03);
+  if not Found(reGoodStart, S) then
+    Result := Result + D(0.18);
+  Ends := EndsSentence(S);
+  if Ends <> '' then
+  begin
+    Result := Result + D(0.16);
+    if Pos(Ends, UnicodeString('!?;')) > 0 then
+      Result := D(0.99);
+  end
+  else
+  begin
+    First := FirstWord(S);
+    if IsCapitalized(First) or AllUpper(First) then
+      Result := Result - D(0.24);
+  end;
+  Last := LastWord(S);
+  if IsCapitalized(Last) or AllUpper(Last) then
+    Result := Result - D(0.08);
+  { Python compares the float with == D(0.67) }
+  if Result = D(0.67) then
+    Result := D(0.66);
+end;
+
+function ProbHeading(const S: UnicodeString): Double;
+var
+  T: UnicodeString;
+  Percent, Diff: Double;
+  NPunct: Integer;
+begin
+  T := StripSpaceNewline(S);
+  if Disqualified(T) then
+    Exit(0);
+  if (Length(T) < 2) or Found(reQuotes, T) or
+     ((SentenceCount(T) > 1) and not Found(reDigit, T)) then
+    Exit(D(0.01));
+  if IsCaseless(FirstWord(T)) then
+    Result := D(0.1)
+  else if AllUpper(T) then
+    Result := D(0.8)
+  else
+  begin
+    Percent := PercentTitleOrCaps(T);
+    Diff := Percent - TitlecaseThreshold(T);
+    if Diff >= D(0.0) then
     begin
-      Result := Result + 0.16;
-      if Length(SplitWords(S)) = 1 then
-        Result := 1.01;
+      Result := D(0.5);
+      if Percent >= D(0.8) then
+        Result := D(0.75);
     end
-    else if Pos(S[I], UnicodeString('!?,;')) > 0 then
-      Result := 0.99;
-  L := LastWord(S);
-  if not IsCapitalized(L) and not AllUpper(L) then
-    Result := Result + 0.24;
+    else
+      Result := D(0.04);
+  end;
+  if (T[1] = '(') and (T[Length(T)] = ')') then
+    Result := Result + D(0.15);
+  if Found(reDigit, T) and (Pos(':', T) > 0) then
+    Result := Result - D(0.1);
+  if Length(T) > 80 then
+    Result := Result - D(0.002) * (Length(T) - 80);
+  if WordCount(T) > 10 then
+    Result := Result - D(0.005) * (WordCount(T) - 10);
+  Result := Result - D(0.15) * CountChar(T, #10);
+  NPunct := CountOf(rePunct, T);
+  Result := Result - D(0.03) * NPunct;
+  if (Result > D(0.05)) and (T[Length(T)] = ',') then
+    Result := D(0.05);
+  if (Result > D(0.1)) and (T[Length(T)] = ':') then
+    Result := D(0.1);
+  if EndsSentence(T) <> '' then
+  begin
+    Result := Result - D(0.1);
+    Result := Result - D(0.3) * (NPunct - 1);
+  end;
+  if Result <= D(0.01) then
+    Result := D(0.01);
 end;
 
-function Qualifies(const S: UnicodeString; Threshold: Double): Boolean;
+function FindParenthesizedHeading(const Line: UnicodeString; RequiredProb: Double): UnicodeString;
 var
-  First: UnicodeString;
-  Possible: Boolean;
+  M: TRegExpr;
+  Possible, Next: UnicodeString;
 begin
-  First := FirstWord(S);
-  Possible := (Threshold <= 1) and (Pos(#10, S) = 0) and
-    not Re(reAnyMarker).Exec(S) and not Re(reAmen).Exec(S) and
-    (AllUpper(First) or IsCapitalized(First)) and
-    not Re(reForbidden).Exec(S) and not Re(reSingleWordInParens).Exec(S) and
-    (SentenceCount(S) = 1);
-  if not Possible then
-    Exit(False);
-  Result := AllUpper(S) or (PercentTitlecase(S) >= Threshold);
-  if not Result then
-    Result := (S[1] = '(') and (S[Length(S)] = ')') and
-      (AllUpper(S) or (PercentTitlecase(Copy(S, 2, Length(S) - 2)) >= Threshold));
+  Result := '';
+  M := Re(rePPhrase);
+  if (Line = '') or not M.Exec(Line) then
+    Exit;
+  repeat
+    Possible := Trim(M.Match[0]);
+    if ProbHeading(Possible) >= RequiredProb then
+    begin
+      Next := FirstWord(Copy(Line, M.MatchPos[0] + M.MatchLen[0], MaxInt));
+      if (Next = '') or not AllLower(Next) then
+        Exit(Possible);
+    end;
+  until not M.ExecNext;
 end;
 
-function IsHeading(const S: UnicodeString): Boolean;
-var
-  T: UnicodeString;
-begin
-  T := StripSpaceNewline(S);
-  if T = '' then
-    Exit(False);
-  Result := Qualifies(T, TitlecaseThreshold(T));
-end;
-
-function IsPossibleHeading(const S: UnicodeString): Boolean;
-var
-  T: UnicodeString;
-  Threshold: Double;
-begin
-  T := StripSpaceNewline(S);
-  if T = '' then
-    Exit(False);
-  Threshold := TitlecaseThreshold(T) - 0.21;
-  if Threshold < 0.45 then
-    Threshold := 0.45;
-  Result := Qualifies(T, Threshold);
-end;
-
-function FindEolHeading(const Line: UnicodeString; out Heading: UnicodeString): Boolean;
+function FindEolHeading(const Line: UnicodeString; RequiredProb: Double): UnicodeString;
 var
   Starts: TPositions;
   P: Integer;
 begin
-  Heading := '';
-  Result := False;
+  Result := '';
   Starts := StartPositions(Line);
   if Length(Starts) = 0 then
     Exit;
   P := Starts[High(Starts)];
   if (P > 1) and (Line[P - 1] = '(') then
     Dec(P);
-  if IsHeading(Copy(Line, P, MaxInt)) then
-  begin
-    Heading := Copy(Line, P, MaxInt);
-    Result := Heading <> '';
-  end;
+  Result := Copy(Line, P, MaxInt);
+  if ProbHeading(Result) < RequiredProb then
+    Result := '';
 end;
 
-function LineHasHeading(const Line: UnicodeString; out Title: UnicodeString): Boolean;
+function EolCheckExcluded(const Reference: string): Boolean;
 begin
-  Title := '';
-  Result := False;
-  if (Line = '') or Re(reConflict).Exec(Line) then
-    Exit;
-  if (Line[1] <> '\') and IsPossibleHeading(Line) then
-  begin
-    Title := StripSpaceNewline(Line);
-    Exit(True);
-  end;
-  Result := FindEolHeading(Line, Title);
-  Title := StripSpaceNewline(Title);
+  Result := Pos('|' + Reference + '|', ExcludeEol) > 0;
 end;
 
 procedure FreeRes;

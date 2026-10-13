@@ -134,6 +134,47 @@ linker warnings are harmless.
 - BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
   master`, pull and push `master` by name). `projects` moves `main` to
   `master` while scanning.
+- `WBUsfmChecks` ports usfm-tools' `verifyUSFM.py` (WA code, open licence;
+  credit Larry Versaw) from upstream Bible-Translation-Tools/usfm-tools
+  (not the stale mondele fork). Keep verifyUSFM's check numbers, regexes
+  and order of decisions; it tokenises like `usfmReader.py` and runs the
+  whole-book, block and token passes in verifyUSFM's order. Helpers:
+  `WBSentences` (sentences.py), `WBSectionTitles` (section_titles.py),
+  `WBPyText` (Python str semantics, `isCaseless`), `WBUnicodeNames`
+  (generated from Python's unicodedata), `WBVersification` (generated
+  from usfm_verses.py), `wbusfmchecks_enulb.inc` (footnotes.py list).
+- Regexes use `WBRegExpr`, an altered copy of FPC's regexpr (marked as
+  such, as its licence requires) whose `\w` excludes combining marks and
+  whose `\s`/`\d` are Unicode, like Python's; do not switch back to
+  `uregexpr`. Units with curly quotes in patterns need `{$codepage utf8}`.
+  Real constants compared for equality must be Doubles (FPC evaluates
+  untyped ones in extended precision; see `D()` in WBSectionTitles).
+  `TRegExpr.ExecPos` searches the last `InputString`: set it first.
+- Hot paths replace some regexes with direct scans or cheap pre-checks
+  that give the same matches (they are commented); the fixtures prove it.
+  Fixtures are regenerated from the upstream Python: `verifyusfm-*.tsv`,
+  `section-titles.jsonl`. When usfm-tools changes, regenerate and re-port.
+- A standalone FPC program using these units needs `cwstring` (lazbuild
+  programs here do without), or string conversion is very slow or fails.
+- Sources are downloaded from WACS, not Door43.
+- Network: `WBHttp` (fphttpclient + opensslsockets, own User-Agent,
+  readable errors), `WBGitea` (WACS REST, `/api/v1`, search paged at 50),
+  `WBBielCatalog` (BIEL Public Data API, Hasura GraphQL, Primary/Active
+  state; ILIKE patterns passed as variables so `_` is escaped once),
+  `WBWacs` (saved login in `[wacs]`; git gets the token through
+  `GIT_CONFIG_*` env via `RunGitAs`, never argv or `.git/config`).
+  Tests use `tests/FakeWacs.pas`, a local fphttpserver fake with
+  `file://` clone URLs; never test against the real WACS with writes.
+- FPC 3.2.2's `openssl` unit only looks for OpenSSL up to 1.1 on Unix;
+  `WBHttp`'s initialization adds `.3` to `DLLVersions` so HTTPS works on
+  current Linux.
+- `WBImport` is shared by tstudio-import and wacs-download:
+  `TImportContext.FromServer` switches the wording, `OnConflict = 'skip'`
+  leaves a project alone when a merge would conflict. Initialise contexts
+  with `Default(TImportContext)`.
+- BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
+  master`, pull and push `master` by name). `projects` moves `main` to
+  `master` while scanning.
 - `WBUsfmChecks` ports usfm-tools' `verifyUSFM.py` checks (WA code, open
   licence; credit Larry Versaw). Keep verifyUSFM's check numbers and
   regexes. It uses `uregexpr` on UnicodeString with `{$codepage utf8}`

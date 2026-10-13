@@ -503,7 +503,8 @@ msgstr ""
 #: modtextcheck:rsoptskiphelp
 msgid ""
 "Groups of checks to leave out, comma-separated: structure, markers, "
-"punctuation, quotes, numbers, ascii, caps, source, words, headings, footnotes"
+"punctuation, quotes, numbers, ascii, caps, source, words, headings, "
+"footnotes, brackets"
 msgstr ""
 
 #: modtextcheck:rsoptproblemsonlyhelp
@@ -546,12 +547,40 @@ msgstr ""
 msgid "Text before the first verse marker of a chunk: %s"
 msgstr ""
 
-#: modtextcheck:rsunknownmarker
-msgid "Unknown markers: %s"
+#: modtextcheck:rsslashverse
+msgid "\"/v\" typed instead of \"\\v\": %s"
+msgstr ""
+
+#: modtextcheck:rsunsupportedmarker
+msgid "Unsupported USFM markers in the text: %s"
+msgstr ""
+
+#: modtextcheck:rsunmarkedtext
+msgid "Text before verse 1 of chapter: %s"
+msgstr ""
+
+#: modtextcheck:rsverserange
+msgid "Problem in a verse range: %s"
+msgstr ""
+
+#: modtextcheck:rsversenonumber
+msgid "Verse marker without a number: %s"
 msgstr ""
 
 #: modtextcheck:rsfootnotemismatch
 msgid "Footnote start and end markers do not pair up (started/ended): %s"
+msgstr ""
+
+#: modtextcheck:rsfootnotenested
+msgid "Footnote starts before the previous one ends: %s"
+msgstr ""
+
+#: modtextcheck:rsfootnoteoutside
+msgid "Footnote markers outside \\f ... \\f*: %s"
+msgstr ""
+
+#: modtextcheck:rsnospacechapter
+msgid "No space between \\c and the chapter number: %s"
 msgstr ""
 
 #: modtextcheck:rsnospacebeforenumber
@@ -562,24 +591,32 @@ msgstr ""
 msgid "No space after the verse number: %s"
 msgstr ""
 
-#: modtextcheck:rsnothingbeforeverse
-msgid "No space before a verse marker: %s"
-msgstr ""
-
-#: modtextcheck:rsversenonumber
-msgid "Verse marker without a number: %s"
-msgstr ""
-
-#: modtextcheck:rsslashverse
-msgid "\"/v\" typed instead of \"\\v\": %s"
-msgstr ""
-
 #: modtextcheck:rsconflictparsingerror
 msgid "BTT-Writer \"Conflict Parsing Error\" text: %s"
 msgstr ""
 
-#: modtextcheck:rsanglebracket
-msgid "Angle bracket not closed: %s"
+#: modtextcheck:rsnullbytes
+msgid "Null bytes: %s"
+msgstr ""
+
+#: modtextcheck:rsfootnotespacing
+msgid "Space before a footnote marker: %s"
+msgstr ""
+
+#: modtextcheck:rsunmatchedparen
+msgid "Unmatched parentheses: %s"
+msgstr ""
+
+#: modtextcheck:rsunmatchedangle
+msgid "Unmatched angle brackets: %s"
+msgstr ""
+
+#: modtextcheck:rsunmatchedsquare
+msgid "Unmatched square brackets: %s"
+msgstr ""
+
+#: modtextcheck:rsunmatchedbrace
+msgid "Unmatched curly braces: %s"
 msgstr ""
 
 #: modtextcheck:rspunctuation
@@ -598,24 +635,16 @@ msgstr ""
 msgid "Punctuation after the closing quote: %s"
 msgstr ""
 
-#: modtextcheck:rsrepeatedquotes
-msgid "Repeated quote marks: %s"
-msgstr ""
-
 #: modtextcheck:rswordmedialpunct
 msgid "Punctuation inside a word: %s"
 msgstr ""
 
-#: modtextcheck:rsslash
-msgid "Forward slash in the text: %s"
-msgstr ""
-
 #: modtextcheck:rsbackslash
-msgid "Backslash in the text: %s"
+msgid "Stray backslash in the text: %s"
 msgstr ""
 
-#: modtextcheck:rsequals
-msgid "Equals sign in the text: %s"
+#: modtextcheck:rsunusualchar
+msgid "Unusual characters in the text: %s"
 msgstr ""
 
 #: modtextcheck:rsorphanpunct
@@ -626,8 +655,20 @@ msgstr ""
 msgid "Text begins with phrase-ending punctuation: %s"
 msgstr ""
 
+#: modtextcheck:rscurlybraces
+msgid "Curly braces in the book: %s"
+msgstr ""
+
+#: modtextcheck:rsrepeatedquotes
+msgid "Repeated quote marks: %s"
+msgstr ""
+
+#: modtextcheck:rsstraightquotes
+msgid "Straight quotes: %s double, %s single (not counting %s inside words)"
+msgstr ""
+
 #: modtextcheck:rsversenumberintext
-msgid "Verse number in the text (probable): %s"
+msgid "Verse number in the text: %s"
 msgstr ""
 
 #: modtextcheck:rspossibleversenumber
@@ -635,19 +676,23 @@ msgid "Possible verse number in the text: %s"
 msgstr ""
 
 #: modtextcheck:rsversereference
-msgid "Likely verse reference in the text (belongs in a footnote): %s"
+msgid "Possible verse reference in the text: %s"
 msgstr ""
 
 #: modtextcheck:rsembeddednumber
 msgid "Number inside a word: %s"
 msgstr ""
 
-#: modtextcheck:rsnumberprefix
-msgid "Invalid number prefix: %s"
+#: modtextcheck:rsfraction
+msgid "Possible fraction in the text: %s"
 msgstr ""
 
 #: modtextcheck:rsnumbersuffix
 msgid "Invalid number suffix: %s"
+msgstr ""
+
+#: modtextcheck:rsnumberprefix
+msgid "Invalid number prefix: %s"
 msgstr ""
 
 #: modtextcheck:rsunsegmented
@@ -666,20 +711,16 @@ msgstr ""
 msgid "Empty verses: %s"
 msgstr ""
 
+#: modtextcheck:rsshortverse
+msgid "Verses very short compared with the source: %s"
+msgstr ""
+
 #: modtextcheck:rsasciiverse
 msgid "Verses entirely in ASCII (untranslated?): %s"
 msgstr ""
 
-#: modtextcheck:rsstraightquotes
-msgid "Straight quotes: %s double, %s single (not counting %s inside words)"
-msgstr ""
-
-#: modtextcheck:rsbackslasheol
-msgid "Backslash at the end of a line: %s"
-msgstr ""
-
-#: modtextcheck:rsnullbytes
-msgid "Null bytes: %s"
+#: modtextcheck:rsuntranslated
+msgid "Verses that may be untranslated (many words shared with the source): %s"
 msgstr ""
 
 #: modtextcheck:rscapsparagraph
@@ -694,16 +735,38 @@ msgstr ""
 msgid "No sentence-ending punctuation before a paragraph break: %s"
 msgstr ""
 
-#: modtextcheck:rsshortverse
-msgid "Verses very short compared with the source: %s"
-msgstr ""
-
-#: modtextcheck:rsuntranslated
-msgid "Verses that may be untranslated (many words shared with the source): %s"
+#: modtextcheck:rschapterendpunct
+msgid "No sentence-ending punctuation at the end of the chapter before: %s"
 msgstr ""
 
 #: modtextcheck:rsmixedcase
 msgid "Words in mixed case: %s"
+msgstr ""
+
+#: modtextcheck:rsmixedcaserepeated
+msgid "Words in mixed case used more than once: %s"
+msgstr ""
+
+#: modtextcheck:rsmixedcasetoomany
+msgid "Too many mixed-case words; not all are listed%s"
+msgstr ""
+
+#: modtextcheck:rssectiontitle
+msgid ""
+"Possible section titles on a line of their own (should they be \\s "
+"headings?): %s"
+msgstr ""
+
+#: modtextcheck:rssectiontitleatend
+msgid "Possible section titles at the end of a verse: %s"
+msgstr ""
+
+#: modtextcheck:rsemptysectiontitle
+msgid "Empty section titles: %s"
+msgstr ""
+
+#: modtextcheck:rslonesection
+msgid "Only one section heading is marked in the book%s"
 msgstr ""
 
 #: modtextcheck:rsfootnotereference
@@ -711,17 +774,21 @@ msgid "Chapter:verse references in the text (footnotes?): %s"
 msgstr ""
 
 #: modtextcheck:rsfootnotewheresource
+msgid "Brackets or parentheses where the source has a footnote: %s"
+msgstr ""
+
+#: modtextcheck:rsoptionaltext
 msgid ""
-"Brackets or parentheses where the source has a footnote (or the verse is "
-"optional): %s"
+"Brackets or parentheses in optional verses (optional or alternative text?): "
+"%s"
+msgstr ""
+
+#: modtextcheck:rsfootnotecommonhere
+msgid "Brackets or parentheses where footnotes are common: %s"
 msgstr ""
 
 #: modtextcheck:rsuntaggedfootnote
 msgid "Optional text or untagged footnotes in brackets: %s"
-msgstr ""
-
-#: modtextcheck:rssectiontitle
-msgid "Possible section titles in the text (should they be \\s headings?): %s"
 msgstr ""
 
 #: modtextcheck:rscomparedwith

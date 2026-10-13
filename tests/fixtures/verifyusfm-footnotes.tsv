@@ -1,65 +1,194 @@
-# verifyUSFM.py reportFootnotes results: chapter, verse, text, checks. Book MAT;
-# MAT 1:1 is footnoted in the source, MAT 17:21 is optional, MAT 2:2 is neither.
-1	1	See 3:16 for more	43
-17	21	See 3:16 for more	43
-2	2	See 3:16 for more	43
-1	1	see [3:16] here	
-17	21	see [3:16] here	
-2	2	see [3:16] here	
-1	1	see [ 3 : 16 ] here	
-17	21	see [ 3 : 16 ] here	
-2	2	see [ 3 : 16 ] here	
-1	1	see [John 3:16] here	
-17	21	see [John 3:16] here	
-2	2	see [John 3:16] here	
-1	1	see [a] [3:16]	43
-17	21	see [a] [3:16]	43
-2	2	see [a] [3:16]	43
-1	1	He went (to the city).	43.1
-17	21	He went (to the city).	43.1
-2	2	He went (to the city).	
-1	1	He went (3).	
-17	21	He went (3).	
-2	2	He went (3).	
-1	1	He went (1, 2, 3).	
-17	21	He went (1, 2, 3).	
-2	2	He went (1, 2, 3).	
-1	1	(Amen.)	
-17	21	(Amen.)	
-2	2	(Amen.)	
-1	1	text (Amen) and (more words)	43.1
-17	21	text (Amen) and (more words)	43.1
-2	2	text (Amen) and (more words)	
-1	1	only ) close	
-17	21	only ) close	
-2	2	only ) close	
-1	1	a [word] here	
-17	21	a [word] here	
-2	2	a [word] here	
-1	1	a [two words] here	43.1
-17	21	a [two words] here	43.1
-2	2	a [two words] here	43.2
-1	1	orphan [ bracket	43.1
-17	21	orphan [ bracket	43.1
-2	2	orphan [ bracket	43.2
-1	1	plain text	
-17	21	plain text	
-2	2	plain text	
-1	1	x 12:5 and [y 1:2]	
-17	21	x 12:5 and [y 1:2]	
-2	2	x 12:5 and [y 1:2]	
-1	1	numbers (12345678901)	
-17	21	numbers (12345678901)	
-2	2	numbers (12345678901)	
-1	1	numbers (123456789012)	43.1
-17	21	numbers (123456789012)	43.1
-2	2	numbers (123456789012)	
-1	1	(Ameen ) end	
-17	21	(Ameen ) end	
-2	2	(Ameen ) end	
-1	1	[single]	
-17	21	[single]	
-2	2	[single]	
-1	1	text]	
-17	21	text]	
-2	2	text]	
+# verifyUSFM.py reportFootnotes (usfm-tools fdfde65): chapter, verse, text, setting, checks. Book MAT.
+# setting source: the source footnotes MAT 1:1; enulb: it has none, so Larry's en_ulb list counts (MAT 15:6). MAT 17:21 is optional.
+1	1	See 3:16 for more	source	43
+1	1	See 3:16 for more	enulb	43
+17	21	See 3:16 for more	source	43
+17	21	See 3:16 for more	enulb	43
+15	6	See 3:16 for more	source	43
+15	6	See 3:16 for more	enulb	43
+2	2	See 3:16 for more	source	43
+2	2	See 3:16 for more	enulb	43
+1	1	see [3:16] here	source	43.1
+1	1	see [3:16] here	enulb	43.4
+17	21	see [3:16] here	source	43.2
+17	21	see [3:16] here	enulb	43.2
+15	6	see [3:16] here	source	43.4
+15	6	see [3:16] here	enulb	43.3
+2	2	see [3:16] here	source	43.4
+2	2	see [3:16] here	enulb	43.4
+1	1	see [ 3 : 16 ] here	source	43.1
+1	1	see [ 3 : 16 ] here	enulb	43.4
+17	21	see [ 3 : 16 ] here	source	43.2
+17	21	see [ 3 : 16 ] here	enulb	43.2
+15	6	see [ 3 : 16 ] here	source	43.4
+15	6	see [ 3 : 16 ] here	enulb	43.3
+2	2	see [ 3 : 16 ] here	source	43.4
+2	2	see [ 3 : 16 ] here	enulb	43.4
+1	1	see [John 3:16] here	source	43.1
+1	1	see [John 3:16] here	enulb	43.4
+17	21	see [John 3:16] here	source	43.2
+17	21	see [John 3:16] here	enulb	43.2
+15	6	see [John 3:16] here	source	43.4
+15	6	see [John 3:16] here	enulb	43.3
+2	2	see [John 3:16] here	source	43.4
+2	2	see [John 3:16] here	enulb	43.4
+1	1	see [a] [3:16]	source	43
+1	1	see [a] [3:16]	enulb	43
+17	21	see [a] [3:16]	source	43
+17	21	see [a] [3:16]	enulb	43
+15	6	see [a] [3:16]	source	43
+15	6	see [a] [3:16]	enulb	43
+2	2	see [a] [3:16]	source	43
+2	2	see [a] [3:16]	enulb	43
+1	1	He went (to the city).	source	43.1
+1	1	He went (to the city).	enulb	
+17	21	He went (to the city).	source	43.2
+17	21	He went (to the city).	enulb	43.2
+15	6	He went (to the city).	source	
+15	6	He went (to the city).	enulb	43.3
+2	2	He went (to the city).	source	
+2	2	He went (to the city).	enulb	
+1	1	He went (3).	source	
+1	1	He went (3).	enulb	
+17	21	He went (3).	source	
+17	21	He went (3).	enulb	
+15	6	He went (3).	source	
+15	6	He went (3).	enulb	
+2	2	He went (3).	source	
+2	2	He went (3).	enulb	
+1	1	He went (1, 2, 3).	source	
+1	1	He went (1, 2, 3).	enulb	
+17	21	He went (1, 2, 3).	source	
+17	21	He went (1, 2, 3).	enulb	
+15	6	He went (1, 2, 3).	source	
+15	6	He went (1, 2, 3).	enulb	
+2	2	He went (1, 2, 3).	source	
+2	2	He went (1, 2, 3).	enulb	
+1	1	(Amen.)	source	
+1	1	(Amen.)	enulb	
+17	21	(Amen.)	source	
+17	21	(Amen.)	enulb	
+15	6	(Amen.)	source	
+15	6	(Amen.)	enulb	
+2	2	(Amen.)	source	
+2	2	(Amen.)	enulb	
+1	1	text (Amen) and (more words)	source	43.1
+1	1	text (Amen) and (more words)	enulb	
+17	21	text (Amen) and (more words)	source	43.2
+17	21	text (Amen) and (more words)	enulb	43.2
+15	6	text (Amen) and (more words)	source	
+15	6	text (Amen) and (more words)	enulb	43.3
+2	2	text (Amen) and (more words)	source	
+2	2	text (Amen) and (more words)	enulb	
+1	1	only ) close	source	
+1	1	only ) close	enulb	
+17	21	only ) close	source	
+17	21	only ) close	enulb	
+15	6	only ) close	source	
+15	6	only ) close	enulb	
+2	2	only ) close	source	
+2	2	only ) close	enulb	
+1	1	a [word] here	source	
+1	1	a [word] here	enulb	
+17	21	a [word] here	source	
+17	21	a [word] here	enulb	
+15	6	a [word] here	source	
+15	6	a [word] here	enulb	
+2	2	a [word] here	source	
+2	2	a [word] here	enulb	
+1	1	a [two words] here	source	43.1
+1	1	a [two words] here	enulb	43.4
+17	21	a [two words] here	source	43.2
+17	21	a [two words] here	enulb	43.2
+15	6	a [two words] here	source	43.4
+15	6	a [two words] here	enulb	43.3
+2	2	a [two words] here	source	43.4
+2	2	a [two words] here	enulb	43.4
+1	1	orphan [ bracket	source	43.1
+1	1	orphan [ bracket	enulb	43.4
+17	21	orphan [ bracket	source	43.2
+17	21	orphan [ bracket	enulb	43.2
+15	6	orphan [ bracket	source	43.4
+15	6	orphan [ bracket	enulb	43.3
+2	2	orphan [ bracket	source	43.4
+2	2	orphan [ bracket	enulb	43.4
+1	1	plain text	source	
+1	1	plain text	enulb	
+17	21	plain text	source	
+17	21	plain text	enulb	
+15	6	plain text	source	
+15	6	plain text	enulb	
+2	2	plain text	source	
+2	2	plain text	enulb	
+1	1	x 12:5 and [y 1:2]	source	43.1
+1	1	x 12:5 and [y 1:2]	enulb	43.4
+17	21	x 12:5 and [y 1:2]	source	43.2
+17	21	x 12:5 and [y 1:2]	enulb	43.2
+15	6	x 12:5 and [y 1:2]	source	43.4
+15	6	x 12:5 and [y 1:2]	enulb	43.3
+2	2	x 12:5 and [y 1:2]	source	43.4
+2	2	x 12:5 and [y 1:2]	enulb	43.4
+1	1	numbers (12345678901)	source	
+1	1	numbers (12345678901)	enulb	
+17	21	numbers (12345678901)	source	
+17	21	numbers (12345678901)	enulb	
+15	6	numbers (12345678901)	source	
+15	6	numbers (12345678901)	enulb	
+2	2	numbers (12345678901)	source	
+2	2	numbers (12345678901)	enulb	
+1	1	numbers (123456789012)	source	43.1
+1	1	numbers (123456789012)	enulb	
+17	21	numbers (123456789012)	source	43.2
+17	21	numbers (123456789012)	enulb	43.2
+15	6	numbers (123456789012)	source	
+15	6	numbers (123456789012)	enulb	43.3
+2	2	numbers (123456789012)	source	
+2	2	numbers (123456789012)	enulb	
+1	1	(Ameen ) end	source	
+1	1	(Ameen ) end	enulb	
+17	21	(Ameen ) end	source	
+17	21	(Ameen ) end	enulb	
+15	6	(Ameen ) end	source	
+15	6	(Ameen ) end	enulb	
+2	2	(Ameen ) end	source	
+2	2	(Ameen ) end	enulb	
+1	1	[single]	source	
+1	1	[single]	enulb	
+17	21	[single]	source	
+17	21	[single]	enulb	
+15	6	[single]	source	
+15	6	[single]	enulb	
+2	2	[single]	source	
+2	2	[single]	enulb	
+1	1	text]	source	
+1	1	text]	enulb	
+17	21	text]	source	
+17	21	text]	enulb	
+15	6	text]	source	
+15	6	text]	enulb	
+2	2	text]	source	
+2	2	text]	enulb	
+1	1	(Emin)	source	
+1	1	(Emin)	enulb	
+17	21	(Emin)	source	
+17	21	(Emin)	enulb	
+15	6	(Emin)	source	
+15	6	(Emin)	enulb	
+2	2	(Emin)	source	
+2	2	(Emin)	enulb	
+1	1	one (word) only	source	
+1	1	one (word) only	enulb	
+17	21	one (word) only	source	
+17	21	one (word) only	enulb	
+15	6	one (word) only	source	
+15	6	one (word) only	enulb	
+2	2	one (word) only	source	
+2	2	one (word) only	enulb	
+1	1	(two words) here	source	43.1
+1	1	(two words) here	enulb	
+17	21	(two words) here	source	43.2
+17	21	(two words) here	enulb	43.2
+15	6	(two words) here	source	
+15	6	(two words) here	enulb	43.3
+2	2	(two words) here	source	
+2	2	(two words) here	enulb	

@@ -15,7 +15,7 @@ implementation
 
 uses
   Classes, SysUtils, fpjson, jsonparser, WBReporter, WBUsfmChecks, WBVersification, WBSources,
-  WBSectionTitles, TestUtil;
+  WBSectionTitles, WBSentences, WBPyText, TestUtil;
 
 function Chunk(const Ch, Ck, Text: string): TChunkText;
 begin
@@ -59,146 +59,211 @@ begin
     'fixtures' + PathDelim + Name;
 end;
 
-procedure TestAgainstVerifyUsfm;
+{ Check numbers, sorted, from one verse of text through the engine. }
+function IdsFor(const Book, Chapter, Verse, Text: string; Groups: TCheckGroups;
+  Source: TSourceChunking; const Skip: array of string): string;
 var
-  L, Ids: TStringList;
-  Parts: TStringArray;
-  I, Bad, Total: Integer;
-  H: TCheckHit;
   C: TChunkTexts;
-  Id, Got, Want: string;
+  H: TCheckHit;
+  Ids: TStringList;
+  Id, X: string;
+  Skipped: Boolean;
 begin
-  L := TStringList.Create;
+  C := nil;
+  SetLength(C, 1);
+  C[0] := Chunk(Chapter, Verse, '\v ' + Verse + ' ' + Text);
   Ids := TStringList.Create;
   try
-    L.LoadFromFile(FixturePath('verifyusfm-samples.tsv'));
-    Bad := 0;
-    Total := 0;
-    for I := 0 to L.Count - 1 do
+    for H in CheckChunks(Book, C, Groups, Source) do
     begin
-      if (L[I] = '') or (L[I][1] = '#') then
-        Continue;
-      Parts := L[I].Split([#9]);
-      C := nil;
-      SetLength(C, 1);
-      C[0] := Chunk(Parts[0], Parts[1], '\v ' + Parts[1] + ' ' + Parts[2]);
-      Ids.Clear;
-      for H in CheckChunks('GEN', C, [cgPunctuation, cgNumbers, cgQuotes]) do
-      begin
-        Id := CheckNumber(H.Id);
-        if (Id <> '75') and (Id <> '56') and (Id <> '57') then
-          Ids.Add(Id);
-      end;
-      Ids.Sort;
-      Got := Ids.CommaText;
+      Id := CheckNumber(H.Id);
+      Skipped := False;
+      for X in Skip do
+        if X = Id then
+          Skipped := True;
+      if not Skipped then
+        Ids.Add(Id);
+    end;
+    Ids.Sort;
+    Result := Ids.CommaText;
+  finally
+    Ids.Free;
+  end;
+end;
+
+function SourceWith(const Chapter: string; Verse: Integer; const Text: string;
+  Footnoted: Boolean): TSourceChunking;
+begin
+  Result := TSourceChunking.Create;
+  SetLength(Result.Chunks, 1);
+  Result.Chunks[0].Chapter := Chapter;
+  Result.Chunks[0].Chunk := '01';
+  Result.Chunks[0].Verses := [Verse];
+  Result.Chunks[0].Texts := [Text];
+  Result.Chunks[0].Notes := [Footnoted];
+  Result.Chunks[0].NoteTexts := [''];
+end;
+
+{ Rows of a fixture: tab-separated fields, comments and blanks left out. }
+procedure EachRow(const Name: string; out Rows: TStringList);
+var
+  L: TStringList;
+  I: Integer;
+begin
+  L := TStringList.Create;
+  Rows := TStringList.Create;
+  try
+    L.LoadFromFile(FixturePath(Name));
+    for I := 0 to L.Count - 1 do
+      if (L[I] <> '') and (L[I][1] <> '#') then
+        Rows.Add(L[I]);
+  finally
+    L.Free;
+  end;
+end;
+
+procedure Compare(const What: string; Total, Bad, Least: Integer);
+begin
+  Check((Total >= Least) and (Bad = 0),
+    Format('%s match verifyUSFM on %d cases (%d differ)', [What, Total, Bad]));
+end;
+
+{ reportUnmatched, reportPunctuation, period_re and reportNumbers on
+  tests/fixtures/verifyusfm-samples.tsv. }
+procedure TestAgainstVerifyUsfm;
+var
+  Rows: TStringList;
+  P: TStringArray;
+  I, Bad: Integer;
+  Got, Want: string;
+begin
+  EachRow('verifyusfm-samples.tsv', Rows);
+  try
+    Bad := 0;
+    for I := 0 to Rows.Count - 1 do
+    begin
+      P := Rows[I].Split([#9]);
       Want := '';
-      if Length(Parts) > 3 then
-        Want := Parts[3];
-      Inc(Total);
+      if Length(P) > 3 then
+        Want := P[3];
+      Got := IdsFor('GEN', P[0], P[1], P[2], [cgPunctuation, cgNumbers, cgQuotes, cgBrackets],
+        nil, ['75', '75.1']);
       if Got <> Want then
       begin
         Inc(Bad);
-        WriteLn('    sample ', Parts[2], ': got [', Got, '] verifyUSFM [', Want, ']');
+        WriteLn('    ', P[2], ' at ', P[0], ':', P[1], ': got [', Got, '] verifyUSFM [', Want, ']');
       end;
     end;
-    Check((Total >= 60) and (Bad = 0), Format('punctuation and number checks match verifyUSFM on %d texts', [Total]));
+    Compare('punctuation, bracket and number checks', Rows.Count, Bad, 80);
   finally
-    Ids.Free;
-    L.Free;
+    Rows.Free;
   end;
 end;
 
-{ Capitalisation, end of sentence, isMixed and the similarity measure
-  against verifyUSFM's own answers (tests/fixtures/verifyusfm-sentences.tsv). }
+{ reportFootnotes on tests/fixtures/verifyusfm-footnotes.tsv. }
+procedure TestFootnotesAgainstVerifyUsfm;
+var
+  Rows: TStringList;
+  P: TStringArray;
+  I, Bad: Integer;
+  Got, Want: string;
+  Src: TSourceChunking;
+begin
+  EachRow('verifyusfm-footnotes.tsv', Rows);
+  try
+    Bad := 0;
+    for I := 0 to Rows.Count - 1 do
+    begin
+      P := Rows[I].Split([#9]);
+      Want := '';
+      if Length(P) > 4 then
+        Want := P[4];
+      Src := SourceWith('01', 1, 'x', P[3] = 'source');
+      try
+        Got := IdsFor('MAT', P[0], P[1], P[2], [cgFootnotes], Src, []);
+      finally
+        Src.Free;
+      end;
+      if Got <> Want then
+      begin
+        Inc(Bad);
+        WriteLn('    ', P[2], ' at ', P[0], ':', P[1], ' (', P[3], '): got [', Got,
+          '] verifyUSFM [', Want, ']');
+      end;
+    end;
+    Compare('footnote checks', Rows.Count, Bad, 180);
+  finally
+    Rows.Free;
+  end;
+end;
+
+{ reportCaps and takeP, isMixed over listwords, and similarity on
+  tests/fixtures/verifyusfm-sentences.tsv. }
 procedure TestSentencesAgainstVerifyUsfm;
 var
-  L, Got: TStringList;
-  Parts: TStringArray;
-  I, Bad, Total: Integer;
-  C: TChunkTexts;
-  H: TCheckHit;
+  Rows: TStringList;
+  P: TStringArray;
+  I, Bad: Integer;
+  Got, Want: string;
   Src: TSourceChunking;
-  Answer, Want: string;
 begin
-  L := TStringList.Create;
-  Got := TStringList.Create;
+  EachRow('verifyusfm-sentences.tsv', Rows);
   try
-    L.LoadFromFile(FixturePath('verifyusfm-sentences.tsv'));
     Bad := 0;
-    Total := 0;
-    for I := 0 to L.Count - 1 do
+    for I := 0 to Rows.Count - 1 do
     begin
-      if (L[I] = '') or (L[I][1] = '#') then
-        Continue;
-      Parts := L[I].Split([#9]);
-      C := nil;
-      SetLength(C, 1);
-      C[0] := Chunk('01', '01', '');
-      Got.Clear;
-      if Parts[0] = 'caps' then
-      begin
-        C[0].Text := '\v 1 ' + Parts[1] + ' \p ';
-        for H in CheckChunks('GEN', C, [cgCaps]) do
-          if CheckNumber(H.Id) = '26' then
-            Got.Add('26')
-          else
-            Got.Add(CheckNumber(H.Id) + ' ' + H.Detail);
-        Got.Sort;
-        Answer := StringReplace(Trim(Got.Text), LineEnding, ';', [rfReplaceAll]);
+      P := Rows[I].Split([#9]);
+      Want := P[High(P)];
+      if (P[0] = 'caps') and (Length(P) = 2) then
         Want := '';
-        if Length(Parts) > 2 then
-          Want := Parts[2];
-      end
-      else if Parts[0] = 'mixed' then
-      begin
-        C[0].Text := '\v 1 ' + Parts[1];
-        Answer := BoolToStr(Length(CheckChunks('GEN', C, [cgWords])) > 0, 'True', 'False');
-        Want := Parts[2];
-      end
+      if P[0] = 'caps' then
+        Got := IdsFor('GEN', '01', '1', P[1] + ' \p ', [cgCaps], nil, [])
+      else if P[0] = 'mixed' then
+        Got := BoolToStr(IdsFor('GEN', '01', '1', P[1], [cgWords], nil, []) <> '', 'True', 'False')
       else
       begin
-        C[0].Text := '\v 1 ' + Parts[1];
-        Src := TSourceChunking.Create;
+        Src := SourceWith('01', 1, P[2], False);
         try
-          SetLength(Src.Chunks, 1);
-          Src.Chunks[0].Chapter := '01';
-          Src.Chunks[0].Chunk := '01';
-          Src.Chunks[0].Verses := [1];
-          Src.Chunks[0].Texts := [Parts[2]];
-          Answer := 'False';
-          for H in CheckChunks('GEN', C, [cgSource], Src) do
-            if H.Id = ciUntranslated then
-              Answer := 'True';
+          Got := BoolToStr(Pos('3.5', IdsFor('GEN', '01', '1', P[1], [cgSource], Src, [])) > 0,
+            'True', 'False');
         finally
           Src.Free;
         end;
-        Want := Parts[3];
       end;
-      Inc(Total);
-      if Answer <> Want then
+      if Got <> Want then
       begin
         Inc(Bad);
-        WriteLn('    ', Parts[0], ' ', Parts[1], ': got [', Answer, '] verifyUSFM [', Want, ']');
+        WriteLn('    ', P[0], ' ', P[1], ': got [', Got, '] verifyUSFM [', Want, ']');
       end;
     end;
-    Check((Total >= 29) and (Bad = 0),
-      Format('capitalisation, mixed case and similarity match verifyUSFM on %d cases', [Total]));
+    Compare('capitalisation, mixed case and similarity', Rows.Count, Bad, 29);
   finally
-    Got.Free;
-    L.Free;
+    Rows.Free;
   end;
 end;
 
-{ section_titles.py's functions on every input of usfm-tools'
-  test_section_titles.py (tests/fixtures/section-titles.jsonl). }
+{ section_titles.py, sentences.py and usfm_utils.py functions on every
+  string input of usfm-tools' tests (tests/fixtures/section-titles.jsonl). }
 procedure TestSectionTitlesAgainstPython;
 var
   L: TStringList;
   Row: TJSONData;
-  I, Bad, Total: Integer;
+  I, J, Bad, Total: Integer;
   Fn, Got, Want: string;
-  Input, Heading: UnicodeString;
-  Found: Boolean;
+  Input: UnicodeString;
+  Words: TUnicodeWordList;
+  Starts: TPositions;
+
+  function B(V: Boolean): string;
+  begin
+    Result := BoolToStr(V, 'true', 'false');
+  end;
+
+  function F6(V: Double): string;
+  begin
+    Result := FormatFloat('0.000000', V);
+  end;
+
 begin
   L := TStringList.Create;
   try
@@ -213,100 +278,81 @@ begin
       try
         Fn := Row.Items[0].AsString;
         Input := UTF8Decode(Row.Items[1].AsString);
-        if Row.Items[2].JSONType = jtNull then
-          Want := '<none>'
-        else if Row.Items[2].JSONType = jtBoolean then
-          Want := BoolToStr(Row.Items[2].AsBoolean, 'true', 'false')
-        else if Row.Items[2].JSONType = jtNumber then
-          Want := FormatFloat('0.0000', Row.Items[2].AsFloat)
+        case Row.Items[2].JSONType of
+          jtBoolean: Want := B(Row.Items[2].AsBoolean);
+          jtNumber:
+            if (Fn = 'sentence_count') then
+              Want := IntToStr(Row.Items[2].AsInteger)
+            else
+              Want := F6(Row.Items[2].AsFloat);
         else
           Want := Row.Items[2].AsString;
-        if Fn = 'is_heading' then
-          Got := BoolToStr(IsHeading(Input), 'true', 'false')
-        else if Fn = 'is_possible_heading' then
-          Got := BoolToStr(IsPossibleHeading(Input), 'true', 'false')
-        else if Fn = 'is_capitalized' then
-          Got := BoolToStr(IsCapitalized(Input), 'true', 'false')
-        else if Fn = 'percent_titlecase' then
-          Got := FormatFloat('0.0000', PercentTitlecase(Input))
-        else
-        begin
-          Found := FindEolHeading(Input, Heading);
-          if Found then
-            Got := UTF8Encode(Heading)
-          else
-            Got := '<none>';
         end;
       finally
         Row.Free;
       end;
+      if Fn = 'prob_heading' then
+        Got := F6(ProbHeading(Input))
+      else if Fn = 'find_eol_heading' then
+        Got := UTF8Encode(FindEolHeading(Input, 0.100))
+      else if Fn = 'find_parenthesized_heading' then
+        Got := UTF8Encode(FindParenthesizedHeading(Input, 0.249))
+      else if Fn = 'percent_title_or_caps' then
+        Got := F6(PercentTitleOrCaps(Input))
+      else if Fn = 'disqualified' then
+        Continue    // internal; covered through prob_heading
+      else if Fn = 'ends_sentence' then
+        Got := UTF8Encode(EndsSentence(Input))
+      else if Fn = 'ends_sentence_quotes' then
+        Got := UTF8Encode(EndsSentence(Input, True))
+      else if Fn = 'first_word' then
+        Got := UTF8Encode(FirstWord(Input))
+      else if Fn = 'last_word' then
+        Got := UTF8Encode(LastWord(Input))
+      else if Fn = 'sentence_count' then
+        Got := IntToStr(SentenceCount(Input))
+      else if Fn = 'next_first_words' then
+      begin
+        Words := NextFirstWords(Input);
+        Got := '';
+        for J := 0 to High(Words) do
+        begin
+          if J > 0 then
+            Got := Got + '|';
+          Got := Got + UTF8Encode(Words[J]);
+        end;
+      end
+      else if Fn = 'start_positions' then
+      begin
+        Starts := StartPositions(Input);
+        Got := '';
+        for J := 0 to High(Starts) do
+        begin
+          if J > 0 then
+            Got := Got + ',';
+          Got := Got + IntToStr(Starts[J]);
+        end;
+      end
+      else if Fn = 'is_capitalized' then
+        Got := B(IsCapitalized(Input))
+      else if Fn = 'is_caseless' then
+        Got := B(IsCaseless(Input))
+      else if Fn = 'unicode_block' then
+        Got := UnicodeBlockOf(Input)
+      else
+        Continue;
       Inc(Total);
       if Got <> Want then
       begin
         Inc(Bad);
-        WriteLn('    ', Fn, '(', StringReplace(UTF8Encode(Input), #10, '\n', [rfReplaceAll]),
-          '): got [', Got, '] section_titles.py [', Want, ']');
+        if Bad <= 40 then
+          WriteLn('    ', Fn, '(', StringReplace(UTF8Encode(Input), #10, '\n', [rfReplaceAll]),
+            '): got [', Got, '] Python [', Want, ']');
       end;
     end;
-    Check((Total >= 400) and (Bad = 0),
-      Format('section titles match section_titles.py on %d cases', [Total]));
+    Check((Total >= 2500) and (Bad = 0),
+      Format('sentences, section titles and isCaseless match usfm-tools on %d cases (%d differ)', [Total, Bad]));
   finally
-    L.Free;
-  end;
-end;
-
-{ reportFootnotes on tests/fixtures/verifyusfm-footnotes.tsv. }
-procedure TestFootnotesAgainstVerifyUsfm;
-var
-  L, Ids: TStringList;
-  Parts: TStringArray;
-  I, Bad, Total: Integer;
-  C: TChunkTexts;
-  H: TCheckHit;
-  Src: TSourceChunking;
-  Want: string;
-begin
-  L := TStringList.Create;
-  Ids := TStringList.Create;
-  Src := TSourceChunking.Create;
-  try
-    SetLength(Src.Chunks, 1);
-    Src.Chunks[0].Chapter := '01';
-    Src.Chunks[0].Chunk := '01';
-    Src.Chunks[0].Verses := [1];
-    Src.Chunks[0].Texts := ['x'];
-    Src.Chunks[0].Notes := [True];
-    L.LoadFromFile(FixturePath('verifyusfm-footnotes.tsv'));
-    Bad := 0;
-    Total := 0;
-    for I := 0 to L.Count - 1 do
-    begin
-      if (L[I] = '') or (L[I][1] = '#') then
-        Continue;
-      Parts := L[I].Split([#9]);
-      C := nil;
-      SetLength(C, 1);
-      C[0] := Chunk(Parts[0], Parts[1], '\v ' + Parts[1] + ' ' + Parts[2]);
-      Ids.Clear;
-      for H in CheckChunks('MAT', C, [cgFootnotes], Src) do
-        Ids.Add(CheckNumber(H.Id));
-      Ids.Sort;
-      Want := '';
-      if Length(Parts) > 3 then
-        Want := Parts[3];
-      Inc(Total);
-      if Ids.CommaText <> Want then
-      begin
-        Inc(Bad);
-        WriteLn('    ', Parts[2], ' at ', Parts[0], ':', Parts[1], ': got [', Ids.CommaText,
-          '] verifyUSFM [', Want, ']');
-      end;
-    end;
-    Check((Total >= 60) and (Bad = 0),
-      Format('footnote checks match verifyUSFM on %d cases', [Total]));
-  finally
-    Src.Free;
-    Ids.Free;
     L.Free;
   end;
 end;
@@ -331,13 +377,17 @@ begin
   Check(Has(Hits, '39 1:3 ') and Has(Hits, '40 1:3 '), 'verse out of order and given twice');
   Check(Has(Hits, '54 01-05 Loose text'), 'text before the first verse marker');
   Check(Has(Hits, '8 1:99 16'), 'verse past the end of the chapter');
-  Check(Has(Hits, '67 01-06 \zz') and Has(Hits, '9 01-06 1/0'), 'unknown marker, unpaired footnote');
+  Check(Has(Hits, '53 1:6 \zz') and Has(Hits, '9  1/0') and Has(Hits, '78 1:6 \f'),
+    'unsupported marker, unpaired footnote, space before a footnote');
   Check(Has(Hits, '73 01-07 \v7') and Has(Hits, '74 01-07 \v 8e') and
-    Has(Hits, '72 01-07 t\v 9') and Has(Hits, 'txt2USFM 01-07 /v 10'),
-    'malformed verse markers (\v7, \v 8e, text\v, /v)');
-  Check(Has(Hits, '66 01-11 ') and Has(Hits, '1 1:11 '), 'verse marker without number; empty verse');
+    Has(Hits, 'txt2USFM 01-07 /v 10') and Has(Hits, '35 1:6 '),
+    'malformed verse markers (\v7, \v 8e, /v); \v without a number');
+  Check(Has(Hits, '35 1:12 ') and Has(Hits, '1 1:11 '), 'verse marker without number; empty verse');
+  { The unclosed \f in 01-06 keeps the rest of the book in a footnote, so
+    later verses count as empty or short, as in verifyUSFM. }
+  Check(Has(Hits, '1 1:9 '), 'text after an unclosed footnote is footnote text');
   Check(Pos('1:13', Hits) = 0, 'chunk with an unresolved conflict left out');
-  Check(Has(Hits, '41 1 7,10,13,14,15,16'), 'missing verses listed per chapter');
+  Check(Has(Hits, '41 1 7,8,10,13,14,15,16'), 'missing verses listed per chapter (\v 8eight is no verse 8)');
   Check(Pos('Chapter 1', Hits) + Pos('Titus', Hits) = 0, 'titles not checked');
 
   Hits := HitList('MRK', [Chunk('07', '14', '\v 14 a \v 15 b \v 17 c')], [cgStructure]);
@@ -346,16 +396,18 @@ begin
 
   Hits := HitList('JUD', [Chunk('01', '01', '\v 1 Иуда, раб. \v 2 Мир вам. \v 3 plain ascii \v 4 Ещё')], AllCheckGroups);
   Check(Has(Hits, '3 1:3 '), 'all-ASCII verse in a non-Latin text reported');
-  Hits := HitList('JUD', [Chunk('01', '01', '\v 1 Jude, a servant. \v 2 Peace. \v 3 Ñandú')], AllCheckGroups);
-  Check(Pos('3 1:', Hits) = 0, 'all-ASCII verses not reported for a Latin-script text');
+  Hits := HitList('JUD', [Chunk('01', '01', '\v 1 Jude, a servant.'), Chunk('01', '02', '\v 2 Peace to you all.'),
+    Chunk('01', '03', '\v 3 Ñandú is here.')], AllCheckGroups);
+  Check(Pos(#10'3 1:', #10 + Hits) = 0,
+    'all-ASCII verses not reported when over 2% of the lines are ASCII (Latin script)');
   Hits := HitList('JUD', [Chunk('01', '01', '\v 1 He said "go" and it''s "fine"')], [cgQuotes]);
   Check(Has(Hits, '75  4/0/1'), 'straight quotes counted, word-medial apostrophes apart');
   Hits := HitList('JHN', [
     Chunk('10', '01', '\v 1 Truly, I tell you, the sheep follow him.'#10'The Good Shepherd'#10'\v 2 He calls them by name.'),
     Chunk('10', '03', '\v 3 They know his voice. Jesus Heals A Blind Man'),
     Chunk('10', '04', '\v 4 He goes ahead of them, and they follow.')], [cgHeadings]);
-  Check(Has(Hits, '76 10-01 The Good Shepherd') and Has(Hits, '76 10-03 Jesus Heals A Blind Man') and
-    (Pos('10-04', Hits) = 0), 'possible section titles: own line and end of line');
+  Check(Has(Hits, '76 10:1 The Good Shepherd') and (Pos('10:3', Hits) = 0) and (Pos('10:4', Hits) = 0),
+    'possible section title on a line of its own; none at the end of a verse without source sections');
   Hits := HitList('JUD', [Chunk('01', '01', '\v 1 Text, 12345 here')], AllCheckGroups - [cgNumbers]);
   Check(Pos('61 ', Hits) = 0, 'a skipped group is not checked');
 end;

@@ -1,10 +1,10 @@
-# Texts and the checks verifyUSFM.py (usfm-tools) reports for them, from its
-# own reportPunctuation/reportNumbers/period_re: chapter, verse, text, checks.
+# verifyUSFM.py (Bible-Translation-Tools/usfm-tools fdfde65, 2026-10-06) results: chapter, verse, text, checks
+# (reportUnmatched, reportPunctuation, period_re, reportNumbers, then reportUnmatched at end of book)
 1	1	In the beginning,God made it.	45,52
 1	1	Text with ... ellipsis.	48
 1	1	Four dots.... here	45
 1	1	Number 3,000 ok and 1.5 ok	59.1
-1	2	Time 3:15 is fine	59.1
+1	2	Time 3:15 is fine	
 1	1	Space before comma , here.	48
 1	1	He said, “Go.” Then left .	48
 1	1	He said "hi".	50
@@ -16,18 +16,18 @@
 1	1	Repeated "" doubles	51
 1	1	word.medial punctuation	45,52
 1	1	abc.123 number after	
-1	1	a/b slash	52.1
+1	1	a/b slash	52.3
 1	1	equals = sign	52.3
 1	1	, starts with comma	58.1
 1	1	.	58
 1	5	5 begins with verse number	59
 1	5	text 6 next verse	59.1
 1	5	text 5 this verse	59.1
-1	5	see 3:16 reference	59.2
+1	5	see 3:16 reference	
 1	5	range 2-4 ok?	59.2
-1	5	range 4-2 back	60.1
+1	5	range 4-2 back	60.3
 1	1	abc12def embedded	60
-1	1	x12 prefix	60.1
+1	1	x12 prefix	60.3
 1	1	12x suffix	60.2
 1	1	12345 unsegmented	61
 1	1	1234 four digits	
@@ -44,8 +44,8 @@
 1	1	So;then	45,52
 1	1	So:then	45,52
 1	1	So?Then	45,52
-1	1	ok.)	
-1	1	ok.]	
+1	1	ok.)	56
+1	1	ok.]	56.2
 1	1	ok.​next	
 1	1	tab ,comma	45,48
 1	1	5 the end	
@@ -54,11 +54,35 @@
 3	7	[8] eight	59.1
 3	7	abc 8, def	
 1	1	0 zero	
-1	1	1,000,000 people	
-1	1	2:3-5 range ref	59.2
+1	1	1,000,000 people	59
+1	1	2:3-5 range ref	
 1	1	Hello -- dash	
 1	1	a,b,c	45,52
 1	1	end.	
 1	1	Mixed «quote» here	
 5	11	no bumi mu mwana wakwe.  next	
 1	1	space , nbsp before comma	48
+1	1	a = b and c + d	52.3,52.3
+1	1	price $5 & more ~ here	52.3,52.3,52.3,60.3
+1	1	one/two	52.3
+1	1	half 1/2 cup	52.3,59.1
+1	1	back\slash	
+1	1	back\ space	52.2
+1	1	(open paren only	56
+1	1	close only)	56
+1	1	[open square	56.2
+1	1	{brace}	
+1	1	<angle	56.1
+1	1	a > b	56.1
+1	1	word.word and next.next	45,52,52
+1	5	5	59
+1	5	55 people	
+1	5	he said 6.	59.1
+1	1	see 1-3 here	59.2
+1	1	see 3-1 here	60.3
+2	3	see 2:4 here	
+1	1	x 1234 y	
+1	1	a__b	52.3
+1	1	tilde~	52.3
+1	1	(x) and (y)	
+1	1	[a] and [b c]	

@@ -1,20 +1,20 @@
-# Inputs and what verifyUSFM.py / sentences.py (usfm-tools) give for them:
-# caps: text, then the 44.1 words and 26 (no sentence end), sorted, ; separated
-# mixed: word, then True/False from isMixed
-# sim: target, source, then True/False for similarToSource > 0.4
-caps	he went home. then he slept.	44.1 he;44.1 then
+# verifyUSFM.py / sentences.py (usfm-tools fdfde65):
+# caps: text, then the checks of reportCaps and takeP('p') after it (44, 44.1, 26)
+# mixed: word, then whether isMixed holds for a word of listwords(word)
+# sim: target, source, then similarity(source, target) > 0.4
+caps	he went home. then he slept.	44.1,44.1
 caps	He went home. Then he slept	26
-caps	He asked, "why?" then left.	44.1 then
-caps	Он ушёл. потом спал.	44.1 потом
+caps	He asked, "why?" then left.	44.1
+caps	Он ушёл. потом спал.	44.1
 caps	राम घर गया। वह सोया।	
 caps	ሰላም። ደህና	26
-caps	He said? «and then» more	26;44.1 and
-caps	He said! “and then” more	26;44.1 and
-caps	co-worker came. self-made man.	44.1 co-worker;44.1 self-made
-caps	Wait... and then. 3 men came.	44.1 and
-caps	end with quote."	44.1 end
-caps	end with paren.)	44.1 end
-caps	no end	26;44.1 no
+caps	He said? «and then» more	26,44.1
+caps	He said! “and then” more	26,44.1
+caps	co-worker came. self-made man.	44.1,44.1
+caps	Wait... and then. 3 men came.	44.1
+caps	end with quote."	44.1
+caps	end with paren.)	44.1
+caps	no end	26,44.1
 caps	Это конец!	
 mixed	McDonald	True
 mixed	iPhone	True

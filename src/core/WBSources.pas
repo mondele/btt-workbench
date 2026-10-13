@@ -31,6 +31,7 @@ type
     Texts: TStringArray;  // plain text of each verse in Verses (notes left
                           // out); '' for the 2nd.. verse of a range
     Notes: array of Boolean;  // the verse has a footnote (<note>)
+    NoteTexts: TStringArray;  // plain text of the verse's footnotes
   end;
 
   TSourceChunking = class
@@ -73,6 +74,8 @@ type
   TBoolList = array of Boolean;
 { Whether each verse UsxVerses finds has a <note>, in the same order. }
 function UsxVerseNotes(const Text: string): TBoolList;
+{ The plain text of each verse's <note>s, in UsxVerses order. }
+function UsxVerseNoteTexts(const Text: string): TStringArray;
 
 implementation
 
@@ -265,6 +268,70 @@ begin
   end;
 end;
 
+{ The text inside the <note> elements of S, plain, space-separated. }
+function NoteText(const S: string): string;
+var
+  P, E: Integer;
+begin
+  Result := '';
+  P := Pos('<note', S);
+  while P > 0 do
+  begin
+    E := Pos('</note>', S, P);
+    if E = 0 then
+      E := Length(S) + 1;
+    { PlainUsx drops <note>s, so take what is inside the outer one. }
+    if Pos('>', S, P) > 0 then
+    begin
+      if Result <> '' then
+        Result := Result + ' ';
+      Result := Result + PlainUsx(StringReplace(Copy(S, Pos('>', S, P) + 1,
+        E - Pos('>', S, P) - 1), '<note', '<x', [rfReplaceAll]));
+    end;
+    P := Pos('<note', S, E);
+  end;
+end;
+
+function UsxVerseNoteTexts(const Text: string): TStringArray;
+var
+  P, Q, A, B, V, Next: Integer;
+  Segment: string;
+begin
+  Result := nil;
+  P := Pos('<verse', Text);
+  while P > 0 do
+  begin
+    Next := Pos('<verse', Text, P + 6);
+    if Next > 0 then
+      Segment := Copy(Text, P, Next - P)
+    else
+      Segment := Copy(Text, P, MaxInt);
+    Q := P + 6;
+    while (Q <= Length(Text)) and not (Text[Q] in ['"', '<', '>']) do
+      Inc(Q);
+    if (Q <= Length(Text)) and (Text[Q] = '"') then
+    begin
+      Inc(Q);
+      A := ReadNumber(Text, Q);
+      B := A;
+      if (A >= 0) and (Q <= Length(Text)) and (Text[Q] = '-') then
+      begin
+        Inc(Q);
+        B := ReadNumber(Text, Q);
+        if B < A then
+          B := A;
+      end;
+      if A >= 0 then
+        for V := A to B do
+          if V = A then
+            Result := Concat(Result, [NoteText(Segment)])
+          else
+            Result := Concat(Result, ['']);
+    end;
+    P := Next;
+  end;
+end;
+
 function UsfmVerseMarkers(const Text: string): TVerseList;
 var
   P, Q, V: Integer;
@@ -375,6 +442,7 @@ var
     C.Chunks[N].Verses := UsxVerses(Text);
     C.Chunks[N].Texts := UsxVerseTexts(Text);
     C.Chunks[N].Notes := UsxVerseNotes(Text);
+    C.Chunks[N].NoteTexts := UsxVerseNoteTexts(Text);
     C.FIndex.AddObject(ChunkKey(Parts[0], Parts[1]), TObject(PtrInt(N)));
   end;
 
