@@ -672,6 +672,99 @@ msgstr ""
 msgid "Done: %s is now a REG project."
 msgstr ""
 
+#: modwacsaccount:rstitle
+msgid "WACS login"
+msgstr ""
+
+#: modwacsaccount:rsdescription
+msgid ""
+"Logs in to WACS so projects can be downloaded and uploaded. Only a login "
+"token is kept on this computer, never the password."
+msgstr ""
+
+#: modwacsaccount:rsoptserver
+msgid "Server"
+msgstr ""
+
+#: modwacsaccount:rsoptserverhelp
+msgid "The WACS (Gitea) server address"
+msgstr ""
+
+#: modwacsaccount:rsoptusername
+msgid "User name"
+msgstr ""
+
+#: modwacsaccount:rsoptusernamehelp
+msgid "Your WACS user name (log in)"
+msgstr ""
+
+#: modwacsaccount:rsoptpassword
+msgid "Password"
+msgstr ""
+
+#: modwacsaccount:rsoptpasswordhelp
+msgid "Your WACS password; it is not saved"
+msgstr ""
+
+#: modwacsaccount:rsoptlogout
+msgid "Log out"
+msgstr ""
+
+#: modwacsaccount:rsoptlogouthelp
+msgid ""
+"Forget the saved login (with the password, also delete the token on WACS)"
+msgstr ""
+
+#: modwacsaccount:rsserver
+msgid "Server: %s"
+msgstr ""
+
+#: modwacsaccount:rsnopassword
+msgid "A password is needed to log in."
+msgstr ""
+
+#: modwacsaccount:rsloggedin
+msgid "Logged in as %s%s. The login is saved as token \"%s\"."
+msgstr ""
+
+#: modwacsaccount:rsreplacedtoken
+msgid "Replaced the earlier token \"%s\"."
+msgstr ""
+
+#: modwacsaccount:rsloginfailed
+msgid "Login failed: %s"
+msgstr ""
+
+#: modwacsaccount:rsloggedout
+msgid "Logged out."
+msgstr ""
+
+#: modwacsaccount:rstokendeleted
+msgid "The token was deleted on WACS."
+msgstr ""
+
+#: modwacsaccount:rstokenleft
+msgid ""
+"The token stays on WACS until you log in again from this computer, or remove "
+"it there under Settings, Applications."
+msgstr ""
+
+#: modwacsaccount:rstokendeletefailed
+msgid "Could not delete the token on WACS (%s); it was forgotten here anyway."
+msgstr ""
+
+#: modwacsaccount:rsnotloggedin
+msgid "Not logged in."
+msgstr ""
+
+#: modwacsaccount:rsstatusok
+msgid "Logged in as %s%s."
+msgstr ""
+
+#: modwacsaccount:rsstatusbad
+msgid "Saved login for %s no longer works (%s). Log in again."
+msgstr ""
+
 #: wbcommandline:rsmissingvalue
 msgid "Option --%s needs a value"
 msgstr ""
@@ -682,6 +775,28 @@ msgstr ""
 
 #: wbcommandline:rsextraargument
 msgid "Unexpected argument: %s"
+msgstr ""
+
+#: wbhttp:rsunreachable
+msgid "Could not reach %s (%s)."
+msgstr ""
+
+#: wbhttp:rsbadlogin
+msgid ""
+"The server did not accept the user name and password (or the saved login has "
+"expired)."
+msgstr ""
+
+#: wbhttp:rsforbidden
+msgid "Not allowed: %s"
+msgstr ""
+
+#: wbhttp:rsnotfound
+msgid "Not found: %s"
+msgstr ""
+
+#: wbhttp:rsserversaid
+msgid "The server answered %d: %s"
 msgstr ""
 
 #: wbimport:rsnoprojectmanifest

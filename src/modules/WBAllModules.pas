@@ -12,7 +12,8 @@ uses
   ModUlb2Reg,
   ModTStudioImport,
   ModProjects,
-  ModSettings;
+  ModSettings,
+  ModWacsAccount;
 
 implementation
 

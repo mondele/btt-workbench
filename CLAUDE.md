@@ -116,6 +116,14 @@ linker warnings are harmless.
   database into `<data>/library/` once and updates it from the catalog,
   but never refreshes a project's `target_language` name or direction.
 - Sources are downloaded from WACS, not Door43.
+- Network: `WBHttp` (fphttpclient + opensslsockets, own User-Agent,
+  readable errors), `WBGitea` (WACS REST, `/api/v1`, search paged at 50),
+  `WBBielCatalog` (BIEL Public Data API, Hasura GraphQL, Primary/Active
+  state; ILIKE patterns passed as variables so `_` is escaped once),
+  `WBWacs` (saved login in `[wacs]`; git gets the token through
+  `GIT_CONFIG_*` env via `RunGitAs`, never argv or `.git/config`).
+  Tests use `tests/FakeWacs.pas`, a local fphttpserver fake with
+  `file://` clone URLs; never test against the real WACS with writes.
 - BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
   master`, pull and push `master` by name). `projects` moves `main` to
   `master` while scanning.

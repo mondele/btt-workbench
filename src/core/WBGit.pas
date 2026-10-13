@@ -23,6 +23,12 @@ type
 
 function GitAvailable: Boolean;
 function RunGit(const WorkDir: string; const Args: array of string): TGitResult;
+{ RunGit with extra NAME=value environment entries, e.g. git config passed
+  as GIT_CONFIG_COUNT/KEY_n/VALUE_n so it stays out of the argument list
+  (which other users of the machine can see) and out of .git/config. }
+function RunGitEnv(const WorkDir: string; const Args, Env: array of string): TGitResult;
+{ True if the installed git is at least Major.Minor. }
+function GitAtLeast(Major, Minor: Integer): Boolean;
 { Stdout of a git command that must succeed, trimmed; raises on failure. }
 function GitText(const WorkDir: string; const Args: array of string): string;
 
@@ -61,6 +67,26 @@ begin
 end;
 
 function RunGit(const WorkDir: string; const Args: array of string): TGitResult;
+begin
+  Result := RunGitEnv(WorkDir, Args, []);
+end;
+
+function GitAtLeast(Major, Minor: Integer): Boolean;
+var
+  V: string;
+  Parts: TStringArray;
+begin
+  { "git version 2.43.0" (Windows adds ".windows.1") }
+  V := Trim(RunGit(GetCurrentDir, ['--version']).Output);
+  V := Copy(V, LastDelimiter(' ', V) + 1, MaxInt);
+  Parts := V.Split(['.']);
+  if Length(Parts) < 2 then
+    Exit(False);
+  Result := (StrToIntDef(Parts[0], 0) > Major) or
+    ((StrToIntDef(Parts[0], 0) = Major) and (StrToIntDef(Parts[1], 0) >= Minor));
+end;
+
+function RunGitEnv(const WorkDir: string; const Args, Env: array of string): TGitResult;
 var
   P: TProcess;
   OutS, ErrS: TStringStream;
@@ -87,6 +113,8 @@ begin
       P.Environment.Add(GetEnvironmentString(I));
     P.Environment.Values['LC_ALL'] := 'C';
     P.Environment.Values['GIT_TERMINAL_PROMPT'] := '0';
+    for A in Env do
+      P.Environment.Values[Copy(A, 1, Pos('=', A) - 1)] := Copy(A, Pos('=', A) + 1, MaxInt);
     P.Options := [poUsePipes, poNoConsole];
     P.ShowWindow := swoHIDE;
     P.Execute;

@@ -24,6 +24,10 @@ function SettingsFile: string;
 function GetSetting(const Key: string): string;
 { An empty value removes the key. }
 procedure SetSetting(const Key, Value: string);
+{ The same in another [Section] (e.g. 'wacs'). The file can hold a WACS
+  token, so it is written readable by its owner only (Unix). }
+function GetSettingIn(const ASection, Key: string): string;
+procedure SetSettingIn(const ASection, Key, Value: string);
 
 var
   { Set by tests so they never read or change the user's settings. }
@@ -32,7 +36,7 @@ var
 implementation
 
 uses
-  IniFiles;
+  IniFiles{$IFDEF UNIX}, BaseUnix{$ENDIF};
 
 const
   Section = 'btt-writer';
@@ -62,7 +66,7 @@ begin
     'settings.ini';
 end;
 
-function GetSetting(const Key: string): string;
+function GetSettingIn(const ASection, Key: string): string;
 var
   Ini: TMemIniFile;
 begin
@@ -71,27 +75,45 @@ begin
     Exit;
   Ini := TMemIniFile.Create(SettingsFile);
   try
-    Result := Ini.ReadString(Section, Key, '');
+    Result := Ini.ReadString(ASection, Key, '');
   finally
     Ini.Free;
   end;
 end;
 
-procedure SetSetting(const Key, Value: string);
+procedure SetSettingIn(const ASection, Key, Value: string);
 var
   Ini: TMemIniFile;
 begin
   ForceDirectories(ExtractFileDir(SettingsFile));
+  {$IFDEF UNIX}
+  if not FileExists(SettingsFile) then
+    FileClose(FileCreate(SettingsFile));
+  fpChmod(SettingsFile, &600);
+  {$ENDIF}
   Ini := TMemIniFile.Create(SettingsFile);
   try
     if Value = '' then
-      Ini.DeleteKey(Section, Key)
+      Ini.DeleteKey(ASection, Key)
     else
-      Ini.WriteString(Section, Key, Value);
+      Ini.WriteString(ASection, Key, Value);
     Ini.UpdateFile;
   finally
     Ini.Free;
   end;
+  {$IFDEF UNIX}
+  fpChmod(SettingsFile, &600);
+  {$ENDIF}
+end;
+
+function GetSetting(const Key: string): string;
+begin
+  Result := GetSettingIn(Section, Key);
+end;
+
+procedure SetSetting(const Key, Value: string);
+begin
+  SetSettingIn(Section, Key, Value);
 end;
 
 end.
