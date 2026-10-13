@@ -91,6 +91,15 @@ msgstr ""
 msgid "List only projects that have problems"
 msgstr ""
 
+#: modprojects:rsoptdeepgit
+msgid "Check git history in depth"
+msgstr ""
+
+#: modprojects:rsoptdeepgithelp
+msgid ""
+"Also run git fsck on each project to find corrupt or missing history (slower)"
+msgstr ""
+
 #: modprojects:rsopttargetdir
 msgid "Projects folder"
 msgstr ""
@@ -172,6 +181,14 @@ msgstr ""
 msgid "manifest.json is missing the language, book or type."
 msgstr ""
 
+#: modprojects:rsmanifesttypes
+msgid "manifest.json has fields that are missing or of the wrong type: %s"
+msgstr ""
+
+#: modprojects:rsmatchedbyfolder
+msgid "Listed by its folder name, as the manifest cannot be read."
+msgstr ""
+
 #: modprojects:rsoldformat
 msgid ""
 "Older project format (version %s); BTT-Writer upgrades it when the project "
@@ -205,6 +222,10 @@ msgstr ""
 
 #: modprojects:rsdirty
 msgid "Has changes that are not committed yet."
+msgstr ""
+
+#: modprojects:rsfsck
+msgid "git fsck found problems in the history: %s"
 msgstr ""
 
 #: modprojects:rsconflicts

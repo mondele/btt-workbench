@@ -186,7 +186,7 @@ end;
 
 procedure TestProjectsModule(const TempRoot: string);
 var
-  Output, B: string;
+  Output, B, Blob: string;
 begin
   Section('projects');
   Data := TempRoot + 'projects' + PathDelim + 'data' + PathDelim;
@@ -220,11 +220,24 @@ begin
     ['01/01.txt=\v 1 a']);
   MakeProject('jjj_xyz_text_reg', 'jjj', 'xyz', 'text', 'reg', [], [], ['01/01.txt=\v 1 a']);
   MakeProject('kkk_tit_tn', 'kkk', 'tit', 'tn', '', ['en_tn'], [], ['01/01.txt=note']);
+  MakeProject('lll_tit_text_reg', 'lll', 'tit', 'text', 'reg', ['en_ulb'], [],
+    ['01/01.txt=\v 1 a \v 2 b \v 3 c']);
+  { Remove the chunk's blob: HEAD still resolves, only fsck notices. }
+  Blob := GitText(Target + 'lll_tit_text_reg', ['rev-parse', 'HEAD:01/01.txt']);
+  DeleteFile(Target + 'lll_tit_text_reg' + PathDelim + '.git' + PathDelim + 'objects' +
+    PathDelim + Copy(Blob, 1, 2) + PathDelim + Copy(Blob, 3, MaxInt));
+  MakeProject('mmm_tit_text_reg', 'mmm', 'tit', 'text', 'reg', [], [], []);
+  WriteFileText(Target + 'mmm_tit_text_reg' + PathDelim + 'manifest.json',
+    '{"package_version": "8", "target_language": {"id": "mmm", "name": "M"},' +
+    ' "project": {"id": "tit", "name": 5}, "type": {"id": "text"},' +
+    ' "resource": {"id": "reg"}, "finished_chunks": ["01-01", 3],' +
+    ' "source_translations": [{"language_id": "en"}, "x"], "translators": "me"}');
+  ForceDirectories(Target + 'nnn_tit_text_reg');
   ForceDirectories(Target + 'junk');
   WriteFileText(Target + 'stray.zip', 'x');
 
   Output := List([]);
-  Check(Pos('info: 13 project(s) listed, 10 with problems.', Output) > 0,
+  Check(Pos('info: 16 project(s) listed, 12 with problems.', Output) > 0,
     'every folder and file listed, problems counted');
 
   B := Block(Output, 'aaa_tit_text_reg');
@@ -269,6 +282,19 @@ begin
   Check(Pos('junk: no manifest.json', Output) > 0, 'folder without manifest reported');
   Check(Pos('stray.zip: a file', Output) > 0, 'stray file reported');
 
+  B := Block(Output, 'mmm_tit_text_reg');
+  Check(Pos('missing or of the wrong type: package_version, project.name, ' +
+    'translators, finished_chunks[1], source_translations[0].resource_id, ' +
+    'source_translations[1]', B) > 0, 'manifest fields of the wrong type reported');
+  Check(Pos('Source _tit', B) + Pos('Source en_tit_ is', B) = 0, 'source entries without ids not looked up');
+
+  B := Block(Output, 'lll_tit_text_reg');
+  Check((B <> '') and (Pos('warning', B) = 0), 'missing object not noticed without --deep-git');
+  Output := List(['--deep-git', '--language', 'lll,aaa']);
+  Check(Pos('git fsck found problems in the history: ', Block(Output, 'lll_tit_text_reg')) > 0,
+    '--deep-git: fsck problem reported');
+  Check(Pos('warning', Block(Output, 'aaa_tit_text_reg')) = 0, '--deep-git: sound history passes');
+
   { Filters }
   Output := List(['--language', 'bbb,CCC']);
   Check((Pos('2 project(s) listed', Output) > 0) and (Block(Output, 'bbb_tit_text_reg') <> '') and
@@ -283,6 +309,14 @@ begin
   Output := List(['--type', 'text_reg', '--language', 'kkk,aaa']);
   Check((Pos('1 project(s) listed', Output) > 0) and (Block(Output, 'aaa_tit_text_reg') <> ''),
     'type filter as type_resource, combined with language');
+  Output := List(['--language', 'hhh,nnn']);
+  Check((Pos('2 project(s) listed', Output) > 0) and
+    (Pos('unresolved merge conflict markers', Output) > 0) and
+    (Pos('Listed by its folder name', Output) > 0) and
+    (Pos('nnn_tit_text_reg: no manifest.json', Output) > 0),
+    'unreadable or missing manifest matched by folder name when filtering');
+  Output := List(['--language', 'aaa']);
+  Check(Pos('hhh', Output) = 0, '... and left out when the folder name does not match');
   Output := List(['--problems-only']);
   Check((Block(Output, 'aaa_tit_text_reg') = '') and (Block(Output, 'bbb_tit_text_reg') <> '') and
     (Pos('without problems not shown', Output) > 0), '--problems-only hides clean projects');

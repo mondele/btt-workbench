@@ -7,14 +7,18 @@ unit ModProjects;
 
    Filters: --language, --book and --type, each a comma-separated list
    (codes, any case). --type matches the project type (text, tn, tq, tw),
-   the resource (reg, ulb, udb) or both as text_reg.
+   the resource (reg, ulb, udb) or both as text_reg. A project whose
+   manifest cannot be read is matched by its folder name instead.
 
    Problems looked for:
    - not a project (no manifest.json), manifest unreadable or with merge
      conflict markers, missing ids, an unknown project format version;
    - folder name not what BTT-Writer would call it (<lang>_<book>_<type>
      [_<resource>]), which breaks matching on import;
-   - no git history, a damaged repo, an unfinished merge;
+   - manifest fields of the wrong type (finished_chunks not a list of
+     strings, source_translations entries without ids, ...);
+   - no git history, a damaged repo, an unfinished merge; with
+     --deep-git, git fsck for corrupt or missing objects;
    - chunks with unresolved conflicts, and conflict markers BTT-Writer
      Desktop's parser cannot read (render.js: "<<<<<<< HEAD" and
      ">>>>>>> <40-char hash>" only);
@@ -66,6 +70,9 @@ resourcestring
     'tq, tw, reg, ulb, or text_reg)';
   rsOptProblemsOnly = 'Problems only';
   rsOptProblemsOnlyHelp = 'List only projects that have problems';
+  rsOptDeepGit = 'Check git history in depth';
+  rsOptDeepGitHelp = 'Also run git fsck on each project to find corrupt or ' +
+    'missing history (slower)';
   rsOptTargetDir = 'Projects folder';
   rsOptTargetDirHelp = 'Where projects live (default: BTT-Writer''s ' +
     'targetTranslations folder)';
@@ -91,6 +98,9 @@ resourcestring
     'so BTT-Writer cannot open the project.';
   rsManifestInvalid = 'manifest.json cannot be read (%s).';
   rsManifestIds = 'manifest.json is missing the language, book or type.';
+  rsManifestTypes = 'manifest.json has fields that are missing or of the wrong ' +
+    'type: %s';
+  rsMatchedByFolder = 'Listed by its folder name, as the manifest cannot be read.';
   rsOldFormat = 'Older project format (version %s); BTT-Writer upgrades it ' +
     'when the project is opened.';
   rsNewFormat = 'Project format version %s is newer than this tool knows; ' +
@@ -102,6 +112,7 @@ resourcestring
   rsBadGit = 'The git history is damaged or empty.';
   rsMidMerge = 'An unfinished merge is in progress.';
   rsDirty = 'Has changes that are not committed yet.';
+  rsFsck = 'git fsck found problems in the history: %s';
   rsConflicts = '%d chunk(s) have unresolved conflicts: %s';
   rsUnreadableConflicts = '%d chunk(s) have conflict markers BTT-Writer cannot ' +
     'read: %s';
@@ -298,14 +309,97 @@ begin
   end;
 end;
 
+{ Manifest fields BTT-Writer reads that are present with the wrong type,
+  and source_translations entries without their ids. Missing language,
+  book and type ids are reported separately (rsManifestIds). }
+type
+  TJSONKinds = set of TJSONtype;
+
+function ManifestTypeProblems(M: TJSONObject): TStringArray;
+var
+  Bad: TStringArray;
+
+  procedure Need(const Path: string; Kinds: TJSONKinds);
+  var
+    D: TJSONData;
+  begin
+    D := M.FindPath(Path);
+    if (D <> nil) and not (D.JSONType in Kinds) then
+      Bad := Concat(Bad, [Path]);
+  end;
+
+var
+  D, Item: TJSONData;
+  I: Integer;
+  Key: string;
+begin
+  Bad := nil;
+  Need('package_version', [jtNumber]);
+  for Key in ['target_language', 'project', 'type', 'resource'] do
+  begin
+    Need(Key, [jtObject]);
+    if M.Find(Key) is TJSONObject then
+    begin
+      Need(Key + '.id', [jtString]);
+      Need(Key + '.name', [jtString]);
+    end;
+  end;
+  Need('translators', [jtArray]);
+  D := M.Find('finished_chunks');
+  if (D <> nil) and (D.JSONType <> jtArray) then
+    Bad := Concat(Bad, ['finished_chunks'])
+  else if D <> nil then
+    for I := 0 to D.Count - 1 do
+      if D.Items[I].JSONType <> jtString then
+        Bad := Concat(Bad, [Format('finished_chunks[%d]', [I])]);
+  D := M.Find('source_translations');
+  if (D <> nil) and (D.JSONType <> jtArray) then
+    Bad := Concat(Bad, ['source_translations'])
+  else if D <> nil then
+    for I := 0 to D.Count - 1 do
+    begin
+      Item := D.Items[I];
+      if not (Item is TJSONObject) then
+        Bad := Concat(Bad, [Format('source_translations[%d]', [I])])
+      else
+        for Key in ['language_id', 'resource_id'] do
+          if (TJSONObject(Item).Find(Key) = nil) or
+             (TJSONObject(Item).Find(Key).JSONType <> jtString) or
+             (TJSONObject(Item).Find(Key).AsString = '') then
+            Bad := Concat(Bad, [Format('source_translations[%d].%s', [I, Key])]);
+    end;
+  Result := Bad;
+end;
+
+{ First lines of git fsck's complaints, or '' if the history is sound. }
+function FsckProblems(const Dir: string): string;
+var
+  G: TGitResult;
+  Lines: TStringArray;
+  Line: string;
+  Shown: TStringArray;
+begin
+  G := RunGit(Dir, ['fsck', '--no-progress', '--no-dangling']);
+  if G.ExitCode = 0 then
+    Exit('');
+  Shown := nil;
+  Lines := (G.ErrorOutput + #10 + G.Output).Split([#10]);
+  for Line in Lines do
+    if Trim(Line) <> '' then
+      Shown := Concat(Shown, [Trim(Line)]);
+  if Length(Shown) = 0 then
+    Exit(Format('exit code %d', [G.ExitCode]));
+  Result := ShortList(Shown);
+end;
+
 { Messages for one project. Problems are warnings; the rest is info. }
 procedure CheckProject(const Dir, Name: string; Manifest: TJSONObject;
-  Sources: TSourceLibrary; R: TWBReporter);
+  Sources: TSourceLibrary; DeepGit: Boolean; R: TWBReporter);
 var
   Chunks: TProjectChunks;
   C: TProjectChunk;
   Lang, Book, Kind, Res, Version, Expected, State, Container, TypeLabel,
-    Progress: string;
+    Progress, Fsck: string;
   Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, Twice, Containers,
     UsedSources: TStringArray;
   Listed: TStringArray;
@@ -329,7 +423,9 @@ begin
   Entries := Manifest.Find('source_translations');
   if (Entries <> nil) and (Entries.JSONType = jtArray) then
     for I := 0 to Entries.Count - 1 do
-      if Entries.Items[I] is TJSONObject then
+      if (Entries.Items[I] is TJSONObject) and
+         (StrField(TJSONObject(Entries.Items[I]), 'language_id') <> '') and
+         (StrField(TJSONObject(Entries.Items[I]), 'resource_id') <> '') then
       begin
         Container := StrField(TJSONObject(Entries.Items[I]), 'language_id') + '_' + Book +
           '_' + StrField(TJSONObject(Entries.Items[I]), 'resource_id');
@@ -372,6 +468,9 @@ begin
 
   if (Lang = '') or (Book = '') or (Kind = '') then
     R.Warn(rsManifestIds);
+  Extra := ManifestTypeProblems(Manifest);
+  if Length(Extra) > 0 then
+    R.Warn(Format(rsManifestTypes, [ShortList(Extra)]));
   Version := StrField(Manifest, 'package_version');
   if StrToIntDef(Version, 0) < ProjectManifestVersion then
     R.Info(Format(rsOldFormat, [Version]))
@@ -393,6 +492,12 @@ begin
       R.Warn(rsMidMerge);
     if Trim(RunGit(Dir, ['status', '--porcelain']).Output) <> '' then
       R.Info(rsDirty);
+    if DeepGit then
+    begin
+      Fsck := FsckProblems(Dir);
+      if Fsck <> '' then
+        R.Warn(Format(rsFsck, [Fsck]));
+    end;
   end;
 
   { Conflicts, finished chunks without files }
@@ -514,6 +619,25 @@ begin
   Result := False;
 end;
 
+{ For a project whose manifest cannot be read: whether its folder name,
+  <lang>_<book>_<type>[_<resource>], passes the filters. A name not of that
+  form passes when AnyName is set. }
+function FolderMatches(const Name: string; const Langs, Books, Types: TStringArray;
+  AnyName: Boolean): Boolean;
+var
+  Parts: TStringArray;
+  Res: string;
+begin
+  Parts := Name.Split(['_']);
+  if Length(Parts) < 3 then
+    Exit(AnyName);
+  Res := '';
+  if Length(Parts) > 3 then
+    Res := Parts[3];
+  Result := Matches(Langs, [Parts[0]]) and Matches(Books, [Parts[1]]) and
+    Matches(Types, [Parts[2], Res, Parts[2] + '_' + Res]);
+end;
+
 { --- module --- }
 
 function TProjectsModule.Id: string;
@@ -538,6 +662,7 @@ begin
     OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
     OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
+    OptionDef('deep-git', okFlag, False, False, rsOptDeepGit, rsOptDeepGitHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
 end;
 
@@ -545,7 +670,7 @@ function TProjectsModule.Execute(Options: TStrings; Reporter: TWBReporter): Inte
 var
   TargetDir, Name, Dir, Bundled, FilterText: string;
   Langs, Books, Types: TStringArray;
-  ProblemsOnly, HasProblem, Filtered: Boolean;
+  ProblemsOnly, HasProblem, Filtered, DeepGit: Boolean;
   Names: TStringList;
   SR: TSearchRec;
   Sources: TSourceLibrary;
@@ -568,6 +693,7 @@ begin
   Books := SplitList(Options.Values['book']);
   Types := SplitList(Options.Values['type']);
   ProblemsOnly := OptionIsSet(Options, 'problems-only');
+  DeepGit := OptionIsSet(Options, 'deep-git');
   Filtered := (Length(Langs) > 0) or (Length(Books) > 0) or (Length(Types) > 0);
 
   Reporter.Info(Format(rsFolder, [ExcludeTrailingPathDelimiter(TargetDir)]));
@@ -626,7 +752,7 @@ begin
         end
         else if not FileExists(Dir + 'manifest.json') then
         begin
-          if Filtered then
+          if Filtered and not FolderMatches(Name, Langs, Books, Types, False) then
             Continue;
           Buffer.Warn(Format(rsNoManifest, [Name]));
         end
@@ -637,9 +763,11 @@ begin
           except
             on E: Exception do
             begin
-              if Filtered then
+              if Filtered and not FolderMatches(Name, Langs, Books, Types, True) then
                 Continue;
               Buffer.Info(Name);
+              if Filtered then
+                Buffer.Info(rsMatchedByFolder);
               ManifestText := ReadText(Dir + 'manifest.json');
               if Pos('<<<<<<<', ManifestText) > 0 then
                 Buffer.Warn(rsManifestConflict)
@@ -655,7 +783,7 @@ begin
                       StrField(Manifest, 'resource.id'),
                       StrField(Manifest, 'type.id') + '_' + StrField(Manifest, 'resource.id')])) then
               Continue;
-            CheckProject(Dir, Name, Manifest, Sources, Buffer);
+            CheckProject(Dir, Name, Manifest, Sources, DeepGit, Buffer);
           end;
         end;
 
