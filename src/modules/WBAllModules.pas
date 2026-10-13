@@ -11,7 +11,8 @@ interface
 uses
   ModUlb2Reg,
   ModTStudioImport,
-  ModProjects;
+  ModProjects,
+  ModSettings;
 
 implementation
 

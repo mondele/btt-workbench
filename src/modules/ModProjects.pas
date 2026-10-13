@@ -83,8 +83,11 @@ resourcestring
   rsFilterLanguage = 'language %s';
   rsFilterBook = 'book %s';
   rsFilterType = 'type %s';
-  rsNoBundled = 'BTT-Writer''s bundled source texts were not found; only ' +
-    'installed sources are used.';
+  rsNoBundled = 'BTT-Writer''s bundled source texts were not found, so ' +
+    'chunking is only checked against sources BTT-Writer has downloaded. If ' +
+    'BTT-Writer is installed, say where in Settings (btw settings ' +
+    '--btt-writer <folder>).';
+  rsBundled = 'Bundled source texts: %s';
   rsSummary = '%d project(s) listed, %d with problems.';
   rsSummaryHidden = '%d project(s) without problems not shown.';
 
@@ -118,8 +121,8 @@ resourcestring
     'read: %s';
   rsFinishedNoFile = 'Marked finished but have no file: %s';
   rsNotChecked = 'Chunking is only checked for text projects.';
-  rsSourceMissing = 'Source %s is not installed or bundled, so its chunking ' +
-    'was not checked.';
+  rsSourceMissing = 'Source %s is neither downloaded nor bundled with ' +
+    'BTT-Writer, so its chunking was not checked.';
   rsUnknownBook = 'No en_ulb text for book "%s"; is the book code right?';
   rsChunkingDiffers = '%d chunk(s) do not match %s chunking, so BTT-Writer ' +
     'does not show them with that source: %s';
@@ -315,6 +318,10 @@ end;
 type
   TJSONKinds = set of TJSONtype;
 
+const
+  ManifestObjects: array of string = ('target_language', 'project', 'type', 'resource');
+  SourceIds: array of string = ('language_id', 'resource_id');
+
 function ManifestTypeProblems(M: TJSONObject): TStringArray;
 var
   Bad: TStringArray;
@@ -335,7 +342,7 @@ var
 begin
   Bad := nil;
   Need('package_version', [jtNumber]);
-  for Key in ['target_language', 'project', 'type', 'resource'] do
+  for Key in ManifestObjects do
   begin
     Need(Key, [jtObject]);
     if M.Find(Key) is TJSONObject then
@@ -362,7 +369,7 @@ begin
       if not (Item is TJSONObject) then
         Bad := Concat(Bad, [Format('source_translations[%d]', [I])])
       else
-        for Key in ['language_id', 'resource_id'] do
+        for Key in SourceIds do
           if (TJSONObject(Item).Find(Key) = nil) or
              (TJSONObject(Item).Find(Key).JSONType <> jtString) or
              (TJSONObject(Item).Find(Key).AsString = '') then
@@ -718,7 +725,9 @@ begin
   end;
   Bundled := BundledSourcesPath;
   if Bundled = '' then
-    Reporter.Info(rsNoBundled);
+    Reporter.Warn(rsNoBundled)
+  else
+    Reporter.Info(Format(rsBundled, [ExcludeTrailingPathDelimiter(Bundled)]));
 
   Names := TStringList.Create;
   Sources := TSourceLibrary.Create(LibrarySourcesPath(TargetDir), Bundled);

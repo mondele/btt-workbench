@@ -323,7 +323,7 @@ begin
 
   BundledSourcesOverride := TempRoot + 'no-bundled-sources';
   Output := List(['--language', 'ddd']);
-  Check(Pos('fr_tit_f10 is not installed or bundled', Output) > 0,
+  Check(Pos('fr_tit_f10 is neither downloaded nor bundled', Output) > 0,
     'missing source reported when not bundled');
   BundledSourcesOverride := '';
 end;

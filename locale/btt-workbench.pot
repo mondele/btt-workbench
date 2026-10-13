@@ -134,8 +134,13 @@ msgstr ""
 
 #: modprojects:rsnobundled
 msgid ""
-"BTT-Writer's bundled source texts were not found; only installed sources are "
-"used."
+"BTT-Writer's bundled source texts were not found, so chunking is only "
+"checked against sources BTT-Writer has downloaded. If BTT-Writer is "
+"installed, say where in Settings (btw settings --btt-writer <folder>)."
+msgstr ""
+
+#: modprojects:rsbundled
+msgid "Bundled source texts: %s"
 msgstr ""
 
 #: modprojects:rssummary
@@ -245,7 +250,9 @@ msgid "Chunking is only checked for text projects."
 msgstr ""
 
 #: modprojects:rssourcemissing
-msgid "Source %s is not installed or bundled, so its chunking was not checked."
+msgid ""
+"Source %s is neither downloaded nor bundled with BTT-Writer, so its chunking "
+"was not checked."
 msgstr ""
 
 #: modprojects:rsunknownbook
@@ -282,6 +289,107 @@ msgstr ""
 
 #: modprojects:rsmore
 msgid "%s and %d more"
+msgstr ""
+
+#: modsettings:rstitle
+msgid "Settings"
+msgstr ""
+
+#: modsettings:rsdescription
+msgid ""
+"Shows where BTT Workbench finds BTT-Writer and its data, and saves those "
+"locations when they are not found by themselves."
+msgstr ""
+
+#: modsettings:rsoptbttwriter
+msgid "BTT-Writer program"
+msgstr ""
+
+#: modsettings:rsoptbttwriterhelp
+msgid ""
+"Where BTT-Writer is installed (its folder or program file); its bundled "
+"source texts are used to check chunking"
+msgstr ""
+
+#: modsettings:rsoptdatadir
+msgid "BTT-Writer data folder"
+msgstr ""
+
+#: modsettings:rsoptdatadirhelp
+msgid "The folder holding BTT-Writer's targetTranslations and library folders"
+msgstr ""
+
+#: modsettings:rsoptclear
+msgid "Forget saved settings"
+msgstr ""
+
+#: modsettings:rsoptclearhelp
+msgid "Go back to finding BTT-Writer and its data by themselves"
+msgstr ""
+
+#: modsettings:rscleared
+msgid "Saved settings forgotten."
+msgstr ""
+
+#: modsettings:rsnosources
+msgid ""
+"No BTT-Writer source texts (.tsrc files) found in %s. Choose the folder BTT-"
+"Writer is installed in. Nothing saved."
+msgstr ""
+
+#: modsettings:rsnodatadir
+msgid "Not a folder: %s. Nothing saved."
+msgstr ""
+
+#: modsettings:rsnotargettranslations
+msgid "%s has no targetTranslations folder; is it BTT-Writer's data folder?"
+msgstr ""
+
+#: modsettings:rssaved
+msgid "Saved."
+msgstr ""
+
+#: modsettings:rssettingsfile
+msgid "Settings file: %s"
+msgstr ""
+
+#: modsettings:rsdata
+msgid "BTT-Writer data folder: %s (%s)"
+msgstr ""
+
+#: modsettings:rsfromenv
+msgid "from %s"
+msgstr ""
+
+#: modsettings:rsfromsetting
+msgid "saved setting"
+msgstr ""
+
+#: modsettings:rsfromdefault
+msgid "BTT-Writer's usual place"
+msgstr ""
+
+#: modsettings:rssources
+msgid "BTT-Writer source texts: %s (%s, %d source texts)"
+msgstr ""
+
+#: modsettings:rsfound
+msgid "found on this computer"
+msgstr ""
+
+#: modsettings:rsnonefound
+msgid ""
+"BTT-Writer source texts: not found. Chunking can only be checked against "
+"sources BTT-Writer has downloaded. Use --btt-writer to say where BTT-Writer "
+"is installed."
+msgstr ""
+
+#: modsettings:rsbadsetting
+msgid "The saved BTT-Writer location %s has no source texts any more."
+msgstr ""
+
+#: modsettings:rsotherinstalls
+msgid "Other BTT-Writer installs found: %s"
 msgstr ""
 
 #: modtstudioimport:rstitle

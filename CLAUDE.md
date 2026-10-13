@@ -74,8 +74,15 @@ linker warnings are harmless.
   SimpleIPC pipe in `$XDG_RUNTIME_DIR`). A second `btt-workbench <module>
   ...` hands its options to the open window and exits.
 - Default to BTT-Writer's data via `WBDataPaths`. `BTT_WRITER_DATA`
-  overrides it, and modules that write should also take a `--target-dir`
-  so tests never touch real data.
+  overrides it, then the saved `settings --data-dir`. Modules that write
+  should also take a `--target-dir` so tests never touch real data.
+- Saved settings live in `WBSettings` (an ini file; `BTW_SETTINGS` names
+  another). TestCore sets `SettingsFileOverride` first thing so tests never
+  read or change the user's settings.
+- Bundled sources: `BTW_BUNDLED_SOURCES`, then the saved `settings
+  --btt-writer`, then `FindBttWriterInstalls` (usual folders, `btt-writer`
+  on PATH, Linux desktop entries; symlinks resolved so `/lib` and
+  `/usr/lib` count once).
 - Compatibility target: **BTT-Writer Desktop 1.6.0**, installed at
   `/usr/lib/btt-writer/resources/app/src/`. That is newer than the
   `../BTT-Writer-Desktop` checkout and the `bttw-deb` package. Check
