@@ -14,6 +14,9 @@ unit WorkbenchForm;
   AddFromOtherInstance does the same for a file double-clicked while the
   window is open: it is added to the list and the check runs again.
   A Multiple file/directory option is a multi-line field, one per line.
+  A password option is a masked field. A checklist option is a list with
+  check boxes: Find fills it from the module's Choices using the other
+  fields as filters; nothing starts checked.
 
   Modules run on the GUI thread for now; the reporter pumps messages so
   the log stays live. Move to a worker thread once a module is slow. }
@@ -22,7 +25,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Graphics,
-  WBReporter, WBModule;
+  ComCtrls, WBReporter, WBModule;
 
 type
   TOptionEditor = record
@@ -31,6 +34,7 @@ type
     Memo: TMemo;        // Multiple options: one value per line
     Check: TCheckBox;
     Combo: TComboBox;
+    List: TListView;    // checklist options
   end;
 
   TWorkbenchForm = class(TForm)
@@ -60,6 +64,10 @@ type
     procedure AutoCheck(Data: PtrInt);
     procedure ApplyPending(Data: PtrInt);
     procedure FillFields(Options: TStrings; Append: Boolean);
+    procedure CollectOptions(Options: TStrings);
+    procedure FindClick(Sender: TObject);
+    procedure CheckAllClick(Sender: TObject);
+    procedure CheckNoneClick(Sender: TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -93,6 +101,10 @@ resourcestring
   rsFinishedOk = 'Finished.';
   rsFinishedFail = 'Finished with errors (code %d).';
   rsNoModules = 'No modules are installed.';
+  rsFind = 'Find';
+  rsSelectAll = 'Select all';
+  rsSelectNone = 'None';
+  rsFound = 'Found %d item(s). Check the ones you want, then press Run.';
 
 type
   TMemoReporter = class(TWBReporter)
@@ -322,6 +334,7 @@ begin
       FEditors[I].Memo := nil;
       FEditors[I].Check := nil;
       FEditors[I].Combo := nil;
+      FEditors[I].List := nil;
       if (Defs[I].Kind = okFlag) and (Defs[I].Name = 'dry-run') then
       begin
         FHasCheck := True;     // shown as the Check button, not a checkbox
@@ -378,6 +391,55 @@ begin
         Continue;
       end;
 
+      if Defs[I].Kind = okChecklist then
+      begin
+        Row.AutoSize := False;
+        Row.Height := 220;
+        Lbl.Layout := tlTop;
+        BtnHolder := TPanel.Create(Self);
+        BtnHolder.Parent := Row;
+        BtnHolder.Align := alRight;
+        BtnHolder.AutoSize := True;
+        BtnHolder.BevelOuter := bvNone;
+        BtnHolder.BorderSpacing.Left := 4;
+        Btn := TButton.Create(Self);
+        Btn.Parent := BtnHolder;
+        Btn.Align := alTop;
+        Btn.AutoSize := True;
+        Btn.Caption := rsFind;
+        Btn.Tag := I;
+        Btn.OnClick := @FindClick;
+        Btn := TButton.Create(Self);
+        Btn.Parent := BtnHolder;
+        Btn.Align := alTop;
+        Btn.Top := 100;
+        Btn.AutoSize := True;
+        Btn.BorderSpacing.Top := 4;
+        Btn.Caption := rsSelectAll;
+        Btn.Tag := I;
+        Btn.OnClick := @CheckAllClick;
+        Btn := TButton.Create(Self);
+        Btn.Parent := BtnHolder;
+        Btn.Align := alTop;
+        Btn.Top := 200;
+        Btn.AutoSize := True;
+        Btn.BorderSpacing.Top := 4;
+        Btn.Caption := rsSelectNone;
+        Btn.Tag := I;
+        Btn.OnClick := @CheckNoneClick;
+        FEditors[I].List := TListView.Create(Self);
+        FEditors[I].List.Parent := Row;
+        FEditors[I].List.Align := alClient;
+        FEditors[I].List.ViewStyle := vsReport;
+        FEditors[I].List.Checkboxes := True;
+        FEditors[I].List.RowSelect := True;
+        FEditors[I].List.ReadOnly := True;
+        FEditors[I].List.Hint := Defs[I].Help;
+        FEditors[I].List.ShowHint := True;
+        FEditors[I].List.Columns.Add.Caption := Defs[I].Caption;
+        Continue;
+      end;
+
       if Defs[I].Multiple then
       begin
         Row.AutoSize := False;
@@ -427,6 +489,8 @@ begin
       FEditors[I].Edit.Hint := Defs[I].Help;
       FEditors[I].Edit.ShowHint := True;
       FEditors[I].Edit.TextHint := Defs[I].Help;
+      if Defs[I].Kind = okPassword then
+        FEditors[I].Edit.PasswordChar := '*';
     end;
     if BiDiMode = bdRightToLeft then
       FOptionsPanel.FlipChildren(True);
@@ -438,7 +502,7 @@ end;
 
 procedure TWorkbenchForm.FillFields(Options: TStrings; Append: Boolean);
 var
-  I: Integer;
+  I, J: Integer;
   Value, V: string;
 begin
   for I := 0 to High(FEditors) do
@@ -446,7 +510,18 @@ begin
     Value := Options.Values[FEditors[I].Def.Name];
     if Value = '' then
       Continue;
-    if FEditors[I].Memo <> nil then
+    if FEditors[I].List <> nil then
+    begin
+      if not Append then
+        FEditors[I].List.Items.Clear;
+      for V in OptionValues(Options, FEditors[I].Def.Name) do
+        if (V <> AllChoices) and (FEditors[I].List.FindCaption(0, V, False, True, False) = nil) then
+          FEditors[I].List.Items.Add.Caption := V;
+      for J := 0 to FEditors[I].List.Items.Count - 1 do
+        if Pos(#10 + FEditors[I].List.Items[J].Caption + #10, #10 + Value + #10) > 0 then
+          FEditors[I].List.Items[J].Checked := True;
+    end
+    else if FEditors[I].Memo <> nil then
     begin
       if not Append then
         FEditors[I].Memo.Clear;
@@ -617,15 +692,136 @@ begin
   end;
 end;
 
+{ The fields as name=value options: checked list items, memo lines, ... }
+procedure TWorkbenchForm.CollectOptions(Options: TStrings);
+var
+  E: TOptionEditor;
+  Line: string;
+  J: Integer;
+begin
+  for E in FEditors do
+    if E.List <> nil then
+    begin
+      for J := 0 to E.List.Items.Count - 1 do
+        if E.List.Items[J].Checked then
+          AddOptionValue(Options, E.Def.Name, E.List.Items[J].Caption);
+    end
+    else if E.Check <> nil then
+    begin
+      if E.Check.Checked then
+        Options.Values[E.Def.Name] := 'true';
+    end
+    else if E.Memo <> nil then
+    begin
+      for Line in E.Memo.Lines do
+        if Trim(Line) <> '' then
+          AddOptionValue(Options, E.Def.Name, Trim(Line));
+    end
+    else if E.Combo <> nil then
+    begin
+      if E.Combo.ItemIndex >= 0 then
+        Options.Values[E.Def.Name] := E.Combo.Items[E.Combo.ItemIndex];
+    end
+    else if (E.Edit <> nil) and (Trim(E.Edit.Text) <> '') then
+    begin
+      if E.Def.Kind = okPassword then
+        Options.Values[E.Def.Name] := E.Edit.Text   // spaces may be part of it
+      else
+        Options.Values[E.Def.Name] := Trim(E.Edit.Text);
+    end;
+end;
+
+{ Fill a checklist from the module's Choices; checked items stay checked. }
+procedure TWorkbenchForm.FindClick(Sender: TObject);
+var
+  I, J: Integer;
+  M: TWBModule;
+  Options: TStringList;
+  Reporter: TMemoReporter;
+  List: TWBChoiceList;
+  View: TListView;
+  Checked: TStringList;
+  Item: TListItem;
+  S: string;
+begin
+  if FBusy then
+    Exit;
+  FBusy := True;
+  I := TComponent(Sender).Tag;
+  View := FEditors[I].List;
+  M := ModuleAt(FSelected);
+  Options := TStringList.Create;
+  Checked := TStringList.Create;
+  Reporter := TMemoReporter.Create(FLog);
+  FRunButton.Enabled := False;
+  FCheckButton.Enabled := False;
+  Screen.BeginWaitCursor;
+  try
+    FLog.Clear;
+    CollectOptions(Options);
+    for J := 0 to View.Items.Count - 1 do
+      if View.Items[J].Checked then
+        Checked.Add(View.Items[J].Caption);
+    if M.Choices(FEditors[I].Def.Name, Options, Reporter, List) then
+    begin
+      View.BeginUpdate;
+      try
+        View.Items.Clear;
+        while View.Columns.Count > 1 do
+          View.Columns.Delete(View.Columns.Count - 1);
+        for S in List.Headers do
+          View.Columns.Add.Caption := S;
+        for J := 0 to High(List.Items) do
+        begin
+          Item := View.Items.Add;
+          Item.Caption := List.Items[J].Value;
+          for S in List.Items[J].Columns do
+            Item.SubItems.Add(S);
+          Item.Checked := Checked.IndexOf(List.Items[J].Value) >= 0;
+        end;
+        for J := 0 to View.Columns.Count - 1 do
+          View.Columns[J].AutoSize := True;
+      finally
+        View.EndUpdate;
+      end;
+      FLog.Lines.Add(Format(rsFound, [Length(List.Items)]));
+    end;
+  finally
+    Screen.EndWaitCursor;
+    FRunButton.Enabled := True;
+    FCheckButton.Enabled := True;
+    Reporter.Free;
+    Checked.Free;
+    Options.Free;
+    FBusy := False;
+  end;
+end;
+
+procedure TWorkbenchForm.CheckAllClick(Sender: TObject);
+var
+  J: Integer;
+begin
+  with FEditors[TComponent(Sender).Tag] do
+    for J := 0 to List.Items.Count - 1 do
+      List.Items[J].Checked := True;
+end;
+
+procedure TWorkbenchForm.CheckNoneClick(Sender: TObject);
+var
+  J: Integer;
+begin
+  with FEditors[TComponent(Sender).Tag] do
+    for J := 0 to List.Items.Count - 1 do
+      List.Items[J].Checked := False;
+end;
+
 procedure TWorkbenchForm.RunClick(Sender: TObject);
 var
   M: TWBModule;
   Options: TStringList;
   Reporter: TMemoReporter;
-  E: TOptionEditor;
   Code: Integer;
   IsCheck: Boolean;
-  Line: string;
 begin
   if FBusy then
     Exit;
@@ -639,25 +835,7 @@ begin
   Screen.BeginWaitCursor;
   try
     FLog.Clear;
-    for E in FEditors do
-      if E.Check <> nil then
-      begin
-        if E.Check.Checked then
-          Options.Values[E.Def.Name] := 'true';
-      end
-      else if E.Memo <> nil then
-      begin
-        for Line in E.Memo.Lines do
-          if Trim(Line) <> '' then
-            AddOptionValue(Options, E.Def.Name, Trim(Line));
-      end
-      else if E.Combo <> nil then
-      begin
-        if E.Combo.ItemIndex >= 0 then
-          Options.Values[E.Def.Name] := E.Combo.Items[E.Combo.ItemIndex];
-      end
-      else if (E.Edit <> nil) and (Trim(E.Edit.Text) <> '') then
-        Options.Values[E.Def.Name] := Trim(E.Edit.Text);
+    CollectOptions(Options);
     if IsCheck then
       Options.Values['dry-run'] := 'true';
     if M.ValidateOptions(Options, Reporter) then

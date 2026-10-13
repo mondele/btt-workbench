@@ -37,6 +37,18 @@ msgstr ""
 msgid "Unknown option: %s"
 msgstr ""
 
+#: btw:rschecklisthelp
+msgid "  --%s takes items from \"btw %s --list\"; --all takes every item."
+msgstr ""
+
+#: btw:rsnoitems
+msgid "Nothing found."
+msgstr ""
+
+#: btw:rsitemcount
+msgid "%d item(s)."
+msgstr ""
+
 #: btw:rswarningprefix
 msgid "warning: "
 msgstr ""
@@ -848,6 +860,10 @@ msgstr ""
 msgid "Option --%s must be one of: %s"
 msgstr ""
 
+#: wbmodule:rsnochoices
+msgid "This module has no list to choose from for %s."
+msgstr ""
+
 #: workbenchform:rsapptitle
 msgid "BTT Workbench"
 msgstr ""
@@ -898,4 +914,20 @@ msgstr ""
 
 #: workbenchform:rsnomodules
 msgid "No modules are installed."
+msgstr ""
+
+#: workbenchform:rsfind
+msgid "Find"
+msgstr ""
+
+#: workbenchform:rsselectall
+msgid "Select all"
+msgstr ""
+
+#: workbenchform:rsselectnone
+msgid "None"
+msgstr ""
+
+#: workbenchform:rsfound
+msgid "Found %d item(s). Check the ones you want, then press Run."
 msgstr ""

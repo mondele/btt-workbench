@@ -7,7 +7,7 @@ interface
 const
   WorkbenchVersion = '0.1.0';
   { Bump when the libbtw C ABI changes incompatibly. }
-  WorkbenchApiVersion = 1;
+  WorkbenchApiVersion = 2;   // 2: btw_choices, password and checklist options
 
 implementation
 

@@ -51,6 +51,112 @@ begin
   WriteFileText(Result + PathDelim + '01' + PathDelim + '01.txt', '\c 1 \v 1 Text');
 end;
 
+type
+  { Not registered: exercises checklist and password options. }
+  TPickModule = class(TWBModule)
+  public
+    function Id: string; override;
+    function Title: string; override;
+    function Description: string; override;
+    function OptionDefs: TWBOptionDefs; override;
+    function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Choices(const OptionName: string; Options: TStrings;
+      Reporter: TWBReporter; out List: TWBChoiceList): Boolean; override;
+  end;
+
+function TPickModule.Id: string; begin Result := 'pick'; end;
+function TPickModule.Title: string; begin Result := 'Pick'; end;
+function TPickModule.Description: string; begin Result := 'Test'; end;
+
+function TPickModule.OptionDefs: TWBOptionDefs;
+begin
+  Result := [
+    OptionDef('prefix', okString, False, False, 'Prefix', ''),
+    OptionDef('user', okString, False, False, 'User', ''),
+    PasswordOptionDef('password', 'user', 'Password', ''),
+    ChecklistOptionDef('item', True, 'Item', '')];
+end;
+
+function TPickModule.Execute(Options: TStrings; Reporter: TWBReporter): Integer;
+var
+  Values: TStringArray;
+begin
+  if not ChecklistValues(Self, 'item', Options, Reporter, Values) then
+    Exit(1);
+  Reporter.Info(String.Join(',', Values));
+  Result := 0;
+end;
+
+{ Items a1, a2, b1 filtered by --prefix. }
+function TPickModule.Choices(const OptionName: string; Options: TStrings;
+  Reporter: TWBReporter; out List: TWBChoiceList): Boolean;
+var
+  V: string;
+begin
+  List.Headers := ['Size'];
+  List.Items := nil;
+  if Options.Values['prefix'] = 'fail' then
+  begin
+    Reporter.Error('cannot list');
+    Exit(False);
+  end;
+  for V in TStringArray.Create('a1', 'a2', 'b1') do
+    if Copy(V, 1, Length(Options.Values['prefix'])) = Options.Values['prefix'] then
+    begin
+      SetLength(List.Items, Length(List.Items) + 1);
+      List.Items[High(List.Items)].Value := V;
+      List.Items[High(List.Items)].Columns := [IntToStr(Length(V))];
+    end;
+  Result := True;
+end;
+
+procedure TestChecklists;
+var
+  M: TPickModule;
+  Args, Options: TStringList;
+  Err: string;
+  R: TWBListReporter;
+  Values: TStringArray;
+  List: TWBChoiceList;
+begin
+  Section('checklist and password options');
+  M := TPickModule.Create;
+  Args := TStringList.Create;
+  Options := TStringList.Create;
+  R := TWBListReporter.Create;
+  try
+    Check(ChecklistOption(M) = 'item', 'checklist option found');
+    Check(ChecklistOption(FindModule('ulb2reg')) = '', 'modules without one have none');
+    Check((OptionKindName(okChecklist) = 'checklist') and (OptionKindName(okPassword) = 'password'),
+      'kind names');
+
+    Args.CommaText := '--item,a2,--item,b1';
+    Check(ParseModuleArgs(M, Args, Options, Err) and
+      (String.Join(',', OptionValues(Options, 'item')) = 'a2,b1'), 'checklist values repeat');
+    Check(ChecklistValues(M, 'item', Options, R, Values) and (String.Join(',', Values) = 'a2,b1'),
+      'checked values used as given');
+
+    Options.Clear;
+    Args.CommaText := '--prefix,a,--all';
+    Check(ParseModuleArgs(M, Args, Options, Err) and (Options.Values['item'] = AllChoices),
+      '--all checks every item');
+    Check(ChecklistValues(M, 'item', Options, R, Values) and (String.Join(',', Values) = 'a1,a2'),
+      '--all expands through Choices with the filters');
+    Check(M.ValidateOptions(Options, R), 'a required checklist is satisfied by --all');
+
+    Options.Values['prefix'] := 'fail';
+    Check(not ChecklistValues(M, 'item', Options, R, Values) and R.HasErrors,
+      'a failing Choices fails the expansion');
+
+    Check(not FindModule('ulb2reg').Choices('x', Options, R, List), 'default Choices refuses');
+  finally
+    R.Free;
+    Options.Free;
+    Args.Free;
+    M.Free;
+  end;
+end;
+
 procedure TestRegistry;
 begin
   Section('registry');
@@ -211,6 +317,7 @@ begin
   try
     TestRegistry;
     TestCommandLine;
+    TestChecklists;
     TestUlb2Reg;
     TestI18n;
     TestTStudioImportModule(TempRoot);

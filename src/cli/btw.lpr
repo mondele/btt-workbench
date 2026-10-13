@@ -7,7 +7,12 @@ program btw;
     btw [--lang <code>] list
     btw [--lang <code>] help <module>
     btw [--lang <code>] <module> [options]
+    btw [--lang <code>] <module> --list [filters]   items a checklist can take
     btw --version
+
+  A module with a checklist option (e.g. repos to download) takes the
+  items as repeated --<option> values, or --all for every item. A password
+  option is asked for without echo when left out (stdin may be piped).
 
   Messages go to stdout (info) and stderr (warnings, errors). Exit code is
   the module's result: 0 success, 1 module failure, 2 usage error. }
@@ -17,6 +22,7 @@ uses
   cthreads,
   {$ENDIF}
   Classes, SysUtils,
+  {$IFDEF UNIX}termio,{$ENDIF}{$IFDEF WINDOWS}Windows,{$ENDIF}
   WBReporter, WBModule, WBCommandLine, WBI18n, WBVersion, WBAllModules;
 
 resourcestring
@@ -32,6 +38,9 @@ resourcestring
   rsDefault = '(default: %s)';
   rsUnknownModule = 'Unknown module: %s. Run "btw list" to see modules.';
   rsUnknownGlobal = 'Unknown option: %s';
+  rsChecklistHelp = '  --%s takes items from "btw %s --list"; --all takes every item.';
+  rsNoItems = 'Nothing found.';
+  rsItemCount = '%d item(s).';
   rsWarningPrefix = 'warning: ';
   rsErrorPrefix = 'error: ';
 
@@ -96,6 +105,8 @@ begin
       Usage := Usage + ' [--' + Def.Name + ']'
     else if Def.Kind = okChoice then
       Usage := Usage + ' [--' + Def.Name + ' ' + String.Join('|', Def.Choices) + ']'
+    else if Def.Kind = okChecklist then
+      Usage := Usage + ' [--' + Def.Name + ' <value>... | --all]'
     else
       Usage := Usage + ' [--' + Def.Name + ' <' + OptionKindName(Def.Kind) + '>]';
   WriteLn(M.Title);
@@ -119,6 +130,136 @@ begin
       Write(' ', Format(rsDefault, [Def.Default]));
     WriteLn;
   end;
+  if ChecklistOption(M) <> '' then
+    WriteLn(Format(rsChecklistHelp, [ChecklistOption(M), M.Id]));
+end;
+
+{ A line from stdin without echo when it is a terminal. }
+function ReadSecret(const Prompt: string): string;
+{$IFDEF UNIX}
+var
+  Old, T: Termios;
+  Tty: Boolean;
+{$ENDIF}
+{$IFDEF WINDOWS}
+var
+  H: THandle;
+  Mode: DWORD;
+  Tty: Boolean;
+{$ENDIF}
+begin
+  Write(StdErr, Prompt, ': ');
+  Flush(StdErr);
+  Result := '';
+  {$IFDEF UNIX}
+  Tty := IsATTY(StdInputHandle) = 1;
+  if Tty then
+  begin
+    TCGetAttr(StdInputHandle, Old);
+    T := Old;
+    T.c_lflag := T.c_lflag and not ECHO;
+    TCSetAttr(StdInputHandle, TCSANOW, T);
+  end;
+  try
+    ReadLn(Result);
+  finally
+    if Tty then
+    begin
+      TCSetAttr(StdInputHandle, TCSANOW, Old);
+      WriteLn(StdErr);
+    end;
+  end;
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  H := GetStdHandle(STD_INPUT_HANDLE);
+  Tty := GetConsoleMode(H, Mode);
+  if Tty then
+    SetConsoleMode(H, Mode and not ENABLE_ECHO_INPUT);
+  try
+    ReadLn(Result);
+  finally
+    if Tty then
+    begin
+      SetConsoleMode(H, Mode);
+      WriteLn(StdErr);
+    end;
+  end;
+  {$ENDIF}
+end;
+
+{ Asks for passwords left out whose PromptWith option was given. }
+procedure PromptPasswords(M: TWBModule; Options: TStrings);
+var
+  Def: TWBOptionDef;
+begin
+  for Def in M.OptionDefs do
+    if (Def.Kind = okPassword) and (Def.PromptWith <> '') and
+       (Options.Values[Def.PromptWith] <> '') and (Options.Values[Def.Name] = '') then
+      Options.Values[Def.Name] := ReadSecret(Def.Caption);
+end;
+
+{ btw <module> --list [filters]: the checklist's items as a table, the
+  value to pass first. }
+function ListChoices(M: TWBModule; Args: TStrings): Integer;
+var
+  Options: TStringList;
+  Reporter: TConsoleReporter;
+  ErrorMsg, OptName, Line: string;
+  List: TWBChoiceList;
+  Def: TWBOptionDef;
+  Widths: array of Integer;
+  Rows: array of TStringArray;
+  Header: TStringArray;
+  I, J: Integer;
+begin
+  Result := 2;
+  OptName := ChecklistOption(M);
+  Options := TStringList.Create;
+  Reporter := TConsoleReporter.Create;
+  try
+    if not ParseModuleArgs(M, Args, Options, ErrorMsg) then
+    begin
+      Reporter.Error(ErrorMsg);
+      Exit;
+    end;
+    PromptPasswords(M, Options);
+    if not M.Choices(OptName, Options, Reporter, List) then
+      Exit(1);
+    Header := [OptName];
+    for Def in M.OptionDefs do
+      if Def.Name = OptName then
+        Header := [Def.Caption];
+    Header := Concat(Header, List.Headers);
+    Rows := [Header];
+    for I := 0 to High(List.Items) do
+      Rows := Concat(Rows, [Concat([List.Items[I].Value], List.Items[I].Columns)]);
+    Widths := nil;
+    SetLength(Widths, Length(Header));
+    for I := 0 to High(Rows) do
+      for J := 0 to High(Rows[I]) do
+        if (J <= High(Widths)) and (Length(Rows[I][J]) > Widths[J]) then
+          Widths[J] := Length(Rows[I][J]);
+    if Length(List.Items) = 0 then
+    begin
+      WriteLn(rsNoItems);
+      Exit(0);
+    end;
+    for I := 0 to High(Rows) do
+    begin
+      Line := '';
+      for J := 0 to High(Rows[I]) do
+        if J < High(Rows[I]) then
+          Line := Line + Rows[I][J].PadRight(Widths[J] + 2)
+        else
+          Line := Line + Rows[I][J];
+      WriteLn(TrimRight(Line));
+    end;
+    WriteLn(Format(rsItemCount, [Length(List.Items)]));
+    Result := 0;
+  finally
+    Reporter.Free;
+    Options.Free;
+  end;
 end;
 
 function RunModule(M: TWBModule; Args: TStrings): Integer;
@@ -135,6 +276,7 @@ begin
       Reporter.Error(ErrorMsg);
       Exit(2);
     end;
+    PromptPasswords(M, Options);
     if not M.ValidateOptions(Options, Reporter) then
       Exit(2);
     Result := M.Execute(Options, Reporter);
@@ -237,6 +379,11 @@ begin
     begin
       ShowModuleHelp(M);
       Exit(0);
+    end;
+    if (ChecklistOption(M) <> '') and (Args.IndexOf('--list') >= 0) then
+    begin
+      Args.Delete(Args.IndexOf('--list'));
+      Exit(ListChoices(M, Args));
     end;
     Result := RunModule(M, Args);
   finally

@@ -74,7 +74,9 @@ begin
   try
     L.Add(Module.Id);
     for Def in Module.OptionDefs do
-      if Def.Multiple then
+      if Def.Kind = okPassword then
+        Continue      // never handed to another process
+      else if Def.Multiple then
       begin
         for V in OptionValues(Options, Def.Name) do
           if Def.Kind in [okFile, okDirectory] then

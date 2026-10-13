@@ -19,7 +19,16 @@ unit WBModule;
     automatically when opened from the command line (e.g. a double-clicked
     file).
   - Everything a person reads (Title, Description, Caption, Help, every
-    reported message) comes from a resourcestring, so it can be translated. }
+    reported message) comes from a resourcestring, so it can be translated.
+  - okPassword values are never shown, logged or passed to another process.
+    The CLI asks for one (without echo) when the option named in
+    PromptWith is given and the password is not.
+  - okChecklist is a Multiple option whose values are picked from a list
+    the module finds itself (Choices), using the other options as filters:
+    the GUI shows it as a list with check boxes and a Find button, the CLI
+    prints it with --list and takes --all, libbtw has btw_choices. The
+    value AllChoices ('*') stands for every item; ChecklistValues expands
+    it. }
 
 interface
 
@@ -27,7 +36,8 @@ uses
   Classes, SysUtils, Generics.Collections, WBReporter;
 
 type
-  TWBOptionKind = (okString, okDirectory, okFile, okFlag, okChoice);
+  TWBOptionKind = (okString, okDirectory, okFile, okFlag, okChoice, okPassword,
+    okChecklist);
 
   TWBOptionDef = record
     Name: string;        // stable: --name on the CLI, key in JSON
@@ -39,8 +49,20 @@ type
     Choices: TStringArray; // okChoice: allowed values (stable, untranslated)
     Default: string;     // used when the option is not given ('' = none)
     Multiple: Boolean;   // takes a list of values (see OptionValues)
+    PromptWith: string;  // okPassword: CLI asks for it when this option is given
   end;
   TWBOptionDefs = array of TWBOptionDef;
+
+  { One item of an okChecklist option: the value it adds when checked, and
+    what to show for it, one entry per column. }
+  TWBChoice = record
+    Value: string;
+    Columns: TStringArray;
+  end;
+  TWBChoiceList = record
+    Headers: TStringArray;  // translated column titles
+    Items: array of TWBChoice;
+  end;
 
   TWBModule = class
   public
@@ -53,7 +75,16 @@ type
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; virtual; abstract;
     { Reports every missing required option. True if none are missing. }
     function ValidateOptions(Options: TStrings; Reporter: TWBReporter): Boolean;
+    { The items an okChecklist option can take, found with the other
+      Options as filters. False (with the reason reported) if they cannot
+      be found. Modules with a checklist override this. }
+    function Choices(const OptionName: string; Options: TStrings;
+      Reporter: TWBReporter; out List: TWBChoiceList): Boolean; virtual;
   end;
+
+const
+  AllChoices = '*';
+
 
 function OptionDef(const AName: string; AKind: TWBOptionKind;
   ARequired, APositional: Boolean; const ACaption, AHelp: string): TWBOptionDef;
@@ -62,6 +93,16 @@ function ChoiceOptionDef(const AName: string; const AChoices: array of string;
 { OptionDef with Multiple set: a list of values. }
 function ListOptionDef(const AName: string; AKind: TWBOptionKind;
   ARequired, APositional: Boolean; const ACaption, AHelp: string): TWBOptionDef;
+{ A checklist: a Multiple option picked from Module.Choices. }
+function ChecklistOptionDef(const AName: string; ARequired: Boolean;
+  const ACaption, AHelp: string): TWBOptionDef;
+function PasswordOptionDef(const AName, APromptWith, ACaption, AHelp: string): TWBOptionDef;
+{ The checked values of a checklist option, AllChoices expanded through
+  Module.Choices. False if that fails. }
+function ChecklistValues(Module: TWBModule; const AName: string; Options: TStrings;
+  Reporter: TWBReporter; out Values: TStringArray): Boolean;
+{ The module's first checklist option, or '' if it has none. }
+function ChecklistOption(Module: TWBModule): string;
 function OptionIsSet(Options: TStrings; const AName: string): Boolean;
 { The non-empty values of a Multiple option, in order. }
 function OptionValues(Options: TStrings; const AName: string): TStringArray;
@@ -84,6 +125,7 @@ implementation
 resourcestring
   rsMissingOption = 'Missing required option: %s (%s)';
   rsBadChoice = 'Option --%s must be one of: %s';
+  rsNoChoices = 'This module has no list to choose from for %s.';
 
 var
   Registry: specialize TObjectList<TWBModule>;
@@ -100,6 +142,64 @@ begin
   Result.Choices := nil;
   Result.Default := '';
   Result.Multiple := False;
+  Result.PromptWith := '';
+end;
+
+function ChecklistOptionDef(const AName: string; ARequired: Boolean;
+  const ACaption, AHelp: string): TWBOptionDef;
+begin
+  Result := OptionDef(AName, okChecklist, ARequired, False, ACaption, AHelp);
+  Result.Multiple := True;
+end;
+
+function PasswordOptionDef(const AName, APromptWith, ACaption, AHelp: string): TWBOptionDef;
+begin
+  Result := OptionDef(AName, okPassword, False, False, ACaption, AHelp);
+  Result.PromptWith := APromptWith;
+end;
+
+function ChecklistOption(Module: TWBModule): string;
+var
+  Def: TWBOptionDef;
+begin
+  for Def in Module.OptionDefs do
+    if Def.Kind = okChecklist then
+      Exit(Def.Name);
+  Result := '';
+end;
+
+function ChecklistValues(Module: TWBModule; const AName: string; Options: TStrings;
+  Reporter: TWBReporter; out Values: TStringArray): Boolean;
+var
+  V: string;
+  List: TWBChoiceList;
+  Item: TWBChoice;
+  All: Boolean;
+begin
+  Values := nil;
+  All := False;
+  for V in OptionValues(Options, AName) do
+    if V = AllChoices then
+      All := True
+    else
+      Values := Concat(Values, [V]);
+  if not All then
+    Exit(True);
+  if not Module.Choices(AName, Options, Reporter, List) then
+    Exit(False);
+  Values := nil;
+  for Item in List.Items do
+    Values := Concat(Values, [Item.Value]);
+  Result := True;
+end;
+
+function TWBModule.Choices(const OptionName: string; Options: TStrings;
+  Reporter: TWBReporter; out List: TWBChoiceList): Boolean;
+begin
+  List.Headers := nil;
+  List.Items := nil;
+  Reporter.Error(Format(rsNoChoices, [OptionName]));
+  Result := False;
 end;
 
 function ListOptionDef(const AName: string; AKind: TWBOptionKind;
@@ -170,6 +270,8 @@ begin
     okFile:      Result := 'file';
     okFlag:      Result := 'flag';
     okChoice:    Result := 'choice';
+    okPassword:  Result := 'password';
+    okChecklist: Result := 'checklist';
   end;
 end;
 

@@ -7,7 +7,8 @@ unit WBCommandLine;
     --name value   --name=value   --flag   positional
   Positional arguments fill the module's Positional options in order. A
   Multiple option may be given repeatedly; if it is positional, it takes
-  every remaining positional argument. }
+  every remaining positional argument. For a module with a checklist
+  option, --all checks every item (unless the module has its own 'all'). }
 
 interface
 
@@ -58,7 +59,9 @@ begin
   while I < Args.Count do
   begin
     Arg := Args[I];
-    if (Length(Arg) > 2) and (Copy(Arg, 1, 2) = '--') then
+    if (Arg = '--all') and not FindDef(Defs, 'all', Def) and (ChecklistOption(Module) <> '') then
+      AddOptionValue(Options, ChecklistOption(Module), AllChoices)
+    else if (Length(Arg) > 2) and (Copy(Arg, 1, 2) = '--') then
     begin
       OptName := Copy(Arg, 3, MaxInt);
       P := Pos('=', OptName);

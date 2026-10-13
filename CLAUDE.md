@@ -70,6 +70,15 @@ linker warnings are harmless.
   and add with `AddOptionValue`. On the CLI they repeat, or take every
   remaining positional argument. In JSON they are arrays. In the GUI they are a
   memo, one value per line.
+- Checklist options (`ChecklistOptionDef`, kind `okChecklist`) are lists
+  the module finds itself: override `TWBModule.Choices` (the other options
+  are the filters). The GUI shows a check-box list with Find / Select all /
+  None, the CLI prints `btw <module> --list [filters]` and takes `--all`
+  (stored as `AllChoices`, `*`), libbtw has `btw_choices`. Read the values
+  with `ChecklistValues`, which expands `*`. Nothing is pre-checked.
+- Password options (`PasswordOptionDef`, `okPassword`) are masked in the
+  GUI, never forwarded to another window, and asked for without echo by
+  the CLI when their `PromptWith` option is given.
 - The GUI keeps one window per user (`src/gui/WBSingleWindow.pas`,
   SimpleIPC pipe in `$XDG_RUNTIME_DIR`). A second `btt-workbench <module>
   ...` hands its options to the open window and exits.
