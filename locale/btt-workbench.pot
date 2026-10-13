@@ -45,6 +45,224 @@ msgstr ""
 msgid "error: "
 msgstr ""
 
+#: modprojects:rstitle
+msgid "Project list and problems"
+msgstr ""
+
+#: modprojects:rsdescription
+msgid ""
+"Lists the projects in BTT-Writer's projects folder and any problems with "
+"them: damaged manifests or git history, unresolved conflicts, and chunks or "
+"verse markers that do not match en_ulb or the project's source chunking. "
+"Changes nothing."
+msgstr ""
+
+#: modprojects:rsoptlanguage
+msgid "Languages"
+msgstr ""
+
+#: modprojects:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated (e.g. sah,udm)"
+msgstr ""
+
+#: modprojects:rsoptbook
+msgid "Books"
+msgstr ""
+
+#: modprojects:rsoptbookhelp
+msgid "Only these book codes, comma-separated (e.g. tit,jon)"
+msgstr ""
+
+#: modprojects:rsopttype
+msgid "Project types"
+msgstr ""
+
+#: modprojects:rsopttypehelp
+msgid ""
+"Only these types or resources, comma-separated (text, tn, tq, tw, reg, ulb, "
+"or text_reg)"
+msgstr ""
+
+#: modprojects:rsoptproblemsonly
+msgid "Problems only"
+msgstr ""
+
+#: modprojects:rsoptproblemsonlyhelp
+msgid "List only projects that have problems"
+msgstr ""
+
+#: modprojects:rsopttargetdir
+msgid "Projects folder"
+msgstr ""
+
+#: modprojects:rsopttargetdirhelp
+msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
+msgstr ""
+
+#: modprojects:rsnotargetdir
+msgid "Projects folder not found: %s"
+msgstr ""
+
+#: modprojects:rsfolder
+msgid "Projects folder: %s"
+msgstr ""
+
+#: modprojects:rsfilter
+msgid "Showing: %s"
+msgstr ""
+
+#: modprojects:rsfilterlanguage
+msgid "language %s"
+msgstr ""
+
+#: modprojects:rsfilterbook
+msgid "book %s"
+msgstr ""
+
+#: modprojects:rsfiltertype
+msgid "type %s"
+msgstr ""
+
+#: modprojects:rsnobundled
+msgid ""
+"BTT-Writer's bundled source texts were not found; only installed sources are "
+"used."
+msgstr ""
+
+#: modprojects:rssummary
+msgid "%d project(s) listed, %d with problems."
+msgstr ""
+
+#: modprojects:rssummaryhidden
+msgid "%d project(s) without problems not shown."
+msgstr ""
+
+#: modprojects:rsheader
+msgid "%s: %s (%s), %s (%s), %s - %s"
+msgstr ""
+
+#: modprojects:rsprogress
+msgid "%d of %d chunks finished"
+msgstr ""
+
+#: modprojects:rsprogressfiles
+msgid "%d chunk files, %d finished"
+msgstr ""
+
+#: modprojects:rsstrayfile
+msgid "%s: a file, not a project folder."
+msgstr ""
+
+#: modprojects:rsnomanifest
+msgid ""
+"%s: no manifest.json, so this is not a BTT-Writer project (or it is damaged)."
+msgstr ""
+
+#: modprojects:rsmanifestconflict
+msgid ""
+"manifest.json has unresolved merge conflict markers, so BTT-Writer cannot "
+"open the project."
+msgstr ""
+
+#: modprojects:rsmanifestinvalid
+msgid "manifest.json cannot be read (%s)."
+msgstr ""
+
+#: modprojects:rsmanifestids
+msgid "manifest.json is missing the language, book or type."
+msgstr ""
+
+#: modprojects:rsoldformat
+msgid ""
+"Older project format (version %s); BTT-Writer upgrades it when the project "
+"is opened."
+msgstr ""
+
+#: modprojects:rsnewformat
+msgid ""
+"Project format version %s is newer than this tool knows; checks may be "
+"incomplete."
+msgstr ""
+
+#: modprojects:rsfoldername
+msgid ""
+"The folder should be named %s. BTT-Writer matches projects by folder name, "
+"so imports of this project will not merge with it."
+msgstr ""
+
+#: modprojects:rsnogit
+msgid ""
+"No git history. BTT-Writer cannot save versions of this project or merge it."
+msgstr ""
+
+#: modprojects:rsbadgit
+msgid "The git history is damaged or empty."
+msgstr ""
+
+#: modprojects:rsmidmerge
+msgid "An unfinished merge is in progress."
+msgstr ""
+
+#: modprojects:rsdirty
+msgid "Has changes that are not committed yet."
+msgstr ""
+
+#: modprojects:rsconflicts
+msgid "%d chunk(s) have unresolved conflicts: %s"
+msgstr ""
+
+#: modprojects:rsunreadableconflicts
+msgid "%d chunk(s) have conflict markers BTT-Writer cannot read: %s"
+msgstr ""
+
+#: modprojects:rsfinishednofile
+msgid "Marked finished but have no file: %s"
+msgstr ""
+
+#: modprojects:rsnotchecked
+msgid "Chunking is only checked for text projects."
+msgstr ""
+
+#: modprojects:rssourcemissing
+msgid "Source %s is not installed or bundled, so its chunking was not checked."
+msgstr ""
+
+#: modprojects:rsunknownbook
+msgid "No en_ulb text for book \"%s\"; is the book code right?"
+msgstr ""
+
+#: modprojects:rschunkingdiffers
+msgid ""
+"%d chunk(s) do not match %s chunking, so BTT-Writer does not show them with "
+"that source: %s"
+msgstr ""
+
+#: modprojects:rschunkinglisted
+msgid " (listed as a source)"
+msgstr ""
+
+#: modprojects:rssourcechunkswithout
+msgid "%s chunks with no file here: %s"
+msgstr ""
+
+#: modprojects:rsfollows
+msgid "Follows %s chunking."
+msgstr ""
+
+#: modprojects:rsversesoutside
+msgid ""
+"Verse markers that are not in that chunk of the source (%s); BTT-Writer "
+"drops them when the chunk is opened: %s"
+msgstr ""
+
+#: modprojects:rsversestwice
+msgid "Verse markers given twice in one chunk: %s"
+msgstr ""
+
+#: modprojects:rsmore
+msgid "%s and %d more"
+msgstr ""
+
 #: modtstudioimport:rstitle
 msgid "Import .tstudio package"
 msgstr ""
@@ -73,14 +291,6 @@ msgid ""
 "stop: change nothing; merge: combine with the existing project (as BTT-"
 "Writer does); overwrite: replace it (the old copy is kept in workbench-"
 "backups)"
-msgstr ""
-
-#: modtstudioimport:rsopttargetdir
-msgid "Projects folder"
-msgstr ""
-
-#: modtstudioimport:rsopttargetdirhelp
-msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
 msgstr ""
 
 #: modtstudioimport:rsoptdryrun
@@ -123,10 +333,6 @@ msgstr ""
 
 #: modtstudioimport:rspackageinfo
 msgid "Package: %s, made by %s on %s, %d project(s)."
-msgstr ""
-
-#: modtstudioimport:rstargetdir
-msgid "Projects folder: %s"
 msgstr ""
 
 #: modtstudioimport:rstargetdirmissing

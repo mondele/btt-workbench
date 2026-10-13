@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   Classes, SysUtils, fpjson, jsonparser,
   WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules,
-  TestUtil, TestTStudioImport;
+  TestUtil, TestTStudioImport, TestProjects;
 
 const
   { Real BTT-Writer layout: tabs, non-ASCII names, empty object and array,
@@ -213,8 +213,12 @@ begin
     TestUlb2Reg;
     TestI18n;
     TestTStudioImportModule(TempRoot);
+    TestProjectsModule(TempRoot);
   finally
-    DeleteTree(TempRoot);
+    if GetEnvironmentVariable('BTW_KEEP_TEST') = '' then   // set it to inspect fixtures
+      DeleteTree(TempRoot)
+    else
+      WriteLn('fixtures kept in ', TempRoot);
   end;
   WriteLn;
   WriteLn(Checks - Failures, '/', Checks, ' checks passed');

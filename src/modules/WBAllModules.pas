@@ -10,7 +10,8 @@ interface
 
 uses
   ModUlb2Reg,
-  ModTStudioImport;
+  ModTStudioImport,
+  ModProjects;
 
 implementation
 

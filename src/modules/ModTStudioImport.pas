@@ -63,7 +63,7 @@ implementation
 
 uses
   fpjson, Zipper, DateUtils,
-  WBJson, WBGit, WBFiles, WBDataPaths;
+  WBJson, WBGit, WBFiles, WBDataPaths, WBProject;
 
 resourcestring
   rsTitle = 'Import .tstudio package';
@@ -198,63 +198,6 @@ begin
   for L in Text.Split([#10]) do
     if Trim(L) <> '' then
       Result := Concat(Result, [Trim(L)]);
-end;
-
-function StrField(Obj: TJSONObject; const Path: string): string;
-var
-  D: TJSONData;
-begin
-  Result := '';
-  D := Obj.FindPath(Path);
-  if (D <> nil) and (D.JSONType in [jtString, jtNumber]) then
-    Result := D.AsString;
-end;
-
-{ Desktop's unique_id: <lang>_<book>_<type>[_<resource>] (migrator.js). }
-function ProjectFolderName(Manifest: TJSONObject; const Fallback: string): string;
-var
-  Lang, Book, Kind, Res: string;
-begin
-  Lang := StrField(Manifest, 'target_language.id');
-  Book := StrField(Manifest, 'project.id');
-  Kind := StrField(Manifest, 'type.id');
-  Res := StrField(Manifest, 'resource.id');
-  if (Lang = '') or (Book = '') or (Kind = '') then
-    Exit(Fallback);
-  Result := Lang + '_' + Book + '_' + Kind;
-  if Res <> '' then
-    Result := Result + '_' + Res;
-end;
-
-{ 03/01.txt -> 03-01, front/title.txt -> front-title (gitnative.js). }
-function ChunkIdFromPath(const Path: string): string;
-begin
-  Result := '';
-  if LowerCase(ExtractFileExt(Path)) <> '.txt' then
-    Exit;
-  Result := StringReplace(ChangeFileExt(Path, ''), '/', '-', [rfReplaceAll]);
-end;
-
-function StringsOf(Arr: TJSONData): TStringArray;
-var
-  I: Integer;
-begin
-  Result := nil;
-  if (Arr = nil) or (Arr.JSONType <> jtArray) then
-    Exit;
-  for I := 0 to Arr.Count - 1 do
-    if Arr.Items[I].JSONType = jtString then
-      Result := Concat(Result, [Arr.Items[I].AsString]);
-end;
-
-function Contains(const Items: TStringArray; const S: string): Boolean;
-var
-  X: string;
-begin
-  for X in Items do
-    if X = S then
-      Exit(True);
-  Result := False;
 end;
 
 { Local manifest as base; translators and finished_chunks are the union
@@ -431,26 +374,6 @@ begin
     Result := True;
   finally
     DeleteTree(Bare);
-  end;
-end;
-
-{ True if the file already holds committed conflict markers. }
-function HasConflictMarkers(const FileName: string): Boolean;
-var
-  L: TStringList;
-  Line: string;
-begin
-  Result := False;
-  if not FileExists(FileName) then
-    Exit;
-  L := TStringList.Create;
-  try
-    L.LoadFromFile(FileName);
-    for Line in L do
-      if Copy(Line, 1, 8) = '<<<<<<< ' then
-        Exit(True);
-  finally
-    L.Free;
   end;
 end;
 

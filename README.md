@@ -19,6 +19,7 @@ The interface is translatable from the start. All text comes from gettext
 |-----------|--------------|
 | `ulb2reg` | Converts a target translation from ULB to REG: updates `manifest.json` and renames `*_ulb` to `*_reg`. Refuses if the manifest isn't ULB or the `_reg` folder already exists. Has a `--dry-run` option. |
 | `tstudio-import` | Imports one or more `.tstudio` packages into BTT-Writer's `targetTranslations`. The check (`--dry-run`) reports whether each project is new, already up to date, or needs merging, and lists the chunks a merge would leave in conflict. Several packages (say, copies of one book from different tablets) are taken in the order given, and the check runs each one as if the earlier ones had been imported. If the project exists, `--on-existing` chooses `stop` (default), `merge` (as BTT-Writer does, with conflicts left for BTT-Writer to resolve) or `overwrite` (the old copy moves to `workbench-backups`). |
+| `projects` | Lists the projects in `targetTranslations` with any problems: damaged manifests or git history, misnamed folders, unresolved conflicts (and conflict markers BTT-Writer can't read), finished chunks with no file, chunk files that don't match en_ulb or the manifest's source chunking, and verse markers in the wrong chunk. Filter with `--language`, `--book` and `--type` (comma-separated codes); `--problems-only` hides clean projects. Changes nothing. |
 
 ```sh
 btw list
@@ -28,7 +29,14 @@ btw --lang fr ulb2reg <project>
 btw tstudio-import ~/Desktop/en_tit_text_reg.tstudio --dry-run
 btw tstudio-import ~/Desktop/en_tit_text_reg.tstudio --on-existing merge
 btw tstudio-import tablet1.tstudio tablet2.tstudio --dry-run
+btw projects --problems-only
+btw projects --language sah,udm --book jon --type text_reg
 ```
+
+Source chunking comes from BTT-Writer's library
+(`library/resource_containers`), or, for sources BTT-Writer hasn't
+unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
+`BTW_BUNDLED_SOURCES` if the bundled folder isn't found.
 
 In the GUI, a module with a check gets a **Check** button next to **Run**.
 

@@ -29,6 +29,7 @@ Three requirements shape everything:
 ```bash
 ./build.sh                       # all four projects, then bin/TestCore
 ./build.sh tests/TestCore.lpi && ./bin/TestCore
+BTW_KEEP_TEST=1 ./bin/TestCore   # keep the temp fixtures to inspect
 tools/extract-pot.sh             # after adding/changing resourcestrings
 ```
 
@@ -83,6 +84,13 @@ linker warnings are harmless.
   `render.js` rejects anything else. To check that against the real
   parser, run it with `ELECTRON_RUN_AS_NODE=1 /usr/lib/btt-writer/BTT-Writer
   script.js`.
+- Project helpers (`StrField`, `ProjectFolderName`, chunk ids) live in
+  `WBProject`. Source chunking (chunks and their verses, from the library
+  or bundled `.tsrc`) lives in `WBSources`. That unit follows Desktop's
+  `getContainerData`: toc.yml order, only chunks that have a file, and a
+  `<verse number="5-6">` tag counts as both verses. Tests set
+  `WBDataPaths.BundledSourcesOverride` so they never depend on an installed
+  BTT-Writer.
 - Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
   drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps
@@ -97,6 +105,9 @@ linker warnings are harmless.
 - `TProcess.ExitStatus` is the raw wait status (exit 1 reads as 256). Use
   `ExitCode`.
 - `Out` is a reserved word; it can't be a parameter or variable name.
+- `TIntegerArray` in the RTL is a fixed-size array type, so `Concat` and
+  `nil` don't work on it. Declare a dynamic `array of Integer` type (as
+  `WBSources.TVerseList` does).
 - Prefix new unit names with `WB`. FPC's fcl-base has `singleinstance`,
   which `CustApp` (and so `Forms`) uses, and a project unit with the same
   name shadows it and breaks the build.

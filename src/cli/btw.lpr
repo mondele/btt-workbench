@@ -41,25 +41,43 @@ type
     procedure Message(Level: TWBMessageLevel; const Text: string); override;
   end;
 
+{ Warnings and errors go to stderr. Flush after each line so the two
+  streams stay in order on a terminal (stdout is buffered when piped). }
 procedure TConsoleReporter.Message(Level: TWBMessageLevel; const Text: string);
 begin
   case Level of
-    mlInfo:    WriteLn(Text);
-    mlWarning: WriteLn(StdErr, rsWarningPrefix, Text);
-    mlError:   WriteLn(StdErr, rsErrorPrefix, Text);
+    mlInfo:
+      begin
+        WriteLn(Text);
+        Flush(Output);
+      end;
+    mlWarning:
+      begin
+        WriteLn(StdErr, rsWarningPrefix, Text);
+        Flush(StdErr);
+      end;
+    mlError:
+      begin
+        WriteLn(StdErr, rsErrorPrefix, Text);
+        Flush(StdErr);
+      end;
   end;
 end;
 
 procedure ListModules;
 var
-  I: Integer;
+  I, Width: Integer;
   M: TWBModule;
 begin
+  Width := 0;
+  for I := 0 to ModuleCount - 1 do
+    if Length(ModuleAt(I).Id) > Width then
+      Width := Length(ModuleAt(I).Id);
   WriteLn(rsModules);
   for I := 0 to ModuleCount - 1 do
   begin
     M := ModuleAt(I);
-    WriteLn('  ', M.Id.PadRight(14), M.Title);
+    WriteLn('  ', M.Id.PadRight(Width + 2), M.Title);
   end;
 end;
 
