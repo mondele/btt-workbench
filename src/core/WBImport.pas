@@ -37,6 +37,8 @@ type
     SimRoot: string;      // check of several copies: projects as imported so far
     BackupRoot: string;
     OnExisting: string;   // stop, merge, overwrite
+    OnConflict: string;   // merge that would conflict: 'skip' it, else commit markers
+    FromServer: Boolean;  // a WACS repo, not a package (wording only)
     DryRun: Boolean;
     Simulate: Boolean;    // DryRun with more than one incoming copy
     Reporter: TWBReporter;
@@ -126,6 +128,22 @@ resourcestring
   rsStacked = 'These chunks already have an unresolved conflict, so the ' +
     'conflicts will stack. BTT-Writer will offer every version to choose ' +
     'from: %s';
+  rsRenamedBranchRepo = 'Renamed the downloaded branch "%s" to "master", which ' +
+    'BTT-Writer expects.';
+  rsNoGitRepoRepo = '%s has no git history on the server. Skipped.';
+  rsRepoDirty = 'The downloaded copy had uncommitted changes; they were ' +
+    'committed in the temporary copy.';
+  rsUpToDateRepo = 'The existing project already contains everything in the ' +
+    'server copy. Nothing to download.';
+  rsFastForwardRepo = 'The server copy only adds newer work to the existing ' +
+    'project. A merge will have no conflicts.';
+  rsExistsEarlierRepo = '%s is also in an earlier repo; checking against that result.';
+  rsSimulateFailedRepo = 'Could not simulate downloading %s; checks of later ' +
+    'repos for this project may be incomplete.';
+  rsWouldSkipConflicts = '%s would not be merged, because it would leave ' +
+    'conflicts and conflicts are set to skip.';
+  rsSkippedConflicts = '%s was not merged, because it would leave conflicts ' +
+    '(conflicts are set to skip). The existing project was not changed.';
   rsSimulateFailed = 'Could not simulate importing %s; checks of later ' +
     'packages for this project may be incomplete.';
 
@@ -138,6 +156,15 @@ const
 function JoinNames(const Items: TStringArray): string;
 begin
   Result := String.Join(', ', Items);
+end;
+
+{ Package or server wording. }
+function Pick(const Ctx: TImportContext; const ForPackage, ForRepo: string): string;
+begin
+  if Ctx.FromServer then
+    Result := ForRepo
+  else
+    Result := ForPackage;
 end;
 
 function Lines(const Text: string): TStringArray;
@@ -483,7 +510,7 @@ begin
     DeleteTree(SimDir(Ctx, Name));
   ForceDirectories(Ctx.SimRoot);
   if not RenameFile(Src, SimDir(Ctx, Name)) then
-    Ctx.Reporter.Warn(Format(rsSimulateFailed, [Ctx.SourceLabel]));
+    Ctx.Reporter.Warn(Format(Pick(Ctx, rsSimulateFailed, rsSimulateFailedRepo), [Ctx.SourceLabel]));
 end;
 
 { Merge into the scratch copy, cloning the real project first if needed.
@@ -502,7 +529,7 @@ begin
   if (LocalDir <> Sim) and
      (RunGit(Ctx.SimRoot, ['clone', '-q', '--shared', '--no-tags', LocalDir, Sim]).ExitCode <> 0) then
   begin
-    Ctx.Reporter.Warn(Format(rsSimulateFailed, [Ctx.SourceLabel]));
+    Ctx.Reporter.Warn(Format(Pick(Ctx, rsSimulateFailed, rsSimulateFailedRepo), [Ctx.SourceLabel]));
     Exit;
   end;
   Quiet := TWBListReporter.Create;
@@ -517,7 +544,7 @@ begin
       Ok := False;
     end;
     if not Ok then
-      Ctx.Reporter.Warn(Format(rsSimulateFailed, [Ctx.SourceLabel]));
+      Ctx.Reporter.Warn(Format(Pick(Ctx, rsSimulateFailed, rsSimulateFailedRepo), [Ctx.SourceLabel]));
   finally
     SimManifest.Free;
     Quiet.Free;
@@ -562,7 +589,7 @@ begin
     end;
     if not IsRepo(Src) then
     begin
-      Ctx.Reporter.Error(Format(rsNoGitRepo, [EntryPath]));
+      Ctx.Reporter.Error(Format(Pick(Ctx, rsNoGitRepo, rsNoGitRepoRepo), [EntryPath]));
       Exit;
     end;
 
@@ -594,12 +621,12 @@ begin
     if IsDirty(Src) then
     begin
       CommitAll(Src, 'Import snapshot');
-      Ctx.Reporter.Info(rsPackageDirty);
+      Ctx.Reporter.Info(Pick(Ctx, rsPackageDirty, rsRepoDirty));
     end;
     Branch := Trim(RunGit(Src, ['symbolic-ref', '--short', 'HEAD']).Output);
     if (Branch <> '') and (Branch <> 'master') and
        (RunGit(Src, ['branch', '-m', Branch, 'master']).ExitCode = 0) then
-      Ctx.Reporter.Info(Format(rsRenamedBranch, [Branch]));
+      Ctx.Reporter.Info(Format(Pick(Ctx, rsRenamedBranch, rsRenamedBranchRepo), [Branch]));
 
     if not DirectoryExists(Local) then
     begin
@@ -621,7 +648,7 @@ begin
     end;
 
     if InSim then
-      Ctx.Reporter.Info(Format(rsExistsEarlier, [Name]))
+      Ctx.Reporter.Info(Format(Pick(Ctx, rsExistsEarlier, rsExistsEarlierRepo), [Name]))
     else
       Ctx.Reporter.Warn(Format(rsExists, [Name]));
 
@@ -654,8 +681,8 @@ begin
     end;
     LocalManifest := ReadJSONObjectFile(Local + PathDelim + 'manifest.json');
     case Info.Kind of
-      mkUpToDate:    Ctx.Reporter.Info(rsUpToDate);
-      mkFastForward: Ctx.Reporter.Info(rsFastForward);
+      mkUpToDate:    Ctx.Reporter.Info(Pick(Ctx, rsUpToDate, rsUpToDateRepo));
+      mkFastForward: Ctx.Reporter.Info(Pick(Ctx, rsFastForward, rsFastForwardRepo));
       mkClean:       Ctx.Reporter.Info(rsCleanMerge);
       mkConflicts:
         begin
@@ -663,6 +690,18 @@ begin
             Ctx.Reporter.Warn(rsUnrelated);
           ReportConflicts(Info, Local, LocalManifest, Ctx.Reporter);
         end;
+    end;
+
+    { Merging is wanted, but not if it would leave conflicts. }
+    if (Info.Kind = mkConflicts) and (Ctx.OnConflict = 'skip') and
+       (Ctx.OnExisting <> 'overwrite') then
+    begin
+      if Ctx.DryRun then
+        Ctx.Reporter.Warn(Format(rsWouldSkipConflicts, [Name]))
+      else if Ctx.OnExisting = 'merge' then
+        Ctx.Reporter.Warn(Format(rsSkippedConflicts, [Name]));
+      if Ctx.DryRun or (Ctx.OnExisting = 'merge') then
+        Exit(0);
     end;
 
     if Ctx.DryRun then

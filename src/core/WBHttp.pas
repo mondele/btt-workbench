@@ -7,7 +7,9 @@ unit WBHttp;
   (Cloudflare in front of both servers blocks some default ones), Basic or
   token auth, readable errors, one retry of a GET on a 5xx or a dropped
   connection. HTTPS needs OpenSSL at run time (opensslsockets): present
-  on Linux, shipped as DLLs on Windows. }
+  on Linux, shipped as DLLs on Windows. FPC 3.2.2 only looks for OpenSSL
+  up to 1.1 on Unix; current Linux has only 3, so the initialization adds
+  '.3' to the library versions it tries. }
 
 interface
 
@@ -48,7 +50,7 @@ var
 implementation
 
 uses
-  fphttpclient, opensslsockets, jsonparser, base64, WBVersion;
+  fphttpclient, opensslsockets, openssl, jsonparser, base64, WBVersion;
 
 resourcestring
   rsUnreachable = 'Could not reach %s (%s).';
@@ -229,5 +231,12 @@ begin
   end;
   raise RaiseHttp(Msg, Status);
 end;
+
+initialization
+  {$IF DEFINED(UNIX) and not DEFINED(DARWIN)}
+  { Replace the oldest version FPC 3.2.2 tries (0.9.1) with 3. }
+  if DLLVersions[High(DLLVersions)] = '.0.9.1' then
+    DLLVersions[High(DLLVersions)] := '.3';
+  {$ENDIF}
 
 end.

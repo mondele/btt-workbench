@@ -284,6 +284,7 @@ var
   I, Code: Integer;
 begin
   Result := 1;
+  Ctx := Default(TImportContext);
   Ctx.Reporter := Reporter;
   Ctx.OnExisting := OptionValue(Self, Options, 'on-existing');
   Ctx.DryRun := OptionIsSet(Options, 'dry-run');

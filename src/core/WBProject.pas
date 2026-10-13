@@ -24,6 +24,16 @@ function ProjectFolderName(Manifest: TJSONObject; const Fallback: string): strin
 function ChunkIdFromPath(const Path: string): string;
 { True if the file holds a line starting a git conflict marker. }
 function HasConflictMarkers(const FileName: string): Boolean;
+{ Filters as typed: comma, space or semicolon separated, lower case. }
+function SplitList(const S: string): TStringArray;
+{ True if Filter is empty or holds one of Values (case-insensitive). }
+function Matches(const Filter: TStringArray; const Values: array of string): Boolean;
+{ Whether a project folder or WACS repo name, <lang>_<book>_<type>
+  [_<resource>], passes the language, book and type filters (a type filter
+  matches the type, the resource or type_resource). A name not of that form
+  passes when AnyName is set. }
+function FolderMatches(const Name: string; const Langs, Books, Types: TStringArray;
+  AnyName: Boolean): Boolean;
 
 implementation
 
@@ -99,6 +109,44 @@ begin
   finally
     L.Free;
   end;
+end;
+
+function SplitList(const S: string): TStringArray;
+var
+  Part: string;
+begin
+  Result := nil;
+  for Part in LowerCase(S).Split([',', ' ', ';']) do
+    if Trim(Part) <> '' then
+      Result := Concat(Result, [Trim(Part)]);
+end;
+
+function Matches(const Filter: TStringArray; const Values: array of string): Boolean;
+var
+  V: string;
+begin
+  if Length(Filter) = 0 then
+    Exit(True);
+  for V in Values do
+    if (V <> '') and Contains(Filter, LowerCase(V)) then
+      Exit(True);
+  Result := False;
+end;
+
+function FolderMatches(const Name: string; const Langs, Books, Types: TStringArray;
+  AnyName: Boolean): Boolean;
+var
+  Parts: TStringArray;
+  Res: string;
+begin
+  Parts := Name.Split(['_']);
+  if Length(Parts) < 3 then
+    Exit(AnyName);
+  Res := '';
+  if Length(Parts) > 3 then
+    Res := Parts[3];
+  Result := Matches(Langs, [Parts[0]]) and Matches(Books, [Parts[1]]) and
+    Matches(Types, [Parts[2], Res, Parts[2] + '_' + Res]);
 end;
 
 end.

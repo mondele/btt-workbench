@@ -765,6 +765,182 @@ msgstr ""
 msgid "Saved login for %s no longer works (%s). Log in again."
 msgstr ""
 
+#: modwacsdownload:rstitle
+msgid "Download from WACS"
+msgstr ""
+
+#: modwacsdownload:rsdescription
+msgid ""
+"Finds BTT-Writer projects on WACS by language, book and type, shows their "
+"state (Primary, Active, Inactive), and downloads the ones you check into the "
+"projects folder, merging with projects already here if you choose. Check "
+"first to see what would happen."
+msgstr ""
+
+#: modwacsdownload:rsoptlanguagehelp
+msgid "Language codes to look for, comma-separated (e.g. udm,sah)"
+msgstr ""
+
+#: modwacsdownload:rsoptbookhelp
+msgid "Only these book codes, comma-separated (e.g. mat,jhn)"
+msgstr ""
+
+#: modwacsdownload:rsopttypehelp
+msgid ""
+"Only these types or resources, comma-separated (text, tn, reg, ulb, or "
+"text_reg)"
+msgstr ""
+
+#: modwacsdownload:rsoptowner
+msgid "Owner"
+msgstr ""
+
+#: modwacsdownload:rsoptownerhelp
+msgid "Only repos of this WACS user or organisation"
+msgstr ""
+
+#: modwacsdownload:rsoptrepo
+msgid "Repos"
+msgstr ""
+
+#: modwacsdownload:rsoptrepohelp
+msgid "The repos to download (owner/name)"
+msgstr ""
+
+#: modwacsdownload:rsoptonexistinghelp
+msgid ""
+"stop: leave it; merge: combine with the downloaded copy; overwrite: replace "
+"it (the old copy is kept in workbench-backups)"
+msgstr ""
+
+#: modwacsdownload:rsoptonconflict
+msgid "If a merge would conflict"
+msgstr ""
+
+#: modwacsdownload:rsoptonconflicthelp
+msgid ""
+"skip: leave that project as it is; commit: merge and leave the conflicts for "
+"BTT-Writer to resolve"
+msgstr ""
+
+#: modwacsdownload:rsoptnostate
+msgid "Skip the state lookup"
+msgstr ""
+
+#: modwacsdownload:rsoptnostatehelp
+msgid "Do not ask the BIEL Public Data API for Primary/Active state"
+msgstr ""
+
+#: modwacsdownload:rsoptdryrunhelp
+msgid "Report what downloading would do without changing anything"
+msgstr ""
+
+#: modwacsdownload:rscolstate
+msgid "State"
+msgstr ""
+
+#: modwacsdownload:rscolupdated
+msgid "Updated"
+msgstr ""
+
+#: modwacsdownload:rscolhere
+msgid "Here"
+msgstr ""
+
+#: modwacsdownload:rscolnotes
+msgid "Notes"
+msgstr ""
+
+#: modwacsdownload:rsherenew
+msgid "new"
+msgstr ""
+
+#: modwacsdownload:rshereexists
+msgid "exists"
+msgstr ""
+
+#: modwacsdownload:rsnoteconsolidated
+msgid "consolidated"
+msgstr ""
+
+#: modwacsdownload:rsnoteprivate
+msgid "private"
+msgstr ""
+
+#: modwacsdownload:rsnoteempty
+msgid "empty"
+msgstr ""
+
+#: modwacsdownload:rsneedfilter
+msgid "Give at least one language code, or an owner."
+msgstr ""
+
+#: modwacsdownload:rsnoowner
+msgid "There is no WACS user or organisation called %s."
+msgstr ""
+
+#: modwacsdownload:rssearchfailed
+msgid "Could not search WACS: %s"
+msgstr ""
+
+#: modwacsdownload:rsstatefailed
+msgid ""
+"Could not get Primary/Active state from the BIEL Public Data API (%s); "
+"states are left blank."
+msgstr ""
+
+#: modwacsdownload:rsnothingchecked
+msgid "No repos checked."
+msgstr ""
+
+#: modwacsdownload:rsserver
+msgid "WACS: %s"
+msgstr ""
+
+#: modwacsdownload:rsasuser
+msgid "Logged in as %s."
+msgstr ""
+
+#: modwacsdownload:rsanonymous
+msgid "Not logged in: only public repos can be downloaded."
+msgstr ""
+
+#: modwacsdownload:rscheckinorder
+msgid ""
+"Checking %d repos in the order given, each as if the ones before it had been "
+"downloaded."
+msgstr ""
+
+#: modwacsdownload:rsduplicate
+msgid "%s is listed more than once; downloading it once."
+msgstr ""
+
+#: modwacsdownload:rsbadreponame
+msgid "%s is not an owner/name repo. Skipped."
+msgstr ""
+
+#: modwacsdownload:rsrepo
+msgid "Repo %s:"
+msgstr ""
+
+#: modwacsdownload:rsnotfound
+msgid ""
+"%s was not found on WACS (or it is private and you are not logged in as "
+"someone who can see it). Skipped."
+msgstr ""
+
+#: modwacsdownload:rsemptyrepo
+msgid "%s is empty. Skipped."
+msgstr ""
+
+#: modwacsdownload:rsclonefailed
+msgid "Could not download %s: %s"
+msgstr ""
+
+#: modwacsdownload:rssummary
+msgid "%d of %d repo(s) done, %d failed."
+msgstr ""
+
 #: wbcommandline:rsmissingvalue
 msgid "Option --%s needs a value"
 msgstr ""
@@ -959,6 +1135,55 @@ msgstr ""
 msgid ""
 "These chunks already have an unresolved conflict, so the conflicts will "
 "stack. BTT-Writer will offer every version to choose from: %s"
+msgstr ""
+
+#: wbimport:rsrenamedbranchrepo
+msgid ""
+"Renamed the downloaded branch \"%s\" to \"master\", which BTT-Writer expects."
+msgstr ""
+
+#: wbimport:rsnogitreporepo
+msgid "%s has no git history on the server. Skipped."
+msgstr ""
+
+#: wbimport:rsrepodirty
+msgid ""
+"The downloaded copy had uncommitted changes; they were committed in the "
+"temporary copy."
+msgstr ""
+
+#: wbimport:rsuptodaterepo
+msgid ""
+"The existing project already contains everything in the server copy. Nothing "
+"to download."
+msgstr ""
+
+#: wbimport:rsfastforwardrepo
+msgid ""
+"The server copy only adds newer work to the existing project. A merge will "
+"have no conflicts."
+msgstr ""
+
+#: wbimport:rsexistsearlierrepo
+msgid "%s is also in an earlier repo; checking against that result."
+msgstr ""
+
+#: wbimport:rssimulatefailedrepo
+msgid ""
+"Could not simulate downloading %s; checks of later repos for this project "
+"may be incomplete."
+msgstr ""
+
+#: wbimport:rswouldskipconflicts
+msgid ""
+"%s would not be merged, because it would leave conflicts and conflicts are "
+"set to skip."
+msgstr ""
+
+#: wbimport:rsskippedconflicts
+msgid ""
+"%s was not merged, because it would leave conflicts (conflicts are set to "
+"skip). The existing project was not changed."
 msgstr ""
 
 #: wbimport:rssimulatefailed

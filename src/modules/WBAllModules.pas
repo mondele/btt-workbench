@@ -13,7 +13,8 @@ uses
   ModTStudioImport,
   ModProjects,
   ModSettings,
-  ModWacsAccount;
+  ModWacsAccount,
+  ModWacsDownload;
 
 implementation
 

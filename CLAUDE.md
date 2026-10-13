@@ -124,6 +124,13 @@ linker warnings are harmless.
   `GIT_CONFIG_*` env via `RunGitAs`, never argv or `.git/config`).
   Tests use `tests/FakeWacs.pas`, a local fphttpserver fake with
   `file://` clone URLs; never test against the real WACS with writes.
+- FPC 3.2.2's `openssl` unit only looks for OpenSSL up to 1.1 on Unix;
+  `WBHttp`'s initialization adds `.3` to `DLLVersions` so HTTPS works on
+  current Linux.
+- `WBImport` is shared by tstudio-import and wacs-download:
+  `TImportContext.FromServer` switches the wording, `OnConflict = 'skip'`
+  leaves a project alone when a merge would conflict. Initialise contexts
+  with `Default(TImportContext)`.
 - BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
   master`, pull and push `master` by name). `projects` moves `main` to
   `master` while scanning.

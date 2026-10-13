@@ -201,16 +201,6 @@ begin
   Result := Format(rsMore, [String.Join(', ', Shown), Length(Items) - ListLimit]);
 end;
 
-function SplitList(const S: string): TStringArray;
-var
-  Part: string;
-begin
-  Result := nil;
-  for Part in LowerCase(S).Split([',', ' ', ';']) do
-    if Trim(Part) <> '' then
-      Result := Concat(Result, [Trim(Part)]);
-end;
-
 function ReadText(const FileName: string): string;
 var
   F: TFileStream;
@@ -730,37 +720,6 @@ begin
     R.Warn(Format(rsVersesOutside, [String.Join(', ', UsedSources), ShortList(Outside)]));
   if Length(Twice) > 0 then
     R.Warn(Format(rsVersesTwice, [ShortList(Twice)]));
-end;
-
-function Matches(const Filter: TStringArray; const Values: array of string): Boolean;
-var
-  V: string;
-begin
-  if Length(Filter) = 0 then
-    Exit(True);
-  for V in Values do
-    if (V <> '') and Contains(Filter, LowerCase(V)) then
-      Exit(True);
-  Result := False;
-end;
-
-{ For a project whose manifest cannot be read: whether its folder name,
-  <lang>_<book>_<type>[_<resource>], passes the filters. A name not of that
-  form passes when AnyName is set. }
-function FolderMatches(const Name: string; const Langs, Books, Types: TStringArray;
-  AnyName: Boolean): Boolean;
-var
-  Parts: TStringArray;
-  Res: string;
-begin
-  Parts := Name.Split(['_']);
-  if Length(Parts) < 3 then
-    Exit(AnyName);
-  Res := '';
-  if Length(Parts) > 3 then
-    Res := Parts[3];
-  Result := Matches(Langs, [Parts[0]]) and Matches(Books, [Parts[1]]) and
-    Matches(Types, [Parts[2], Res, Parts[2] + '_' + Res]);
 end;
 
 { --- module --- }
