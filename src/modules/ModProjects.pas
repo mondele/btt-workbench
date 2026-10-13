@@ -3,7 +3,13 @@ unit ModProjects;
 {$mode objfpc}{$H+}
 
 (* projects: list the projects in targetTranslations, like the project
-   list in btt-writer-two, with any problems found in each. Read-only.
+   list in btt-writer-two, with any problems found in each.
+
+   It changes one thing: a project whose git branch is main is moved to
+   master, the only branch BTT-Writer uses (gitnative.js: git init -b
+   master, then pull and push master by name). --dry-run only reports it.
+   It refuses when both branches exist, and only reports other branches
+   and a detached HEAD.
 
    Filters: --language, --book and --type, each a comma-separated list
    (codes, any case). --type matches the project type (text, tn, tq, tw),
@@ -65,7 +71,10 @@ resourcestring
   rsDescription = 'Lists the projects in BTT-Writer''s projects folder and ' +
     'any problems with them: damaged manifests or git history, unresolved ' +
     'conflicts, and chunks or verse markers that do not match en_ulb or the ' +
-    'project''s source chunking. Changes nothing.';
+    'project''s source chunking. Moves projects from git branch main to ' +
+    'master, the only branch BTT-Writer uses; nothing else is changed.';
+  rsOptDryRun = 'Dry run';
+  rsOptDryRunHelp = 'Report projects on branch main without moving them to master';
   rsOptLanguage = 'Languages';
   rsOptLanguageHelp = 'Only these target language codes, comma-separated (e.g. sah,udm)';
   rsOptBook = 'Books';
@@ -138,6 +147,19 @@ resourcestring
   rsMidMerge = 'An unfinished merge is in progress.';
   rsDirty = 'Has changes that are not committed yet.';
   rsFsck = 'git fsck found problems in the history: %s';
+  rsBranchRenamed = 'The git branch was main; moved it to master, the only ' +
+    'branch BTT-Writer uses.';
+  rsBranchWouldRename = 'The git branch is main, but BTT-Writer only uses ' +
+    'master; it would be moved to master (dry run).';
+  rsBranchBoth = 'The project is on git branch main, and a master branch ' +
+    'exists too; not changed. BTT-Writer only uses master, so merge main into ' +
+    'master by hand.';
+  rsBranchOther = 'The git branch is %s, not master; BTT-Writer only uses master.';
+  rsDetached = 'git is not on any branch (detached HEAD); BTT-Writer only uses master.';
+  rsBranchFailed = 'Could not move the git branch from main to master: %s';
+  rsSummaryRenamed = '%d project(s) moved from git branch main to master.';
+  rsSummaryWouldRename = '%d project(s) would be moved from git branch main ' +
+    'to master.';
   rsConflicts = '%d chunk(s) have unresolved conflicts: %s';
   rsUnreadableConflicts = '%d chunk(s) have conflict markers BTT-Writer cannot ' +
     'read: %s';
@@ -421,10 +443,59 @@ begin
   Result := ShortList(Shown);
 end;
 
+{ Moves a project on branch main to master (see the unit comment). True if
+  it was moved, or would be with DryRun. }
+function FixBranch(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
+var
+  G: TGitResult;
+  Ref: string;
+begin
+  Result := False;
+  if not DirectoryExists(Dir + '.git') then
+    Exit;
+  G := RunGit(Dir, ['symbolic-ref', '-q', 'HEAD']);
+  if G.ExitCode <> 0 then
+  begin
+    if RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']).ExitCode = 0 then
+      R.Warn(rsDetached);
+    Exit;
+  end;
+  Ref := Trim(G.Output);
+  if Ref = 'refs/heads/master' then
+    Exit;
+  if Ref <> 'refs/heads/main' then
+  begin
+    R.Warn(Format(rsBranchOther, [StringReplace(Ref, 'refs/heads/', '', [])]));
+    Exit;
+  end;
+  if RunGit(Dir, ['rev-parse', '--verify', '-q', 'refs/heads/master']).ExitCode = 0 then
+  begin
+    R.Warn(rsBranchBoth);
+    Exit;
+  end;
+  if DryRun then
+  begin
+    R.Warn(rsBranchWouldRename);
+    Exit(True);
+  end;
+  if RunGit(Dir, ['rev-parse', '--verify', '-q', 'refs/heads/main']).ExitCode = 0 then
+    G := RunGit(Dir, ['branch', '-m', 'main', 'master'])
+  else
+    { No commits yet: only HEAD names the branch. }
+    G := RunGit(Dir, ['symbolic-ref', 'HEAD', 'refs/heads/master']);
+  if G.ExitCode <> 0 then
+  begin
+    R.Error(Format(rsBranchFailed, [Trim(G.ErrorOutput)]));
+    Exit;
+  end;
+  R.Warn(rsBranchRenamed);
+  Result := True;
+end;
+
 { Messages for one project. Problems are warnings; the rest is info. }
 procedure CheckProject(const Dir, Name: string; Manifest: TJSONObject;
-  Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit: Boolean;
-  R: TWBReporter);
+  Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit, DryRun: Boolean;
+  var Renamed: Integer; R: TWBReporter);
 var
   Chunks: TProjectChunks;
   C: TProjectChunk;
@@ -534,6 +605,8 @@ begin
     R.Warn(Format(rsFolderName, [Expected]));
 
   { Git }
+  if FixBranch(Dir, DryRun, R) then
+    Inc(Renamed);
   if not DirectoryExists(Dir + '.git') then
     R.Warn(rsNoGit)
   else if RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']).ExitCode <> 0 then
@@ -714,6 +787,7 @@ begin
     OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
     OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
+    OptionDef('dry-run', okFlag, False, False, rsOptDryRun, rsOptDryRunHelp),
     OptionDef('deep-git', okFlag, False, False, rsOptDeepGit, rsOptDeepGitHelp),
     OptionDef('language-db', okFile, False, False, rsOptLanguageDb, rsOptLanguageDbHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
@@ -723,7 +797,8 @@ function TProjectsModule.Execute(Options: TStrings; Reporter: TWBReporter): Inte
 var
   TargetDir, Name, Dir, Bundled, FilterText: string;
   Langs, Books, Types: TStringArray;
-  ProblemsOnly, HasProblem, Filtered, DeepGit: Boolean;
+  ProblemsOnly, HasProblem, Filtered, DeepGit, DryRun: Boolean;
+  Renamed: Integer;
   Names: TStringList;
   SR: TSearchRec;
   Sources: TSourceLibrary;
@@ -749,6 +824,8 @@ begin
   Types := SplitList(Options.Values['type']);
   ProblemsOnly := OptionIsSet(Options, 'problems-only');
   DeepGit := OptionIsSet(Options, 'deep-git');
+  DryRun := OptionIsSet(Options, 'dry-run');
+  Renamed := 0;
   Filtered := (Length(Langs) > 0) or (Length(Books) > 0) or (Length(Types) > 0);
 
   Reporter.Info(Format(rsFolder, [ExcludeTrailingPathDelimiter(TargetDir)]));
@@ -845,6 +922,8 @@ begin
                 Buffer.Warn(rsManifestConflict)
               else
                 Buffer.Warn(Format(rsManifestInvalid, [E.Message]));
+              if FixBranch(Dir, DryRun, Buffer) then
+                Inc(Renamed);
             end;
           end;
           if Manifest <> nil then
@@ -855,7 +934,8 @@ begin
                       StrField(Manifest, 'resource.id'),
                       StrField(Manifest, 'type.id') + '_' + StrField(Manifest, 'resource.id')])) then
               Continue;
-            CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, Buffer);
+            CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, DryRun,
+              Renamed, Buffer);
           end;
         end;
 
@@ -884,6 +964,11 @@ begin
     Reporter.Info(Format(rsSummary, [Listed, WithProblems]));
     if Hidden > 0 then
       Reporter.Info(Format(rsSummaryHidden, [Hidden]));
+    if Renamed > 0 then
+      if DryRun then
+        Reporter.Warn(Format(rsSummaryWouldRename, [Renamed]))
+      else
+        Reporter.Warn(Format(rsSummaryRenamed, [Renamed]));
     Result := 0;
   finally
     Languages.Free;

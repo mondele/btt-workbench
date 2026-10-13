@@ -107,6 +107,9 @@ linker warnings are harmless.
   database into `<data>/library/` once and updates it from the catalog,
   but never refreshes a project's `target_language` name or direction.
 - Sources are downloaded from WACS, not Door43.
+- BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
+  master`, pull and push `master` by name). `projects` moves `main` to
+  `master` while scanning.
 - Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
   drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps

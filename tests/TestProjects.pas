@@ -121,6 +121,12 @@ begin
   end;
 end;
 
+{ What HEAD points at, e.g. refs/heads/master. }
+function Branch(const Folder: string): string;
+begin
+  Result := Trim(RunGit(Target + Folder, ['symbolic-ref', '-q', 'HEAD']).Output);
+end;
+
 function List(const Extra: array of string): string;
 var
   Args: array of string;
@@ -315,14 +321,50 @@ begin
   MakeProject('qaa-x-111111_tit_text_reg', 'qaa-x-111111', 'tit', 'text', 'reg', ['en_ulb'], [], []);
   MakeProject('qaa-x-222222_tit_text_reg', 'qaa-x-222222', 'tit', 'text', 'reg', ['en_ulb'], [], []);
   MakeProject('rrr_tit_text_reg', 'rrr', 'tit', 'text', 'reg', ['en_ulb'], [], []);
+  { Git branches: BTT-Writer only uses master. }
+  MakeProject('aaa_tit_tq', 'aaa', 'tit', 'tq', '', [], [], ['01/01.txt=q']);
+  Git(Target + 'aaa_tit_tq', ['branch', '-m', 'master', 'main']);
+  MakeProject('bbb_tit_tq', 'bbb', 'tit', 'tq', '', [], [], ['01/01.txt=q'], False);
+  Git(Target + 'bbb_tit_tq', ['init', '-q', '-b', 'main']);   // no commits yet
+  MakeProject('ccc_tit_tq', 'ccc', 'tit', 'tq', '', [], [], ['01/01.txt=q']);
+  Git(Target + 'ccc_tit_tq', ['checkout', '-q', '-b', 'main']);
+  MakeProject('ddd_tit_tq', 'ddd', 'tit', 'tq', '', [], [], ['01/01.txt=q']);
+  Git(Target + 'ddd_tit_tq', ['checkout', '-q', '-b', 'work']);
+  MakeProject('eee_tit_tq', 'eee', 'tit', 'tq', '', [], [], ['01/01.txt=q']);
+  Git(Target + 'eee_tit_tq', ['checkout', '-q', '--detach']);
+
+  Output := List(['--type', 'tq', '--dry-run']);
+  Check((Pos('would be moved to master (dry run)', Block(Output, 'aaa_tit_tq')) > 0) and
+    (Pos('would be moved to master (dry run)', Block(Output, 'bbb_tit_tq')) > 0) and
+    (Pos('2 project(s) would be moved from git branch main to master.', Output) > 0),
+    'dry run: projects on main reported');
+  Check((Branch('aaa_tit_tq') = 'refs/heads/main') and (Branch('bbb_tit_tq') = 'refs/heads/main'),
+    'dry run: branches left alone');
+
   ForceDirectories(Target + 'junk');
   WriteFileText(Target + 'stray.zip', 'x');
 
   Output := List([]);
   Check(Pos('Language database: ' + Data + 'library' + PathDelim + 'index.sqlite (621 languages)',
     Output) > 0, 'language database from the data folder''s library');
-  Check(Pos('info: 21 project(s) listed, 16 with problems.', Output) > 0,
+  Check(Pos('info: 26 project(s) listed, 21 with problems.', Output) > 0,
     'every folder and file listed, problems counted');
+
+  B := Block(Output, 'aaa_tit_tq');
+  Check((Pos('warning: The git branch was main; moved it to master', B) > 0) and
+    (Branch('aaa_tit_tq') = 'refs/heads/master') and
+    (GitText(Target + 'aaa_tit_tq', ['log', '--format=%s']) = 'start') and
+    (RunGit(Target + 'aaa_tit_tq', ['rev-parse', '--verify', '-q', 'refs/heads/main']).ExitCode <> 0),
+    'branch main moved to master, history kept');
+  Check((Pos('moved it to master', Block(Output, 'bbb_tit_tq')) > 0) and
+    (Branch('bbb_tit_tq') = 'refs/heads/master'), 'branch main with no commits moved to master');
+  Check((Pos('a master branch exists too; not changed', Block(Output, 'ccc_tit_tq')) > 0) and
+    (Branch('ccc_tit_tq') = 'refs/heads/main'), 'main and master both present: refused');
+  Check(Pos('The git branch is work, not master', Block(Output, 'ddd_tit_tq')) > 0,
+    'other branch reported');
+  Check(Pos('detached HEAD', Block(Output, 'eee_tit_tq')) > 0, 'detached HEAD reported');
+  Check(Pos('2 project(s) moved from git branch main to master.', Output) > 0, 'moves summed up');
+
 
   B := Block(Output, 'aaa_tit_text_reg');
   Check((Pos('1 of 5 chunks finished', B) > 0) and (Pos('warning', B) = 0),
@@ -395,12 +437,15 @@ begin
     '--deep-git: fsck problem reported');
   Check(Pos('warning', Block(Output, 'aaa_tit_text_reg')) = 0, '--deep-git: sound history passes');
 
+  Check(Pos('branch', List(['--type', 'tq', '--language', 'aaa'])) = 0,
+    'moved project is clean on the next scan');
+
   Output := List(['--language', 'ooo', '--language-db', TempRoot + 'nowhere.sqlite']);
   Check((Pos('Cannot read the language database', Output) > 0) and
     (Pos('out of date', Output) = 0), 'unreadable language database: warned, check skipped');
 
   { Filters }
-  Output := List(['--language', 'bbb,CCC']);
+  Output := List(['--language', 'bbb,CCC', '--type', 'text']);
   Check((Pos('2 project(s) listed', Output) > 0) and (Block(Output, 'bbb_tit_text_reg') <> '') and
     (Block(Output, 'ccc_tit_text_reg') <> '') and (Pos('junk', Output) = 0),
     'language filter, comma list, any case; non-projects hidden');

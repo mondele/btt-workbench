@@ -54,7 +54,16 @@ msgid ""
 "Lists the projects in BTT-Writer's projects folder and any problems with "
 "them: damaged manifests or git history, unresolved conflicts, and chunks or "
 "verse markers that do not match en_ulb or the project's source chunking. "
-"Changes nothing."
+"Moves projects from git branch main to master, the only branch BTT-Writer "
+"uses; nothing else is changed."
+msgstr ""
+
+#: modprojects:rsoptdryrun
+msgid "Dry run"
+msgstr ""
+
+#: modprojects:rsoptdryrunhelp
+msgid "Report projects on branch main without moving them to master"
 msgstr ""
 
 #: modprojects:rsoptlanguage
@@ -283,6 +292,43 @@ msgstr ""
 
 #: modprojects:rsfsck
 msgid "git fsck found problems in the history: %s"
+msgstr ""
+
+#: modprojects:rsbranchrenamed
+msgid ""
+"The git branch was main; moved it to master, the only branch BTT-Writer uses."
+msgstr ""
+
+#: modprojects:rsbranchwouldrename
+msgid ""
+"The git branch is main, but BTT-Writer only uses master; it would be moved "
+"to master (dry run)."
+msgstr ""
+
+#: modprojects:rsbranchboth
+msgid ""
+"The project is on git branch main, and a master branch exists too; not "
+"changed. BTT-Writer only uses master, so merge main into master by hand."
+msgstr ""
+
+#: modprojects:rsbranchother
+msgid "The git branch is %s, not master; BTT-Writer only uses master."
+msgstr ""
+
+#: modprojects:rsdetached
+msgid "git is not on any branch (detached HEAD); BTT-Writer only uses master."
+msgstr ""
+
+#: modprojects:rsbranchfailed
+msgid "Could not move the git branch from main to master: %s"
+msgstr ""
+
+#: modprojects:rssummaryrenamed
+msgid "%d project(s) moved from git branch main to master."
+msgstr ""
+
+#: modprojects:rssummarywouldrename
+msgid "%d project(s) would be moved from git branch main to master."
 msgstr ""
 
 #: modprojects:rsconflicts
@@ -731,10 +777,6 @@ msgstr ""
 
 #: modulb2reg:rsoptprojecthelp
 msgid "The target translation folder, e.g. en_mat_text_ulb"
-msgstr ""
-
-#: modulb2reg:rsoptdryrun
-msgid "Dry run"
 msgstr ""
 
 #: modulb2reg:rsoptdryrunhelp
