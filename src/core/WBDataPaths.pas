@@ -31,6 +31,10 @@ function TargetTranslationsPath: string;
 { <data>/library/resource_containers/ for the data folder holding
   TargetDir (so a --target-dir elsewhere brings its own library). }
 function LibrarySourcesPath(const TargetDir: string): string;
+{ BTT-Writer's language database for the data folder holding TargetDir:
+  <data>/library/index.sqlite, which BTT-Writer keeps up to date, else the
+  copy bundled with BTT-Writer; '' if neither exists. }
+function LanguageIndexPath(const TargetDir: string): string;
 { BTT-Writer's bundled .tsrc folder, or '' if none is found. }
 function BundledSourcesPath: string;
 { The bundled .tsrc folder of the BTT-Writer at Path, which may be the
@@ -95,6 +99,24 @@ function LibrarySourcesPath(const TargetDir: string): string;
 begin
   Result := ExtractFilePath(ExcludeTrailingPathDelimiter(TargetDir)) + 'library' +
     PathDelim + 'resource_containers' + PathDelim;
+end;
+
+function LanguageIndexPath(const TargetDir: string): string;
+var
+  Bundled: string;
+begin
+  Result := ExtractFilePath(ExcludeTrailingPathDelimiter(TargetDir)) + 'library' +
+    PathDelim + 'index.sqlite';
+  if FileExists(Result) then
+    Exit;
+  Bundled := BundledSourcesPath;
+  Result := '';
+  if Bundled <> '' then
+  begin
+    Result := ExtractFilePath(ExcludeTrailingPathDelimiter(Bundled)) + 'index.sqlite';
+    if not FileExists(Result) then
+      Result := '';
+  end;
 end;
 
 function HasTsrc(const Dir: string): Boolean;

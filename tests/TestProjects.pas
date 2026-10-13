@@ -15,7 +15,7 @@ implementation
 
 uses
   Classes, SysUtils, fpjson,
-  WBReporter, WBGit, WBJson, WBDataPaths, WBSources, TestUtil;
+  WBReporter, WBGit, WBJson, WBDataPaths, WBSources, WBSqlite, WBLanguages, TestUtil;
 
 var
   Data, Target, Lib: string;
@@ -84,7 +84,8 @@ begin
   M := TJSONObject.Create;
   try
     M.Add('package_version', 8);
-    M.Add('target_language', TJSONObject.Create(['id', Lang, 'name', 'Lang ' + Lang]));
+    M.Add('target_language', TJSONObject.Create(['id', Lang, 'name', 'Lang ' + Lang,
+      'direction', 'ltr']));
     M.Add('project', TJSONObject.Create(['id', Book, 'name', 'Book ' + Book]));
     M.Add('type', TJSONObject.Create(['id', Kind, 'name', Kind]));
     if Res <> '' then
@@ -184,6 +185,78 @@ begin
   end;
 end;
 
+{ WBSqlite against tests/fixtures/langs.sqlite, made with the sqlite3 tool:
+  1 KiB pages, so 618 languages need interior pages; one name long enough
+  for overflow pages; negative integers; a column added after some rows
+  were written (shorter records). }
+procedure TestSqliteReader(const Fixtures: string);
+var
+  Db: TSqliteFile;
+  Rows: TSqliteRows;
+  Cols: TStringArray;
+  Langs: TLanguageIndex;
+  Info: TLanguageInfo;
+  Row: TSqliteRow;
+  LongName, Filler: string;
+  Raised: Boolean;
+begin
+  Db := TSqliteFile.Create(Fixtures + 'langs.sqlite');
+  try
+    Cols := Db.Columns('target_language');
+    Check(String.Join(',', Cols) = 'id,slug,name,anglicized_name,direction,region,' +
+      'is_gateway_language', 'sqlite: columns from CREATE TABLE, constraints skipped');
+    Rows := Db.ReadTable('target_language');
+    Check(Length(Rows) = 618, 'sqlite: every row read across interior pages');
+    Check((RowValue(Rows[0], 0) = '1') and (RowValue(Rows[617], 0) = '618'),
+      'sqlite: INTEGER PRIMARY KEY column holds the rowid');
+    LongName := '';
+    Filler := '';
+    for Row in Rows do
+    begin
+      if RowValue(Row, 1) = 'zz-long' then
+        LongName := RowValue(Row, 2);
+      if RowValue(Row, 1) = 'x0599' then
+        Filler := RowValue(Row, 2) + '|' + RowValue(Row, 6) + '|' +
+          BoolToStr(Row.IsNull[3], 'null', 'value');
+    end;
+    Check((Length(LongName) = 3003) and (Copy(LongName, 2991, 13) = 'Long name end'),
+      'sqlite: long value read through overflow pages');
+    Check(Filler = 'Filler ünïcode 599|-599000|null', 'sqlite: UTF-8 text, negative integer, NULL');
+    Rows := Db.ReadTable('temp_target_language');
+    Check((Length(Rows) = 3) and (RowValue(Rows[0], 8) = '') and (RowValue(Rows[2], 8) = 'noted'),
+      'sqlite: rows older than an added column read as empty');
+    Raised := False;
+    try
+      Db.ReadTable('nothing');
+    except
+      on ESqliteFormat do
+        Raised := True;
+    end;
+    Check(Raised, 'sqlite: missing table raises');
+  finally
+    Db.Free;
+  end;
+  Raised := False;
+  try
+    TSqliteFile.Create(Fixtures + 'fr_tit_f10.tsrc').Free;
+  except
+    on ESqliteFormat do
+      Raised := True;
+  end;
+  Check(Raised, 'sqlite: a file that is not a database is refused');
+
+  Langs := TLanguageIndex.Create(Fixtures + 'langs.sqlite');
+  try
+    Check(Langs.Find('PPP', Info) and (Info.Direction = 'rtl') and not Info.IsTemp,
+      'language index: found case-insensitively');
+    Check(Langs.Find('qaa-x-111111', Info) and Info.IsTemp and (Info.ApprovedAs = 'qqq'),
+      'language index: temporary language and its approved code');
+    Check(not Langs.Find('rrr', Info), 'language index: unknown code');
+  finally
+    Langs.Free;
+  end;
+end;
+
 procedure TestProjectsModule(const TempRoot: string);
 var
   Output, B, Blob: string;
@@ -198,6 +271,10 @@ begin
     PathDelim + 'tests' + PathDelim + 'fixtures');
 
   TestSources;
+  TestSqliteReader(IncludeTrailingPathDelimiter(BundledSourcesOverride));
+  { BTT-Writer's own copy of the language database, in <data>/library/. }
+  WriteFileText(Data + 'library' + PathDelim + 'index.sqlite',
+    ReadFileText(IncludeTrailingPathDelimiter(BundledSourcesOverride) + 'langs.sqlite'));
 
   MakeProject('aaa_tit_text_reg', 'aaa', 'tit', 'text', 'reg', ['en_ulb'], ['01-01'],
     ['01/01.txt=\v 1 a \v 2 b \v 3 c', '01/04.txt=\v 4 d \v 5 e']);
@@ -233,11 +310,18 @@ begin
     ' "resource": {"id": "reg"}, "finished_chunks": ["01-01", 3],' +
     ' "source_translations": [{"language_id": "en"}, "x"], "translators": "me"}');
   ForceDirectories(Target + 'nnn_tit_text_reg');
+  MakeProject('ooo_tit_text_reg', 'ooo', 'tit', 'text', 'reg', ['en_ulb'], [], []);
+  MakeProject('ppp_tit_text_reg', 'ppp', 'tit', 'text', 'reg', ['en_ulb'], [], []);
+  MakeProject('qaa-x-111111_tit_text_reg', 'qaa-x-111111', 'tit', 'text', 'reg', ['en_ulb'], [], []);
+  MakeProject('qaa-x-222222_tit_text_reg', 'qaa-x-222222', 'tit', 'text', 'reg', ['en_ulb'], [], []);
+  MakeProject('rrr_tit_text_reg', 'rrr', 'tit', 'text', 'reg', ['en_ulb'], [], []);
   ForceDirectories(Target + 'junk');
   WriteFileText(Target + 'stray.zip', 'x');
 
   Output := List([]);
-  Check(Pos('info: 16 project(s) listed, 12 with problems.', Output) > 0,
+  Check(Pos('Language database: ' + Data + 'library' + PathDelim + 'index.sqlite (621 languages)',
+    Output) > 0, 'language database from the data folder''s library');
+  Check(Pos('info: 21 project(s) listed, 16 with problems.', Output) > 0,
     'every folder and file listed, problems counted');
 
   B := Block(Output, 'aaa_tit_text_reg');
@@ -288,12 +372,32 @@ begin
     'source_translations[1]', B) > 0, 'manifest fields of the wrong type reported');
   Check(Pos('Source _tit', B) + Pos('Source en_tit_ is', B) = 0, 'source entries without ids not looked up');
 
+  Check(Pos('Text direction is out of date: the project says (none), the language ' +
+    'database says ltr.', B) > 0, 'missing direction reported');
+
+  Check(Pos('Language name is out of date: the project says "Lang ooo", the language ' +
+    'database says "Ooo renamed".', Block(Output, 'ooo_tit_text_reg')) > 0, 'renamed language reported');
+  B := Block(Output, 'ppp_tit_text_reg');
+  Check((Pos('Text direction is out of date: the project says ltr, the language database ' +
+    'says rtl.', B) > 0) and (Pos('Language name', B) = 0), 'changed direction reported');
+  Check(Pos('Temporary language qaa-x-111111 has been approved as qqq',
+    Block(Output, 'qaa-x-111111_tit_text_reg')) > 0, 'approved temporary language reported');
+  Check(Pos('warning', Block(Output, 'qaa-x-222222_tit_text_reg')) = 0,
+    'unapproved temporary language matching the database is fine');
+  Check(Pos('Language rrr is not in the language database.', Block(Output, 'rrr_tit_text_reg')) > 0,
+    'unknown language reported');
+  Check(Pos('Language', Block(Output, 'aaa_tit_text_reg')) = 0, 'matching language not reported');
+
   B := Block(Output, 'lll_tit_text_reg');
   Check((B <> '') and (Pos('warning', B) = 0), 'missing object not noticed without --deep-git');
   Output := List(['--deep-git', '--language', 'lll,aaa']);
   Check(Pos('git fsck found problems in the history: ', Block(Output, 'lll_tit_text_reg')) > 0,
     '--deep-git: fsck problem reported');
   Check(Pos('warning', Block(Output, 'aaa_tit_text_reg')) = 0, '--deep-git: sound history passes');
+
+  Output := List(['--language', 'ooo', '--language-db', TempRoot + 'nowhere.sqlite']);
+  Check((Pos('Cannot read the language database', Output) > 0) and
+    (Pos('out of date', Output) = 0), 'unreadable language database: warned, check skipped');
 
   { Filters }
   Output := List(['--language', 'bbb,CCC']);

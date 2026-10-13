@@ -100,6 +100,16 @@ msgid ""
 "Also run git fsck on each project to find corrupt or missing history (slower)"
 msgstr ""
 
+#: modprojects:rsoptlanguagedb
+msgid "Language database"
+msgstr ""
+
+#: modprojects:rsoptlanguagedbhelp
+msgid ""
+"BTT-Writer's index.sqlite to compare project languages with (default: the "
+"one in BTT-Writer's library folder, else the one bundled with BTT-Writer)"
+msgstr ""
+
 #: modprojects:rsopttargetdir
 msgid "Projects folder"
 msgstr ""
@@ -141,6 +151,48 @@ msgstr ""
 
 #: modprojects:rsbundled
 msgid "Bundled source texts: %s"
+msgstr ""
+
+#: modprojects:rslanguagedb
+msgid "Language database: %s (%d languages)"
+msgstr ""
+
+#: modprojects:rsnolanguagedb
+msgid ""
+"BTT-Writer's language database (index.sqlite) was not found, so project "
+"languages were not checked."
+msgstr ""
+
+#: modprojects:rsbadlanguagedb
+msgid ""
+"Cannot read the language database %s (%s), so project languages were not "
+"checked."
+msgstr ""
+
+#: modprojects:rslangunknown
+msgid "Language %s is not in the language database."
+msgstr ""
+
+#: modprojects:rslangapproved
+msgid ""
+"Temporary language %s has been approved as %s; the project still uses the "
+"temporary code."
+msgstr ""
+
+#: modprojects:rslangname
+msgid ""
+"Language name is out of date: the project says \"%s\", the language database "
+"says \"%s\"."
+msgstr ""
+
+#: modprojects:rslangdirection
+msgid ""
+"Text direction is out of date: the project says %s, the language database "
+"says %s."
+msgstr ""
+
+#: modprojects:rsnodirection
+msgid "(none)"
 msgstr ""
 
 #: modprojects:rssummary

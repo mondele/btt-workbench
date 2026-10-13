@@ -15,6 +15,11 @@ unit ModProjects;
      conflict markers, missing ids, an unknown project format version;
    - folder name not what BTT-Writer would call it (<lang>_<book>_<type>
      [_<resource>]), which breaks matching on import;
+   - the language name or text direction differing from BTT-Writer's
+     language database (index.sqlite), which is corrected over time while
+     projects keep what it said when they were made; a language code the
+     database does not have; a temporary code (qaa-x-...) that has since
+     been approved as a real one;
    - manifest fields of the wrong type (finished_chunks not a list of
      strings, source_translations entries without ids, ...);
    - no git history, a damaged repo, an unfinished merge; with
@@ -53,7 +58,7 @@ type
 implementation
 
 uses
-  fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources;
+  fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages;
 
 resourcestring
   rsTitle = 'Project list and problems';
@@ -73,6 +78,10 @@ resourcestring
   rsOptDeepGit = 'Check git history in depth';
   rsOptDeepGitHelp = 'Also run git fsck on each project to find corrupt or ' +
     'missing history (slower)';
+  rsOptLanguageDb = 'Language database';
+  rsOptLanguageDbHelp = 'BTT-Writer''s index.sqlite to compare project ' +
+    'languages with (default: the one in BTT-Writer''s library folder, else ' +
+    'the one bundled with BTT-Writer)';
   rsOptTargetDir = 'Projects folder';
   rsOptTargetDirHelp = 'Where projects live (default: BTT-Writer''s ' +
     'targetTranslations folder)';
@@ -88,6 +97,19 @@ resourcestring
     'BTT-Writer is installed, say where in Settings (btw settings ' +
     '--btt-writer <folder>).';
   rsBundled = 'Bundled source texts: %s';
+  rsLanguageDb = 'Language database: %s (%d languages)';
+  rsNoLanguageDb = 'BTT-Writer''s language database (index.sqlite) was not ' +
+    'found, so project languages were not checked.';
+  rsBadLanguageDb = 'Cannot read the language database %s (%s), so project ' +
+    'languages were not checked.';
+  rsLangUnknown = 'Language %s is not in the language database.';
+  rsLangApproved = 'Temporary language %s has been approved as %s; the ' +
+    'project still uses the temporary code.';
+  rsLangName = 'Language name is out of date: the project says "%s", the ' +
+    'language database says "%s".';
+  rsLangDirection = 'Text direction is out of date: the project says %s, the ' +
+    'language database says %s.';
+  rsNoDirection = '(none)';
   rsSummary = '%d project(s) listed, %d with problems.';
   rsSummaryHidden = '%d project(s) without problems not shown.';
 
@@ -401,12 +423,14 @@ end;
 
 { Messages for one project. Problems are warnings; the rest is info. }
 procedure CheckProject(const Dir, Name: string; Manifest: TJSONObject;
-  Sources: TSourceLibrary; DeepGit: Boolean; R: TWBReporter);
+  Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit: Boolean;
+  R: TWBReporter);
 var
   Chunks: TProjectChunks;
   C: TProjectChunk;
   Lang, Book, Kind, Res, Version, Expected, State, Container, TypeLabel,
-    Progress, Fsck: string;
+    Progress, Fsck, ProjectDir: string;
+  Lng: TLanguageInfo;
   Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, Twice, Containers,
     UsedSources: TStringArray;
   Listed: TStringArray;
@@ -478,6 +502,27 @@ begin
   Extra := ManifestTypeProblems(Manifest);
   if Length(Extra) > 0 then
     R.Warn(Format(rsManifestTypes, [ShortList(Extra)]));
+
+  { Language against BTT-Writer's language database }
+  if (Languages <> nil) and (Lang <> '') then
+  begin
+    if not Languages.Find(Lang, Lng) then
+      R.Warn(Format(rsLangUnknown, [Lang]))
+    else if Lng.IsTemp and (Lng.ApprovedAs <> '') then
+      R.Warn(Format(rsLangApproved, [Lang, Lng.ApprovedAs]))
+    else
+    begin
+      if StrField(Manifest, 'target_language.name') <> Lng.Name then
+        R.Warn(Format(rsLangName, [StrField(Manifest, 'target_language.name'), Lng.Name]));
+      ProjectDir := StrField(Manifest, 'target_language.direction');
+      if ProjectDir <> Lng.Direction then
+      begin
+        if ProjectDir = '' then
+          ProjectDir := rsNoDirection;
+        R.Warn(Format(rsLangDirection, [ProjectDir, Lng.Direction]));
+      end;
+    end;
+  end;
   Version := StrField(Manifest, 'package_version');
   if StrToIntDef(Version, 0) < ProjectManifestVersion then
     R.Info(Format(rsOldFormat, [Version]))
@@ -670,6 +715,7 @@ begin
     OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
     OptionDef('deep-git', okFlag, False, False, rsOptDeepGit, rsOptDeepGitHelp),
+    OptionDef('language-db', okFile, False, False, rsOptLanguageDb, rsOptLanguageDbHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
 end;
 
@@ -681,6 +727,8 @@ var
   Names: TStringList;
   SR: TSearchRec;
   Sources: TSourceLibrary;
+  Languages: TLanguageIndex;
+  LanguageDb: string;
   Buffer: TWBListReporter;
   Manifest: TJSONObject;
   ManifestText: string;
@@ -728,6 +776,21 @@ begin
     Reporter.Warn(rsNoBundled)
   else
     Reporter.Info(Format(rsBundled, [ExcludeTrailingPathDelimiter(Bundled)]));
+
+  Languages := nil;
+  LanguageDb := Options.Values['language-db'];
+  if LanguageDb = '' then
+    LanguageDb := LanguageIndexPath(TargetDir);
+  if LanguageDb = '' then
+    Reporter.Warn(rsNoLanguageDb)
+  else
+    try
+      Languages := TLanguageIndex.Create(LanguageDb);
+      Reporter.Info(Format(rsLanguageDb, [LanguageDb, Languages.Count]));
+    except
+      on E: Exception do
+        Reporter.Warn(Format(rsBadLanguageDb, [LanguageDb, E.Message]));
+    end;
 
   Names := TStringList.Create;
   Sources := TSourceLibrary.Create(LibrarySourcesPath(TargetDir), Bundled);
@@ -792,7 +855,7 @@ begin
                       StrField(Manifest, 'resource.id'),
                       StrField(Manifest, 'type.id') + '_' + StrField(Manifest, 'resource.id')])) then
               Continue;
-            CheckProject(Dir, Name, Manifest, Sources, DeepGit, Buffer);
+            CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, Buffer);
           end;
         end;
 
@@ -823,6 +886,7 @@ begin
       Reporter.Info(Format(rsSummaryHidden, [Hidden]));
     Result := 0;
   finally
+    Languages.Free;
     Sources.Free;
     Names.Free;
   end;

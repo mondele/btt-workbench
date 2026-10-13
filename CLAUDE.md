@@ -98,6 +98,15 @@ linker warnings are harmless.
   `<verse number="5-6">` tag counts as both verses. Tests set
   `WBDataPaths.BundledSourcesOverride` so they never depend on an installed
   BTT-Writer.
+- `index.sqlite` is read with `WBSqlite`, a small pure-Pascal read-only
+  reader (whole tables, rowid order), so nothing needs a sqlite3 library
+  on Windows or Android. It was checked table-for-table against the
+  `sqlite3` tool on real BTT-Writer databases; `tests/fixtures/langs.sqlite`
+  covers interior pages, overflow, rowid aliases and added columns.
+  `WBLanguages` loads the language tables from it. Desktop copies the
+  database into `<data>/library/` once and updates it from the catalog,
+  but never refreshes a project's `target_language` name or direction.
+- Sources are downloaded from WACS, not Door43.
 - Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
   drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps
