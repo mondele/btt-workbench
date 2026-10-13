@@ -574,158 +574,6 @@ msgstr ""
 msgid "Project folder %s is listed but not in the package. Skipped."
 msgstr ""
 
-#: modtstudioimport:rsnoprojectmanifest
-msgid "%s has no manifest.json. Skipped."
-msgstr ""
-
-#: modtstudioimport:rsbadprojectmanifest
-msgid "%s: manifest.json could not be read (%s). Skipped."
-msgstr ""
-
-#: modtstudioimport:rsoldprojectversion
-msgid ""
-"%s is an older project format (version %s). Import it with BTT-Writer, which "
-"can upgrade it. Skipped."
-msgstr ""
-
-#: modtstudioimport:rsmigratedv7
-msgid "Upgraded the project format from version 7 to 8, as BTT-Writer does."
-msgstr ""
-
-#: modtstudioimport:rsrenamedbranch
-msgid ""
-"Renamed the package's branch \"%s\" to \"master\", which BTT-Writer expects."
-msgstr ""
-
-#: modtstudioimport:rsnewprojectversion
-msgid ""
-"%s uses a newer project format (version %s) than this tool knows. Skipped."
-msgstr ""
-
-#: modtstudioimport:rsnogitrepo
-msgid "%s has no git history in the package. Skipped."
-msgstr ""
-
-#: modtstudioimport:rsproject
-msgid "Project %s: %s, %s (last change %s)."
-msgstr ""
-
-#: modtstudioimport:rspackagedirty
-msgid ""
-"The package had uncommitted changes; they were committed in the temporary "
-"copy."
-msgstr ""
-
-#: modtstudioimport:rsnewproject
-msgid "New project: will be added as %s."
-msgstr ""
-
-#: modtstudioimport:rsadded
-msgid "Imported %s."
-msgstr ""
-
-#: modtstudioimport:rsexists
-msgid "A project named %s already exists."
-msgstr ""
-
-#: modtstudioimport:rslocalnotrepo
-msgid ""
-"The existing %s is not a git repository, so it cannot be merged. Use "
-"overwrite (the old copy is backed up) or fix it first."
-msgstr ""
-
-#: modtstudioimport:rslocalmidmerge
-msgid ""
-"The existing %s has an unfinished merge. Finish or abort it in BTT-Writer "
-"first. Nothing changed."
-msgstr ""
-
-#: modtstudioimport:rslocaldirty
-msgid ""
-"The existing project has uncommitted changes. A merge will commit them "
-"first; the conflict list below does not include them."
-msgstr ""
-
-#: modtstudioimport:rsuptodate
-msgid ""
-"The existing project already contains everything in the package. Nothing to "
-"import."
-msgstr ""
-
-#: modtstudioimport:rsfastforward
-msgid ""
-"The package only adds newer work to the existing project. A merge will have "
-"no conflicts."
-msgstr ""
-
-#: modtstudioimport:rscleanmerge
-msgid "Both copies have changes. A merge will combine them with no conflicts."
-msgstr ""
-
-#: modtstudioimport:rsunrelated
-msgid ""
-"The two copies were started separately (no shared history), so every chunk "
-"that differs will conflict."
-msgstr ""
-
-#: modtstudioimport:rsconflictcount
-msgid ""
-"A merge would leave %d chunk(s) in conflict, to be resolved in BTT-Writer: %s"
-msgstr ""
-
-#: modtstudioimport:rsconflictfiles
-msgid "Other files in conflict: %s"
-msgstr ""
-
-#: modtstudioimport:rsreopened
-msgid "These finished chunks would be marked unfinished again: %s"
-msgstr ""
-
-#: modtstudioimport:rsmanifestmerged
-msgid ""
-"manifest.json differs; it is merged automatically (translators and finished "
-"chunks are combined)."
-msgstr ""
-
-#: modtstudioimport:rschooseaction
-msgid "To import it, choose merge or overwrite."
-msgstr ""
-
-#: modtstudioimport:rsstopped
-msgid ""
-"%s already exists. Choose merge or overwrite to import it. Nothing changed."
-msgstr ""
-
-#: modtstudioimport:rspreflightfailed
-msgid "Could not check the merge: %s"
-msgstr ""
-
-#: modtstudioimport:rssnapshot
-msgid "Committed uncommitted changes in the existing project first."
-msgstr ""
-
-#: modtstudioimport:rsmerged
-msgid "Merged into %s."
-msgstr ""
-
-#: modtstudioimport:rsmergedconflicts
-msgid ""
-"Merged into %s with %d chunk(s) in conflict. Open the project in BTT-Writer "
-"to choose between the versions."
-msgstr ""
-
-#: modtstudioimport:rsmergefailed
-msgid "Merge failed: %s. The existing project was left as it was."
-msgstr ""
-
-#: modtstudioimport:rsbackedup
-msgid "The existing project was moved to %s."
-msgstr ""
-
-#: modtstudioimport:rsoverwritten
-msgid "Replaced %s with the imported copy."
-msgstr ""
-
 #: modtstudioimport:rsmovefailed
 msgid "Could not move %s to %s. Nothing changed."
 msgstr ""
@@ -743,22 +591,6 @@ msgstr ""
 
 #: modtstudioimport:rsduplicatefile
 msgid "%s is listed more than once; importing it once."
-msgstr ""
-
-#: modtstudioimport:rsexistsearlier
-msgid "%s is also in an earlier package; checking against that result."
-msgstr ""
-
-#: modtstudioimport:rsstacked
-msgid ""
-"These chunks already have an unresolved conflict, so the conflicts will "
-"stack. BTT-Writer will offer every version to choose from: %s"
-msgstr ""
-
-#: modtstudioimport:rssimulatefailed
-msgid ""
-"Could not simulate importing %s; checks of later packages for this project "
-"may be incomplete."
 msgstr ""
 
 #: modulb2reg:rstitle
@@ -838,6 +670,174 @@ msgstr ""
 
 #: wbcommandline:rsextraargument
 msgid "Unexpected argument: %s"
+msgstr ""
+
+#: wbimport:rsnoprojectmanifest
+msgid "%s has no manifest.json. Skipped."
+msgstr ""
+
+#: wbimport:rsbadprojectmanifest
+msgid "%s: manifest.json could not be read (%s). Skipped."
+msgstr ""
+
+#: wbimport:rsoldprojectversion
+msgid ""
+"%s is an older project format (version %s). Import it with BTT-Writer, which "
+"can upgrade it. Skipped."
+msgstr ""
+
+#: wbimport:rsmigratedv7
+msgid "Upgraded the project format from version 7 to 8, as BTT-Writer does."
+msgstr ""
+
+#: wbimport:rsrenamedbranch
+msgid ""
+"Renamed the package's branch \"%s\" to \"master\", which BTT-Writer expects."
+msgstr ""
+
+#: wbimport:rsnewprojectversion
+msgid ""
+"%s uses a newer project format (version %s) than this tool knows. Skipped."
+msgstr ""
+
+#: wbimport:rsnogitrepo
+msgid "%s has no git history in the package. Skipped."
+msgstr ""
+
+#: wbimport:rsproject
+msgid "Project %s: %s, %s (last change %s)."
+msgstr ""
+
+#: wbimport:rspackagedirty
+msgid ""
+"The package had uncommitted changes; they were committed in the temporary "
+"copy."
+msgstr ""
+
+#: wbimport:rsnewproject
+msgid "New project: will be added as %s."
+msgstr ""
+
+#: wbimport:rsadded
+msgid "Imported %s."
+msgstr ""
+
+#: wbimport:rsexists
+msgid "A project named %s already exists."
+msgstr ""
+
+#: wbimport:rslocalnotrepo
+msgid ""
+"The existing %s is not a git repository, so it cannot be merged. Use "
+"overwrite (the old copy is backed up) or fix it first."
+msgstr ""
+
+#: wbimport:rslocalmidmerge
+msgid ""
+"The existing %s has an unfinished merge. Finish or abort it in BTT-Writer "
+"first. Nothing changed."
+msgstr ""
+
+#: wbimport:rslocaldirty
+msgid ""
+"The existing project has uncommitted changes. A merge will commit them "
+"first; the conflict list below does not include them."
+msgstr ""
+
+#: wbimport:rsuptodate
+msgid ""
+"The existing project already contains everything in the package. Nothing to "
+"import."
+msgstr ""
+
+#: wbimport:rsfastforward
+msgid ""
+"The package only adds newer work to the existing project. A merge will have "
+"no conflicts."
+msgstr ""
+
+#: wbimport:rscleanmerge
+msgid "Both copies have changes. A merge will combine them with no conflicts."
+msgstr ""
+
+#: wbimport:rsunrelated
+msgid ""
+"The two copies were started separately (no shared history), so every chunk "
+"that differs will conflict."
+msgstr ""
+
+#: wbimport:rsconflictcount
+msgid ""
+"A merge would leave %d chunk(s) in conflict, to be resolved in BTT-Writer: %s"
+msgstr ""
+
+#: wbimport:rsconflictfiles
+msgid "Other files in conflict: %s"
+msgstr ""
+
+#: wbimport:rsreopened
+msgid "These finished chunks would be marked unfinished again: %s"
+msgstr ""
+
+#: wbimport:rsmanifestmerged
+msgid ""
+"manifest.json differs; it is merged automatically (translators and finished "
+"chunks are combined)."
+msgstr ""
+
+#: wbimport:rschooseaction
+msgid "To import it, choose merge or overwrite."
+msgstr ""
+
+#: wbimport:rsstopped
+msgid ""
+"%s already exists. Choose merge or overwrite to import it. Nothing changed."
+msgstr ""
+
+#: wbimport:rspreflightfailed
+msgid "Could not check the merge: %s"
+msgstr ""
+
+#: wbimport:rssnapshot
+msgid "Committed uncommitted changes in the existing project first."
+msgstr ""
+
+#: wbimport:rsmerged
+msgid "Merged into %s."
+msgstr ""
+
+#: wbimport:rsmergedconflicts
+msgid ""
+"Merged into %s with %d chunk(s) in conflict. Open the project in BTT-Writer "
+"to choose between the versions."
+msgstr ""
+
+#: wbimport:rsmergefailed
+msgid "Merge failed: %s. The existing project was left as it was."
+msgstr ""
+
+#: wbimport:rsbackedup
+msgid "The existing project was moved to %s."
+msgstr ""
+
+#: wbimport:rsoverwritten
+msgid "Replaced %s with the imported copy."
+msgstr ""
+
+#: wbimport:rsexistsearlier
+msgid "%s is also in an earlier package; checking against that result."
+msgstr ""
+
+#: wbimport:rsstacked
+msgid ""
+"These chunks already have an unresolved conflict, so the conflicts will "
+"stack. BTT-Writer will offer every version to choose from: %s"
+msgstr ""
+
+#: wbimport:rssimulatefailed
+msgid ""
+"Could not simulate importing %s; checks of later packages for this project "
+"may be incomplete."
 msgstr ""
 
 #: wbmodule:rsmissingoption
