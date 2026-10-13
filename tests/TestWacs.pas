@@ -265,6 +265,128 @@ begin
     (Pos('is not an owner/name repo', Output) > 0), 'bad repo name refused');
 end;
 
+function BareHead(const Owner, Name: string): string;
+begin
+  Result := Trim(RunGit(FakeRepoPath(Owner, Name), ['rev-parse', '-q', '--verify', 'refs/heads/master']).Output);
+end;
+
+procedure TestUpload;
+var
+  Up, Tmp, Output, List, Before: string;
+  Ok: Boolean;
+  R: TWBListReporter;
+  Options: TStringList;
+  Choice: TWBChoiceList;
+  I: Integer;
+
+  function P(const Name: string): string;
+  begin
+    Result := Up + Name;
+  end;
+
+  { A copy of the local project with one more commit, as the server copy. }
+  procedure ServerCopy(const Name, Path, Text: string);
+  begin
+    Git(Root, ['clone', '-q', P(Name), Tmp + Name]);
+    WriteFileText(Tmp + Name + PathDelim + Path, Text);
+    Git(Tmp + Name, ['commit', '-q', '-am', 'server work']);
+    AddFakeRepo('alice', Name, '', False, Tmp + Name, []);
+  end;
+
+begin
+  Section('wacs-upload');
+  Up := Root + 'updata' + PathDelim + 'targetTranslations' + PathDelim;
+  Tmp := Root + 'uptmp' + PathDelim;
+  ForceDirectories(Tmp);
+  MakeProjectRepo(P('eee_tit_text_reg'), 'eee', 'tit', 'text', 'reg', ['01/01.txt=\v 1 e']);
+  MakeProjectRepo(P('fff_tit_text_reg'), 'fff', 'tit', 'text', 'reg', ['01/01.txt=\v 1 f']);
+  AddFakeRepo('alice', 'fff_tit_text_reg', '', False, P('fff_tit_text_reg'), []);
+  MakeProjectRepo(P('ggg_tit_text_reg'), 'ggg', 'tit', 'text', 'reg', ['01/01.txt=\v 1 g']);
+  AddFakeRepo('alice', 'ggg_tit_text_reg', '', False, P('ggg_tit_text_reg'), []);
+  WriteFileText(P('ggg_tit_text_reg') + PathDelim + '01' + PathDelim + '01.txt', '\v 1 g2');
+  Git(P('ggg_tit_text_reg'), ['commit', '-q', '-am', 'local work']);
+  MakeProjectRepo(P('hhh_tit_text_reg'), 'hhh', 'tit', 'text', 'reg', ['01/01.txt=\v 1 h']);
+  ServerCopy('hhh_tit_text_reg', '01/01.txt', '\v 1 h from server');
+  MakeProjectRepo(P('iii_tit_text_reg'), 'iii', 'tit', 'text', 'reg', ['01/01.txt=\v 1 i']);
+  ServerCopy('iii_tit_text_reg', '01/01.txt', '\v 1 i server');
+  WriteFileText(P('iii_tit_text_reg') + PathDelim + '01' + PathDelim + '01.txt', '\v 1 i local');
+  Git(P('iii_tit_text_reg'), ['commit', '-q', '-am', 'local work']);
+  MakeProjectRepo(P('jjj_tit_text_reg'), 'jjj', 'tit', 'text', 'reg', ['01/01.txt=\v 1 j']);
+  Git(P('jjj_tit_text_reg'), ['branch', '-m', 'master', 'main']);
+  MakeProjectRepo(P('kkk_tit_text_reg'), 'kkk', 'tit', 'text', 'reg', ['01/01.txt=\v 1 k']);
+  WriteFileText(P('kkk_tit_text_reg') + PathDelim + '01' + PathDelim + '02.txt', '\v 2 loose');
+
+  Check((Run('wacs-upload', ['--project', 'eee_tit_text_reg', '--target-dir', Up], Output) = 1) and
+    (Pos('Log in to WACS first', Output) > 0), 'needs a login');
+  Run('wacs-account', ['--username', 'alice', '--password', 'secret'], Output);
+
+  { The list of local projects }
+  R := TWBListReporter.Create;
+  Options := TStringList.Create;
+  try
+    Options.Values['target-dir'] := Up;
+    Options.Values['language'] := 'eee,fff,kkk';
+    Ok := FindModule('wacs-upload').Choices('project', Options, R, Choice);
+    List := '';
+    for I := 0 to High(Choice.Items) do
+      List := List + Choice.Items[I].Value + ' | ' + String.Join(' | ', Choice.Items[I].Columns) + #10;
+  finally
+    Options.Free;
+    R.Free;
+  end;
+  Check(Ok and (Pos('eee_tit_text_reg | L (eee) | B | text/reg |  | new', List) > 0) and
+    (Pos('fff_tit_text_reg | L (fff) | B | text/reg |  | exists', List) > 0) and
+    (Pos('kkk_tit_text_reg | L (kkk) | B | text/reg | uncommitted | new', List) > 0) and
+    (Pos('ggg', List) = 0), 'local projects listed with filters, changes and WACS presence');
+
+  { Check first: nothing changes }
+  Before := BareHead('alice', 'hhh_tit_text_reg');
+  Check(Run('wacs-upload', ['--all', '--target-dir', Up, '--dry-run'], Output) = 0, 'check runs');
+  Check((Pos('7 project(s) checked: 4 would be pushed, 1 up to date, 2 would be skipped', Output) > 0) and
+    (BareHead('alice', 'eee_tit_text_reg') = '') and (BareHead('alice', 'hhh_tit_text_reg') = Before) and
+    (Trim(RunGit(P('kkk_tit_text_reg'), ['status', '--porcelain']).Output) <> ''),
+    '... and changes nothing, here or on WACS');
+
+  { Upload all, server-ahead skipped }
+  Check(Run('wacs-upload', ['--all', '--target-dir', Up], Output) = 0, 'upload all');
+  Check(Pos('7 project(s): 4 pushed, 1 already up to date, 2 skipped, 0 failed.', Output) > 0,
+    '... summed up');
+  Check((Pos('Created the repo alice/eee_tit_text_reg.', Output) > 0) and
+    (BareHead('alice', 'eee_tit_text_reg') = Head(P('eee_tit_text_reg'))), 'new repo created and pushed');
+  Check(BareHead('alice', 'ggg_tit_text_reg') = Head(P('ggg_tit_text_reg')), 'local work pushed');
+  Check((BareHead('alice', 'hhh_tit_text_reg') = Before) and (Pos('WACS has newer work', Output) > 0),
+    'server ahead: skipped by default');
+  Check((Pos('moved it to master', Output) > 0) and
+    (BareHead('alice', 'jjj_tit_text_reg') = Head(P('jjj_tit_text_reg'))), 'branch main moved to master, then pushed');
+  Check((Pos('Committed uncommitted changes first.', Output) > 0) and
+    (BareHead('alice', 'kkk_tit_text_reg') = Head(P('kkk_tit_text_reg'))), 'loose work committed and pushed');
+
+  { Merge when ahead }
+  Check((Run('wacs-upload', ['--project', 'hhh_tit_text_reg', '--project', 'iii_tit_text_reg',
+    '--when-ahead', 'merge', '--target-dir', Up], Output) = 0) and
+    (ReadFileText(P('hhh_tit_text_reg') + PathDelim + '01' + PathDelim + '01.txt') = '\v 1 h from server') and
+    (Pos('Skipped: merging the server''s work would leave conflicts', Output) > 0),
+    'merge when ahead: clean merge done, conflicting one skipped');
+  Before := BareHead('alice', 'iii_tit_text_reg');
+  Check((Run('wacs-upload', ['--project', 'iii_tit_text_reg', '--when-ahead', 'merge',
+    '--on-conflict', 'commit', '--target-dir', Up], Output) = 0) and
+    (Pos('<<<<<<< HEAD', ReadFileText(P('iii_tit_text_reg') + PathDelim + '01' + PathDelim + '01.txt')) > 0) and
+    (BareHead('alice', 'iii_tit_text_reg') = Head(P('iii_tit_text_reg'))) and
+    (BareHead('alice', 'iii_tit_text_reg') <> Before),
+    'on-conflict commit: merged with markers and pushed');
+
+  { Owners }
+  Check((Run('wacs-upload', ['--project', 'eee_tit_text_reg', '--owner', 'team', '--target-dir', Up], Output) = 0) and
+    (BareHead('team', 'eee_tit_text_reg') = Head(P('eee_tit_text_reg'))),
+    'upload into an organisation');
+  Check((Run('wacs-upload', ['--project', 'fff_tit_text_reg', '--owner', 'bob', '--target-dir', Up], Output) = 1) and
+    (Pos('can only be created in your own account or an organisation', Output) > 0),
+    'another user''s account refused');
+  Check(Pos('Authorization', ReadFileText(P('eee_tit_text_reg') + PathDelim + '.git' + PathDelim + 'config')) = 0,
+    'no credentials left in .git/config');
+  Run('wacs-account', ['--logout'], Output);
+end;
+
 procedure TestWacsModules(const TempRoot: string);
 begin
   Root := TempRoot + 'wacs' + PathDelim;
@@ -275,6 +397,7 @@ begin
     TestAccount;
     TestBiel;
     TestDownload;
+    TestUpload;
   finally
     StopFakeWacs;
   end;

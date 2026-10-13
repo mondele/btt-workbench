@@ -306,35 +306,6 @@ msgstr ""
 msgid "git fsck found problems in the history: %s"
 msgstr ""
 
-#: modprojects:rsbranchrenamed
-msgid ""
-"The git branch was main; moved it to master, the only branch BTT-Writer uses."
-msgstr ""
-
-#: modprojects:rsbranchwouldrename
-msgid ""
-"The git branch is main, but BTT-Writer only uses master; it would be moved "
-"to master (dry run)."
-msgstr ""
-
-#: modprojects:rsbranchboth
-msgid ""
-"The project is on git branch main, and a master branch exists too; not "
-"changed. BTT-Writer only uses master, so merge main into master by hand."
-msgstr ""
-
-#: modprojects:rsbranchother
-msgid "The git branch is %s, not master; BTT-Writer only uses master."
-msgstr ""
-
-#: modprojects:rsdetached
-msgid "git is not on any branch (detached HEAD); BTT-Writer only uses master."
-msgstr ""
-
-#: modprojects:rsbranchfailed
-msgid "Could not move the git branch from main to master: %s"
-msgstr ""
-
 #: modprojects:rssummaryrenamed
 msgid "%d project(s) moved from git branch main to master."
 msgstr ""
@@ -941,6 +912,210 @@ msgstr ""
 msgid "%d of %d repo(s) done, %d failed."
 msgstr ""
 
+#: modwacsupload:rstitle
+msgid "Upload to WACS"
+msgstr ""
+
+#: modwacsupload:rsdescription
+msgid ""
+"Uploads the projects you check to WACS, one after another, as BTT-Writer's "
+"Upload does: creates the repo if needed and pushes. If the server has newer "
+"work, you choose whether to merge it first or skip that project. Check first "
+"to see what each project needs."
+msgstr ""
+
+#: modwacsupload:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated"
+msgstr ""
+
+#: modwacsupload:rsoptbookhelp
+msgid "Only these book codes, comma-separated"
+msgstr ""
+
+#: modwacsupload:rsoptproject
+msgid "Projects"
+msgstr ""
+
+#: modwacsupload:rsoptprojecthelp
+msgid "The project folders to upload"
+msgstr ""
+
+#: modwacsupload:rsoptownerhelp
+msgid "Upload into this organisation (or user) instead of your own account"
+msgstr ""
+
+#: modwacsupload:rsoptwhenahead
+msgid "If WACS has newer work"
+msgstr ""
+
+#: modwacsupload:rsoptwhenaheadhelp
+msgid ""
+"skip: leave that project for later; merge: bring the server's work in first, "
+"then upload"
+msgstr ""
+
+#: modwacsupload:rsoptdryrunhelp
+msgid "Report what uploading would do without changing anything"
+msgstr ""
+
+#: modwacsupload:rscollanguage
+msgid "Language"
+msgstr ""
+
+#: modwacsupload:rscolbook
+msgid "Book"
+msgstr ""
+
+#: modwacsupload:rscoltype
+msgid "Type"
+msgstr ""
+
+#: modwacsupload:rscolchanges
+msgid "Changes"
+msgstr ""
+
+#: modwacsupload:rscolonwacs
+msgid "On WACS"
+msgstr ""
+
+#: modwacsupload:rsuncommitted
+msgid "uncommitted"
+msgstr ""
+
+#: modwacsupload:rsnotloggedin
+msgid "Log in to WACS first (wacs-account)."
+msgstr ""
+
+#: modwacsupload:rslookupfailed
+msgid "Could not reach WACS: %s"
+msgstr ""
+
+#: modwacsupload:rsnothingchecked
+msgid "No projects checked."
+msgstr ""
+
+#: modwacsupload:rsuploadas
+msgid "Uploading to %s/%s as %s."
+msgstr ""
+
+#: modwacsupload:rsproject
+msgid "Project %s:"
+msgstr ""
+
+#: modwacsupload:rsnoproject
+msgid "%s is not a project folder here. Skipped."
+msgstr ""
+
+#: modwacsupload:rsbadmanifest
+msgid "manifest.json could not be read (%s). Skipped."
+msgstr ""
+
+#: modwacsupload:rsnotrepo
+msgid "It has no git history, so it cannot be uploaded. Skipped."
+msgstr ""
+
+#: modwacsupload:rsmidmerge
+msgid "It has an unfinished merge; finish it in BTT-Writer first. Skipped."
+msgstr ""
+
+#: modwacsupload:rsconflicts
+msgid ""
+"It still has unresolved conflicts (%s); they are uploaded as they are, as "
+"BTT-Writer does."
+msgstr ""
+
+#: modwacsupload:rsreponame
+msgid "Its WACS repo is %s (from manifest.json, not the folder name)."
+msgstr ""
+
+#: modwacsupload:rswouldcommit
+msgid "Uncommitted changes would be committed first."
+msgstr ""
+
+#: modwacsupload:rscommitted
+msgid "Committed uncommitted changes first."
+msgstr ""
+
+#: modwacsupload:rscommitfailed
+msgid "Could not commit the uncommitted changes. Skipped."
+msgstr ""
+
+#: modwacsupload:rswouldcreate
+msgid "The repo %s does not exist yet; it would be created."
+msgstr ""
+
+#: modwacsupload:rscreated
+msgid "Created the repo %s."
+msgstr ""
+
+#: modwacsupload:rscreatefailed
+msgid "Could not create the repo %s: %s"
+msgstr ""
+
+#: modwacsupload:rsnopushright
+msgid "You cannot push to %s. Skipped."
+msgstr ""
+
+#: modwacsupload:rsfetchfailed
+msgid "Could not get the server copy of %s: %s"
+msgstr ""
+
+#: modwacsupload:rsuptodate
+msgid "WACS already has everything in this project. Nothing to upload."
+msgstr ""
+
+#: modwacsupload:rswouldpush
+msgid "Only new local work: it would be pushed."
+msgstr ""
+
+#: modwacsupload:rsserverahead
+msgid "WACS has newer work that this project does not have."
+msgstr ""
+
+#: modwacsupload:rsdiverged
+msgid "Both WACS and this project have work the other lacks."
+msgstr ""
+
+#: modwacsupload:rsskipahead
+msgid ""
+"Skipped (newer work on WACS is set to skip). Download and merge it, or "
+"upload with merge."
+msgstr ""
+
+#: modwacsupload:rsskipconflicts
+msgid ""
+"Skipped: merging the server's work would leave conflicts (conflicts are set "
+"to skip)."
+msgstr ""
+
+#: modwacsupload:rsnotyours
+msgid ""
+"%s does not exist, and it can only be created in your own account or an "
+"organisation. Skipped."
+msgstr ""
+
+#: modwacsupload:rswouldmerge
+msgid "The server's work would be merged in first, then pushed."
+msgstr ""
+
+#: modwacsupload:rspushed
+msgid "Pushed to %s."
+msgstr ""
+
+#: modwacsupload:rspushfailed
+msgid "Could not push to %s: %s"
+msgstr ""
+
+#: modwacsupload:rssummary
+msgid "%d project(s): %d pushed, %d already up to date, %d skipped, %d failed."
+msgstr ""
+
+#: modwacsupload:rssummarycheck
+msgid ""
+"%d project(s) checked: %d would be pushed, %d up to date, %d would be "
+"skipped, %d have problems."
+msgstr ""
+
 #: wbcommandline:rsmissingvalue
 msgid "Option --%s needs a value"
 msgstr ""
@@ -973,6 +1148,35 @@ msgstr ""
 
 #: wbhttp:rsserversaid
 msgid "The server answered %d: %s"
+msgstr ""
+
+#: wbimport:rsbranchrenamed
+msgid ""
+"The git branch was main; moved it to master, the only branch BTT-Writer uses."
+msgstr ""
+
+#: wbimport:rsbranchwouldrename
+msgid ""
+"The git branch is main, but BTT-Writer only uses master; it would be moved "
+"to master (dry run)."
+msgstr ""
+
+#: wbimport:rsbranchboth
+msgid ""
+"The project is on git branch main, and a master branch exists too; not "
+"changed. BTT-Writer only uses master, so merge main into master by hand."
+msgstr ""
+
+#: wbimport:rsbranchother
+msgid "The git branch is %s, not master; BTT-Writer only uses master."
+msgstr ""
+
+#: wbimport:rsdetached
+msgid "git is not on any branch (detached HEAD); BTT-Writer only uses master."
+msgstr ""
+
+#: wbimport:rsbranchfailed
+msgid "Could not move the git branch from main to master: %s"
 msgstr ""
 
 #: wbimport:rsnoprojectmanifest

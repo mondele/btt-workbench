@@ -357,7 +357,7 @@ begin
       Skip := (Page - 1) * Limit;
       Arr := TJSONArray.Create;
       for R in Repos do
-        if (Pos(Q, LowerCase(R.Name)) > 0) and CanSee(R, Viewer) and
+        if ((Q = '') or (Pos(Q, LowerCase(R.Name)) > 0)) and CanSee(R, Viewer) and
            ((Uid = 0) or (UserIds[UserIndex(R.Owner)] = Uid)) then
         begin
           if Skip > 0 then

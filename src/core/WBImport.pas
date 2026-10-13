@@ -68,6 +68,11 @@ function ImportProject(const Ctx: TImportContext; const Src, EntryPath: string):
   the same disk, so moving a project into place is a rename. }
 function ImportSessionRoot(const TargetDir: string): string;
 function ImportBackupRoot(const TargetDir: string): string;
+{ Moves a project on git branch main to master, the only branch BTT-Writer
+  uses (gitnative.js: git init -b master, pull and push master by name).
+  Refuses when both exist; reports other branches and a detached HEAD.
+  True if it was moved, or would be with DryRun. }
+function FixBranch(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
 
 implementation
 
@@ -75,6 +80,16 @@ uses
   WBJson, WBFiles, WBProject;
 
 resourcestring
+  rsBranchRenamed = 'The git branch was main; moved it to master, the only ' +
+    'branch BTT-Writer uses.';
+  rsBranchWouldRename = 'The git branch is main, but BTT-Writer only uses ' +
+    'master; it would be moved to master (dry run).';
+  rsBranchBoth = 'The project is on git branch main, and a master branch ' +
+    'exists too; not changed. BTT-Writer only uses master, so merge main into ' +
+    'master by hand.';
+  rsBranchOther = 'The git branch is %s, not master; BTT-Writer only uses master.';
+  rsDetached = 'git is not on any branch (detached HEAD); BTT-Writer only uses master.';
+  rsBranchFailed = 'Could not move the git branch from main to master: %s';
   rsBadEntryPath = 'Project entry has an unsafe or missing path: "%s". Skipped.';
   rsNoProjectManifest = '%s has no manifest.json. Skipped.';
   rsBadProjectManifest = '%s: manifest.json could not be read (%s). Skipped.';
@@ -740,6 +755,55 @@ function ImportBackupRoot(const TargetDir: string): string;
 begin
   Result := ExtractFileDir(ExcludeTrailingPathDelimiter(TargetDir)) + PathDelim +
     'workbench-backups';
+end;
+
+{ Moves a project on branch main to master (see the unit comment). True if
+  it was moved, or would be with DryRun. }
+function FixBranch(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
+var
+  G: TGitResult;
+  Ref: string;
+begin
+  Result := False;
+  if not DirectoryExists(IncludeTrailingPathDelimiter(Dir) + '.git') then
+    Exit;
+  G := RunGit(Dir, ['symbolic-ref', '-q', 'HEAD']);
+  if G.ExitCode <> 0 then
+  begin
+    if RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']).ExitCode = 0 then
+      R.Warn(rsDetached);
+    Exit;
+  end;
+  Ref := Trim(G.Output);
+  if Ref = 'refs/heads/master' then
+    Exit;
+  if Ref <> 'refs/heads/main' then
+  begin
+    R.Warn(Format(rsBranchOther, [StringReplace(Ref, 'refs/heads/', '', [])]));
+    Exit;
+  end;
+  if RunGit(Dir, ['rev-parse', '--verify', '-q', 'refs/heads/master']).ExitCode = 0 then
+  begin
+    R.Warn(rsBranchBoth);
+    Exit;
+  end;
+  if DryRun then
+  begin
+    R.Warn(rsBranchWouldRename);
+    Exit(True);
+  end;
+  if RunGit(Dir, ['rev-parse', '--verify', '-q', 'refs/heads/main']).ExitCode = 0 then
+    G := RunGit(Dir, ['branch', '-m', 'main', 'master'])
+  else
+    { No commits yet: only HEAD names the branch. }
+    G := RunGit(Dir, ['symbolic-ref', 'HEAD', 'refs/heads/master']);
+  if G.ExitCode <> 0 then
+  begin
+    R.Error(Format(rsBranchFailed, [Trim(G.ErrorOutput)]));
+    Exit;
+  end;
+  R.Warn(rsBranchRenamed);
+  Result := True;
 end;
 
 end.

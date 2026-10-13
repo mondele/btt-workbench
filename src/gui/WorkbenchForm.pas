@@ -66,6 +66,11 @@ type
     procedure FillFields(Options: TStrings; Append: Boolean);
     procedure CollectOptions(Options: TStrings);
     procedure FindClick(Sender: TObject);
+    procedure DoFind(Index: Integer);
+    procedure AutoFind(Data: PtrInt);
+    { After options arrive from the command line: Find if a checklist has
+      nothing checked yet (its check could only complain), else Check. }
+    procedure AutoStart(Module: TWBModule; Options: TStrings);
     procedure CheckAllClick(Sender: TObject);
     procedure CheckNoneClick(Sender: TObject);
   public
@@ -137,7 +142,7 @@ constructor TWorkbenchForm.Create(TheOwner: TComponent);
 begin
   inherited CreateNew(TheOwner, 1);
   Width := 900;
-  Height := 600;
+  Height := 720;
   Position := poScreenCenter;
   FSelected := 0;
   FPendingOptions := TStringList.Create;
@@ -551,8 +556,7 @@ begin
   FModuleList.ItemIndex := Idx;
   ShowModule(Idx);
   FillFields(Options, False);
-  if FHasCheck then
-    Application.QueueAsyncCall(@AutoCheck, 0);
+  AutoStart(Module, Options);
 end;
 
 procedure TWorkbenchForm.AddFromOtherInstance(Module: TWBModule; Options: TStrings);
@@ -585,8 +589,7 @@ begin
     Exit;
   end;
   FillFields(Options, True);
-  if FHasCheck then
-    Application.QueueAsyncCall(@AutoCheck, 0);
+  AutoStart(Module, Options);
 end;
 
 procedure TWorkbenchForm.ApplyPending(Data: PtrInt);
@@ -733,6 +736,30 @@ end;
 
 { Fill a checklist from the module's Choices; checked items stay checked. }
 procedure TWorkbenchForm.FindClick(Sender: TObject);
+begin
+  DoFind(TComponent(Sender).Tag);
+end;
+
+procedure TWorkbenchForm.AutoFind(Data: PtrInt);
+begin
+  DoFind(Data);
+end;
+
+procedure TWorkbenchForm.AutoStart(Module: TWBModule; Options: TStrings);
+var
+  I: Integer;
+begin
+  for I := 0 to High(FEditors) do
+    if (FEditors[I].List <> nil) and (FEditors[I].List.Items.Count = 0) then
+    begin
+      Application.QueueAsyncCall(@AutoFind, I);
+      Exit;
+    end;
+  if FHasCheck then
+    Application.QueueAsyncCall(@AutoCheck, 0);
+end;
+
+procedure TWorkbenchForm.DoFind(Index: Integer);
 var
   I, J: Integer;
   M: TWBModule;
@@ -747,7 +774,7 @@ begin
   if FBusy then
     Exit;
   FBusy := True;
-  I := TComponent(Sender).Tag;
+  I := Index;
   View := FEditors[I].List;
   M := ModuleAt(FSelected);
   Options := TStringList.Create;

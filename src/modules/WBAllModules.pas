@@ -14,7 +14,8 @@ uses
   ModProjects,
   ModSettings,
   ModWacsAccount,
-  ModWacsDownload;
+  ModWacsDownload,
+  ModWacsUpload;
 
 implementation
 
