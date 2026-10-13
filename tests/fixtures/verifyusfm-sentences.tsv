@@ -1,0 +1,33 @@
+# Inputs and what verifyUSFM.py / sentences.py (usfm-tools) give for them:
+# caps: text, then the 44.1 words and 26 (no sentence end), sorted, ; separated
+# mixed: word, then True/False from isMixed
+# sim: target, source, then True/False for similarToSource > 0.4
+caps	he went home. then he slept.	44.1 he;44.1 then
+caps	He went home. Then he slept	26
+caps	He asked, "why?" then left.	44.1 then
+caps	Он ушёл. потом спал.	44.1 потом
+caps	राम घर गया। वह सोया।	
+caps	ሰላም። ደህና	26
+caps	He said? «and then» more	26;44.1 and
+caps	He said! “and then” more	26;44.1 and
+caps	co-worker came. self-made man.	44.1 co-worker;44.1 self-made
+caps	Wait... and then. 3 men came.	44.1 and
+caps	end with quote."	44.1 end
+caps	end with paren.)	44.1 end
+caps	no end	26;44.1 no
+caps	Это конец!	
+mixed	McDonald	True
+mixed	iPhone	True
+mixed	Hello	False
+mixed	HELLO	False
+mixed	hello	False
+mixed	O'Neil	False
+mixed	Jean-Luc	False
+mixed	jean-Luc	True
+mixed	abcDef	True
+mixed	ΑβγΔ	True
+mixed	Ǆemal	False
+sim	the Lord said to Moses go now	the Lord said to Moses go now	True
+sim	Bwana alisema kwa Musa	the Lord said to Moses	False
+sim	and the people went into the land of the living	and the people went out to the land	True
+sim	The People Went	the people went	False

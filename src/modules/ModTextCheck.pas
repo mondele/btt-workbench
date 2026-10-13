@@ -27,7 +27,7 @@ type
 implementation
 
 uses
-  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification;
+  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification, WBSources;
 
 resourcestring
   rsTitle = 'Translation text checks';
@@ -42,7 +42,7 @@ resourcestring
   rsOptTypeHelp = 'Only these resources, comma-separated (reg, ulb, ...)';
   rsOptSkip = 'Skip checks';
   rsOptSkipHelp = 'Groups of checks to leave out, comma-separated: structure, ' +
-    'markers, punctuation, quotes, numbers, ascii';
+    'markers, punctuation, quotes, numbers, ascii, caps, source, words';
   rsOptProblemsOnly = 'Problems only';
   rsOptProblemsOnlyHelp = 'List only projects with findings';
   rsOptTargetDir = 'Projects folder';
@@ -97,6 +97,14 @@ resourcestring
   rsStraightQuotes = 'Straight quotes: %s double, %s single (not counting %s inside words)';
   rsBackslashEol = 'Backslash at the end of a line: %s';
   rsNullBytes = 'Null bytes: %s';
+  rsCapsParagraph = 'First word of a paragraph not capitalised: %s';
+  rsCapsSentence = 'First word of a sentence not capitalised: %s';
+  rsParagraphPunct = 'No sentence-ending punctuation before a paragraph break: %s';
+  rsShortVerse = 'Verses very short compared with the source: %s';
+  rsUntranslated = 'Verses that may be untranslated (many words shared with the source): %s';
+  rsMixedCase = 'Words in mixed case: %s';
+  rsComparedWith = 'Compared with source %s.';
+  rsNoSource = 'No source text found to compare with; short verses are judged by length.';
 
 const
   ListLimit = 20;
@@ -143,6 +151,12 @@ begin
     ciStraightQuotes: Result := rsStraightQuotes;
     ciBackslashEol: Result := rsBackslashEol;
     ciNullBytes: Result := rsNullBytes;
+    ciCapsParagraph: Result := rsCapsParagraph;
+    ciCapsSentence: Result := rsCapsSentence;
+    ciParagraphPunct: Result := rsParagraphPunct;
+    ciShortVerse: Result := rsShortVerse;
+    ciUntranslated: Result := rsUntranslated;
+    ciMixedCase: Result := rsMixedCase;
   end;
 end;
 
@@ -246,6 +260,10 @@ var
   Chunks: TProjectChunks;
   Texts: TChunkTexts;
   Hits: TCheckHits;
+  Sources: TSourceLibrary;
+  Source: TSourceChunking;
+  Entries: TJSONData;
+  Container: string;
   I, J, Checked, WithHits: Integer;
 begin
   Result := 1;
@@ -283,6 +301,7 @@ begin
   Reporter.Info(Format(rsFolder, [ExcludeTrailingPathDelimiter(TargetDir)]));
 
   List := TStringList.Create;
+  Sources := TSourceLibrary.Create(LibrarySourcesPath(TargetDir), BundledSourcesPath);
   try
     if FindFirst(TargetDir + AllFilesMask, faDirectory, SR) = 0 then
     try
@@ -330,7 +349,21 @@ begin
           Texts[J].Chunk := Chunks[J].Chunk;
           Texts[J].Text := ReadText(Chunks[J].Path);
         end;
-        Hits := CheckChunks(Book, Texts, Groups);
+        { The source the translator worked from: the first one listed that
+          is here, else en_ulb. }
+        Source := nil;
+        Entries := Manifest.Find('source_translations');
+        if (Entries <> nil) and (Entries.JSONType = jtArray) then
+          for J := 0 to Entries.Count - 1 do
+            if (Source = nil) and (Entries.Items[J] is TJSONObject) then
+            begin
+              Container := StrField(TJSONObject(Entries.Items[J]), 'language_id') + '_' +
+                Book + '_' + StrField(TJSONObject(Entries.Items[J]), 'resource_id');
+              Source := Sources.Find(Container);
+            end;
+        if Source = nil then
+          Source := Sources.Find('en_' + Book + '_ulb');
+        Hits := CheckChunks(Book, Texts, Groups, Source);
         Inc(Checked);
         if Length(Hits) > 0 then
           Inc(WithHits)
@@ -341,12 +374,17 @@ begin
         if S = '' then
           S := Lang;
         Reporter.Info(Format(rsHeader, [List[I], S, Lang, EnglishBookName(Book), Length(Hits)]));
+        if Source <> nil then
+          Reporter.Info(Format(rsComparedWith, [Source.Container]))
+        else if cgSource in Groups then
+          Reporter.Info(rsNoSource);
         ReportHits(Hits, Reporter);
       finally
         Manifest.Free;
       end;
     end;
   finally
+    Sources.Free;
     List.Free;
   end;
   Reporter.Info('');

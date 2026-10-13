@@ -503,7 +503,7 @@ msgstr ""
 #: modtextcheck:rsoptskiphelp
 msgid ""
 "Groups of checks to leave out, comma-separated: structure, markers, "
-"punctuation, quotes, numbers, ascii"
+"punctuation, quotes, numbers, ascii, caps, source, words"
 msgstr ""
 
 #: modtextcheck:rsoptproblemsonlyhelp
@@ -680,6 +680,39 @@ msgstr ""
 
 #: modtextcheck:rsnullbytes
 msgid "Null bytes: %s"
+msgstr ""
+
+#: modtextcheck:rscapsparagraph
+msgid "First word of a paragraph not capitalised: %s"
+msgstr ""
+
+#: modtextcheck:rscapssentence
+msgid "First word of a sentence not capitalised: %s"
+msgstr ""
+
+#: modtextcheck:rsparagraphpunct
+msgid "No sentence-ending punctuation before a paragraph break: %s"
+msgstr ""
+
+#: modtextcheck:rsshortverse
+msgid "Verses very short compared with the source: %s"
+msgstr ""
+
+#: modtextcheck:rsuntranslated
+msgid "Verses that may be untranslated (many words shared with the source): %s"
+msgstr ""
+
+#: modtextcheck:rsmixedcase
+msgid "Words in mixed case: %s"
+msgstr ""
+
+#: modtextcheck:rscomparedwith
+msgid "Compared with source %s."
+msgstr ""
+
+#: modtextcheck:rsnosource
+msgid ""
+"No source text found to compare with; short verses are judged by length."
 msgstr ""
 
 #: modtstudioimport:rstitle

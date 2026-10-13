@@ -14,7 +14,7 @@ procedure TestTextChecks(const TempRoot: string);
 implementation
 
 uses
-  Classes, SysUtils, WBReporter, WBUsfmChecks, WBVersification, TestUtil;
+  Classes, SysUtils, WBReporter, WBUsfmChecks, WBVersification, WBSources, TestUtil;
 
 function Chunk(const Ch, Ck, Text: string): TChunkText;
 begin
@@ -52,6 +52,12 @@ begin
   Result := Pos(#10 + Line + #10, #10 + Hits) > 0;
 end;
 
+function FixturePath(const Name: string): string;
+begin
+  Result := ExtractFilePath(ParamStr(0)) + '..' + PathDelim + 'tests' + PathDelim +
+    'fixtures' + PathDelim + Name;
+end;
+
 procedure TestAgainstVerifyUsfm;
 var
   L, Ids: TStringList;
@@ -64,8 +70,7 @@ begin
   L := TStringList.Create;
   Ids := TStringList.Create;
   try
-    L.LoadFromFile(ExtractFilePath(ParamStr(0)) + '..' + PathDelim + 'tests' + PathDelim +
-      'fixtures' + PathDelim + 'verifyusfm-samples.tsv');
+    L.LoadFromFile(FixturePath('verifyusfm-samples.tsv'));
     Bad := 0;
     Total := 0;
     for I := 0 to L.Count - 1 do
@@ -98,6 +103,87 @@ begin
     Check((Total >= 60) and (Bad = 0), Format('punctuation and number checks match verifyUSFM on %d texts', [Total]));
   finally
     Ids.Free;
+    L.Free;
+  end;
+end;
+
+{ Capitalisation, end of sentence, isMixed and the similarity measure
+  against verifyUSFM's own answers (tests/fixtures/verifyusfm-sentences.tsv). }
+procedure TestSentencesAgainstVerifyUsfm;
+var
+  L, Got: TStringList;
+  Parts: TStringArray;
+  I, Bad, Total: Integer;
+  C: TChunkTexts;
+  H: TCheckHit;
+  Src: TSourceChunking;
+  Answer, Want: string;
+begin
+  L := TStringList.Create;
+  Got := TStringList.Create;
+  try
+    L.LoadFromFile(FixturePath('verifyusfm-sentences.tsv'));
+    Bad := 0;
+    Total := 0;
+    for I := 0 to L.Count - 1 do
+    begin
+      if (L[I] = '') or (L[I][1] = '#') then
+        Continue;
+      Parts := L[I].Split([#9]);
+      C := nil;
+      SetLength(C, 1);
+      C[0] := Chunk('01', '01', '');
+      Got.Clear;
+      if Parts[0] = 'caps' then
+      begin
+        C[0].Text := '\v 1 ' + Parts[1] + ' \p ';
+        for H in CheckChunks('GEN', C, [cgCaps]) do
+          if CheckNumber(H.Id) = '26' then
+            Got.Add('26')
+          else
+            Got.Add(CheckNumber(H.Id) + ' ' + H.Detail);
+        Got.Sort;
+        Answer := StringReplace(Trim(Got.Text), LineEnding, ';', [rfReplaceAll]);
+        Want := '';
+        if Length(Parts) > 2 then
+          Want := Parts[2];
+      end
+      else if Parts[0] = 'mixed' then
+      begin
+        C[0].Text := '\v 1 ' + Parts[1];
+        Answer := BoolToStr(Length(CheckChunks('GEN', C, [cgWords])) > 0, 'True', 'False');
+        Want := Parts[2];
+      end
+      else
+      begin
+        C[0].Text := '\v 1 ' + Parts[1];
+        Src := TSourceChunking.Create;
+        try
+          SetLength(Src.Chunks, 1);
+          Src.Chunks[0].Chapter := '01';
+          Src.Chunks[0].Chunk := '01';
+          Src.Chunks[0].Verses := [1];
+          Src.Chunks[0].Texts := [Parts[2]];
+          Answer := 'False';
+          for H in CheckChunks('GEN', C, [cgSource], Src) do
+            if H.Id = ciUntranslated then
+              Answer := 'True';
+        finally
+          Src.Free;
+        end;
+        Want := Parts[3];
+      end;
+      Inc(Total);
+      if Answer <> Want then
+      begin
+        Inc(Bad);
+        WriteLn('    ', Parts[0], ' ', Parts[1], ': got [', Answer, '] verifyUSFM [', Want, ']');
+      end;
+    end;
+    Check((Total >= 29) and (Bad = 0),
+      Format('capitalisation, mixed case and similarity match verifyUSFM on %d cases', [Total]));
+  finally
+    Got.Free;
     L.Free;
   end;
 end;
@@ -186,7 +272,7 @@ begin
     '{"target_language": {"id": "ddd"}, "project": {"id": "jud"}, "type": {"id": "text"}}');
   for I := 1 to 25 do
     Put(Target + 'ddd_jud_text_reg' + PathDelim + '01' + PathDelim + Format('%.2d.txt', [I]),
-      '\v ' + IntToStr(I) + ' Text ' + 'é.');
+      '\v ' + IntToStr(I) + ' Text of this verse é.');
 
   Check(Run([]) = 0, 'text-check runs');
   Check(Pos('info: aaa_jud_text_reg: Aaa (aaa), Jude - ', Output) > 0, 'project header with the English book name');
@@ -211,6 +297,7 @@ procedure TestTextChecks(const TempRoot: string);
 begin
   Section('text checks (usfm-tools port)');
   TestAgainstVerifyUsfm;
+  TestSentencesAgainstVerifyUsfm;
   TestStructure;
   TestModule(TempRoot);
 end;

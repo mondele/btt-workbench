@@ -31,17 +31,28 @@ unit WBUsfmChecks;
    reported when most verses are not ASCII, since in a Latin-script
    language every verse is.
 
-   Not yet: capitalisation and sentence ends (44), likely untranslated or
-   very short verses compared with the source (2, 3.5), word list and
-   mixed case, section titles (76), footnote heuristics (43). *)
+   Tranche 2:
+   - capitalisation: first word of a sentence (44.1) or paragraph (44)
+     not capitalised, with sentences followed across verses and chunks
+     as verifyUSFM does (sentences.py); no end punctuation before a
+     paragraph marker (26)
+   - against the source text (the one the project's chunking follows):
+     verses very short for their source (2; without a source, under 12
+     characters) and verses probably untranslated (3.5: more than 40%
+     of the words shared with the source, Jaccard)
+   - mixed-case words used fewer than 5 times (0.4, 0.5)
+
+   Not yet: section titles (76), footnote heuristics (43), the once-only
+   word statistic (0.2) and wordlist.tsv. *)
 
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, WBSources;
 
 type
-  TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii);
+  TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii,
+    cgCaps, cgSource, cgWords);
   TCheckGroups = set of TCheckGroup;
 
   TCheckId = (
@@ -56,7 +67,9 @@ type
     ciVerseNumberInText, ciPossibleVerseNumber, ciVerseReference, ciEmbeddedNumber,
     ciNumberPrefix, ciNumberSuffix, ciUnsegmented, ciSpaceInNumber, ciLeadingZero,
     ciEmptyVerse, ciAsciiVerse,
-    ciStraightQuotes, ciBackslashEol, ciNullBytes);
+    ciStraightQuotes, ciBackslashEol, ciNullBytes,
+    ciCapsParagraph, ciCapsSentence, ciParagraphPunct,
+    ciShortVerse, ciUntranslated, ciMixedCase);
 
   TCheckHit = record
     Id: TCheckId;
@@ -80,14 +93,19 @@ function CheckGroupOf(Id: TCheckId): TCheckGroup;
 { The stable names of the groups, for --skip. }
 function CheckGroupName(G: TCheckGroup): string;
 { Checks a text project of Book (USFM code, any case); chunks in order.
-  Title chunks ("title", "front") are not checked. }
+  Title chunks ("title", "front") are not checked. Source, if given, is the
+  source text compared with (checks 2 and 3.5). }
 function CheckChunks(const Book: string; const Chunks: TChunkTexts;
-  Groups: TCheckGroups): TCheckHits;
+  Groups: TCheckGroups; Source: TSourceChunking = nil): TCheckHits;
 
 implementation
 
 uses
-  uregexpr, WBVersification;
+  uregexpr, Character, Generics.Collections, WBVersification;
+
+type
+  TStrMap = specialize TDictionary<string, string>;
+  TCountMap = specialize TDictionary<string, Integer>;
 
 type
   TCheckInfo = record
@@ -118,10 +136,14 @@ const
     (Number: '61.2'; Group: cgNumbers),
     (Number: '1'; Group: cgStructure), (Number: '3'; Group: cgAscii),
     (Number: '75'; Group: cgQuotes), (Number: '78'; Group: cgMarkers),
-    (Number: '79'; Group: cgMarkers));
+    (Number: '79'; Group: cgMarkers),
+    (Number: '44'; Group: cgCaps), (Number: '44.1'; Group: cgCaps),
+    (Number: '26'; Group: cgCaps),
+    (Number: '2'; Group: cgSource), (Number: '3.5'; Group: cgSource),
+    (Number: '0.4'; Group: cgWords));
 
   GroupNames: array[TCheckGroup] of string = ('structure', 'markers',
-    'punctuation', 'quotes', 'numbers', 'ascii');
+    'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words');
 
   { USFM 3 markers a chunk may hold (digits after a name are allowed). }
   KnownMarkers =
@@ -155,7 +177,8 @@ type
     reOutsideQuote, rePeriod,
     reNumberEmbed, reNumberPrefix, reNumberSuffix, reUnsegmented, reNumberFormat,
     reLeadingZero, reNumber, reChapVerse, reEmbeddedQuote,
-    reBadVerse1, reBadVerse2, reBadVerse3, reSlashVerse, reBackslashEol);
+    reBadVerse1, reBadVerse2, reBadVerse3, reSlashVerse, reBackslashEol,
+    reEndSentence, reBadQuoted, reFirstWord, reEndSent);
 
 const
   Patterns: array[TRe] of UnicodeString = (
@@ -180,7 +203,12 @@ const
     '(\\v[0-9]+)',
     '(\\v\s*[-0-9]+[^-\d\s])',
     '(^|\s)/v\s*\d+',
-    '\\ *\n');
+    '\\ *\n',
+    { sentences.py }
+    '[.?!\x{0964}\x{0965}\x{1361}\x{1362}][^\w]*$',
+    '^[?!\x{1361}\x{1362}]+[«“‘\-\x{2014}\x{2013}]',
+    '(\w+-\w+|\w+)',
+    '[.?!\x{0964}\x{0965}\x{1361}\x{1362}].*?(\w+-\w+|\w+)');
 
 var
   Res: array[TRe] of TRegExpr;
@@ -190,6 +218,8 @@ begin
   if Res[R] = nil then
   begin
     Res[R] := TRegExpr.Create(Patterns[R]);
+    Res[R].UseUnicodeWordDetection := True;
+    Res[R].ModifierS := R = reEndSent;     // re.DOTALL
     Res[R].ModifierM := False;
   end;
   Result := Res[R];
@@ -252,13 +282,106 @@ type
     Book: string;
     Groups: TCheckGroups;
     Hits: TCheckHits;
+    HitCount: Integer;
     Chapter, Verse: Integer;
+    SentenceEnd, AfterParagraph: Boolean;
+    Words: TCountMap;      // word -> count
+    FirstRef: TStrMap;     // word -> reference of its first use
+    WordOrder: TStringList;
     procedure Hit(Id: TCheckId; const Ref, Detail: string);
     function VerseRef: string;
     procedure CheckPunctuation(const T: UnicodeString);
     procedure CheckNumbers(const T: UnicodeString; Footnote: Boolean);
     procedure TakeText(const T: UnicodeString; Footnote: Boolean);
+    procedure CheckCaps(const T: UnicodeString);
+    procedure AddWords(const T: UnicodeString);
   end;
+
+function IsLowerChar(C: WideChar): Boolean;
+begin
+  Result := TCharacter.IsLower(C);
+end;
+
+function IsUpperChar(C: WideChar): Boolean;
+begin
+  Result := TCharacter.IsUpper(C);
+end;
+
+{ Python's str.islower / isupper: at least one cased character, all of
+  them that case. }
+function AllLower(const W: UnicodeString): Boolean;
+var
+  C: WideChar;
+  Cased: Boolean;
+begin
+  Cased := False;
+  for C in W do
+    if IsUpperChar(C) then
+      Exit(False)
+    else if IsLowerChar(C) then
+      Cased := True;
+  Result := Cased;
+end;
+
+function AllUpper(const W: UnicodeString): Boolean;
+var
+  C: WideChar;
+  Cased: Boolean;
+begin
+  Cased := False;
+  for C in W do
+    if IsLowerChar(C) then
+      Exit(False)
+    else if IsUpperChar(C) then
+      Cased := True;
+  Result := Cased;
+end;
+
+{ Python's str.istitle: upper case only after uncased, lower only after
+  cased, at least one cased. }
+function IsTitle(const W: UnicodeString): Boolean;
+var
+  C: WideChar;
+  PrevCased, Cased: Boolean;
+begin
+  PrevCased := False;
+  Cased := False;
+  for C in W do
+    if IsUpperChar(C) then
+    begin
+      if PrevCased then
+        Exit(False);
+      PrevCased := True;
+      Cased := True;
+    end
+    else if IsLowerChar(C) then
+    begin
+      if not PrevCased then
+        Exit(False);
+      PrevCased := True;
+      Cased := True;
+    end
+    else
+      PrevCased := False;
+  Result := Cased;
+end;
+
+{ verifyUSFM's isMixed. }
+function IsMixed(const W: UnicodeString): Boolean;
+var
+  W2: UnicodeString;
+  C: WideChar;
+begin
+  Result := False;
+  if AllLower(W) or IsTitle(W) or AllUpper(W) then
+    Exit;
+  W2 := '';
+  for C in W do
+    if Pos(C, UnicodeString('''’"-_()–&')) = 0 then
+      W2 := W2 + C;
+  Result := (W2 <> '') and not (AllLower(W2) or IsTitle(W2) or AllUpper(W2));
+end;
+
 
 procedure TChecker.Hit(Id: TCheckId; const Ref, Detail: string);
 var
@@ -269,7 +392,10 @@ begin
   H.Id := Id;
   H.Ref := Ref;
   H.Detail := Detail;
-  Hits := Concat(Hits, [H]);
+  if HitCount = Length(Hits) then
+    SetLength(Hits, 2 * HitCount + 16);
+  Hits[HitCount] := H;
+  Inc(HitCount);
 end;
 
 function TChecker.VerseRef: string;
@@ -392,6 +518,96 @@ begin
     Hit(ciLeadingZero, VerseRef, A(Trim(Re(reLeadingZero).Match[0])));
 end;
 
+{ reportCaps, then the sentence state (sentences.py). }
+procedure TChecker.CheckCaps(const T: UnicodeString);
+var
+  Word: UnicodeString;
+  M: TRegExpr;
+begin
+  if SentenceEnd and Re(reFirstWord).Exec(T) then
+  begin
+    Word := Re(reFirstWord).Match[1];
+    if (Word <> '') and IsLowerChar(Word[1]) then
+      if AfterParagraph then
+        Hit(ciCapsParagraph, VerseRef, A(Word))
+      else
+        Hit(ciCapsSentence, VerseRef, A(Word));
+  end;
+  M := Re(reEndSent);
+  if M.Exec(T) then
+    repeat
+      Word := M.Match[1];
+      if (Word <> '') and IsLowerChar(Word[1]) and
+         not Re(reBadQuoted).Exec(Copy(T, M.MatchPos[0], 2)) then
+        Hit(ciCapsSentence, VerseRef, A(Word));
+    until not M.ExecNext;
+  SentenceEnd := Re(reEndSentence).Exec(T);
+  AfterParagraph := False;
+end;
+
+type
+  TUnicodeWords = array of UnicodeString;
+
+{ Python's str.split(): runs of whitespace separate. }
+function SplitWords(const T: UnicodeString): TUnicodeWords;
+var
+  I, Start: Integer;
+begin
+  Result := nil;
+  I := 1;
+  while I <= Length(T) do
+  begin
+    while (I <= Length(T)) and (T[I] in [' ', #9, #10, #13]) do
+      Inc(I);
+    Start := I;
+    while (I <= Length(T)) and not (T[I] in [' ', #9, #10, #13]) do
+      Inc(I);
+    if I > Start then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[High(Result)] := Copy(T, Start, I - Start);
+    end;
+  end;
+end;
+
+{ verifyUSFM's addWords, for the mixed-case check. }
+procedure TChecker.AddWords(const T: UnicodeString);
+const
+  StripChars: UnicodeString = '.,:;!?+-[]{}()<>"“‘’”*/''';
+var
+  Item, W: UnicodeString;
+  Key: string;
+  C: WideChar;
+  HasDigit: Boolean;
+  I: Integer;
+begin
+  for Item in SplitWords(T) do
+  begin
+    W := Item;
+    while (W <> '') and (Pos(W[1], StripChars) > 0) do
+      Delete(W, 1, 1);
+    while (W <> '') and (Pos(W[Length(W)], StripChars) > 0) do
+      SetLength(W, Length(W) - 1);
+    if W = '' then
+      Continue;
+    HasDigit := False;
+    for C in W do
+      if TCharacter.IsNumber(C) then
+        HasDigit := True;
+    if HasDigit then
+      Continue;
+    Key := A(W);
+    if Words.TryGetValue(Key, I) then
+      Words[Key] := I + 1
+    else
+    begin
+      Words.Add(Key, 1);
+      FirstRef.Add(Key, VerseRef);
+      WordOrder.Add(Key);
+    end;
+  end;
+end;
+
 procedure TChecker.TakeText(const T: UnicodeString; Footnote: Boolean);
 begin
   if T = '' then
@@ -409,6 +625,11 @@ begin
       Hit(ciStartsWithPunct, VerseRef, '');
   end;
   CheckNumbers(T, Footnote);
+  if not Footnote then
+  begin
+    CheckCaps(T);
+    AddWords(T);
+  end;
 end;
 
 { --- tokens --- }
@@ -511,7 +732,7 @@ end;
 { --- the project --- }
 
 function CheckChunks(const Book: string; const Chunks: TChunkTexts;
-  Groups: TCheckGroups): TCheckHits;
+  Groups: TCheckGroups; Source: TSourceChunking): TCheckHits;
 type
   TVerseText = record
     Chapter, Verse: Integer;
@@ -530,6 +751,12 @@ var
   Seen: array of array of Boolean;     // [chapter][verse]
   Missing: TStringArray;
   M: TRegExpr;
+  SourceText: TStrMap;         // "c:v" -> source verse text
+  SrcLen, TgtLen: Int64;
+  SrcWords, TgtWords: TStringList;
+  Src, W, Info: string;
+  Common, Union_, J: Integer;
+  Name: UnicodeString;
 
   procedure AddVerseText(const T: UnicodeString);
   begin
@@ -540,10 +767,24 @@ var
 
 begin
   C := TChecker.Create;
+  SourceText := TStrMap.Create;
+  SrcWords := TStringList.Create;
+  TgtWords := TStringList.Create;
+  C.Words := TCountMap.Create;
+  C.FirstRef := TStrMap.Create;
+  C.WordOrder := TStringList.Create;
   try
     C.Book := UpperCase(Book);
     C.Groups := Groups;
     C.Hits := nil;
+    C.SentenceEnd := True;
+    C.AfterParagraph := False;
+    if Source <> nil then
+      for I := 0 to High(Source.Chunks) do
+        for J := 0 to High(Source.Chunks[I].Verses) do
+          if (StrToIntDef(Source.Chunks[I].Chapter, 0) > 0) and (J <= High(Source.Chunks[I].Texts)) then
+            SourceText.AddOrSetValue(IntToStr(StrToInt(Source.Chunks[I].Chapter)) + ':' +
+              IntToStr(Source.Chunks[I].Verses[J]), Source.Chunks[I].Texts[J]);
     Verses := nil;
     Seen := nil;
     SetLength(Seen, ChapterCount(Book) + 1);
@@ -638,6 +879,18 @@ begin
             Verses[High(Verses)].Verse := V;
             Verses[High(Verses)].Text := '';
           end
+          else if (Tok.Name = 'p') or (Tok.Name = 'm') or (Tok.Name = 'mi') or
+                  (Tok.Name = 'nb') or (Tok.Name = 'pc') or (BaseMarker(Tok.Name) = 'pi') then
+          begin
+            { takeP: a paragraph should start after a finished sentence. }
+            if not C.SentenceEnd and (Tok.Name <> 'm') and (C.Verse > 0) then
+              C.Hit(ciParagraphPunct, C.VerseRef, '');
+            if Tok.Name <> 'nb' then
+            begin
+              C.SentenceEnd := True;
+              C.AfterParagraph := True;
+            end;
+          end
           else if (Tok.Name <> 'c') and
                   (Pos('|' + BaseMarker(Tok.Name) + '|', KnownMarkers) = 0) then
             C.Hit(ciUnknownMarker, Label_, '\' + A(Tok.Name));
@@ -659,7 +912,24 @@ begin
         C.Hit(ciFootnoteMismatch, Label_, IntToStr(Opened) + '/' + IntToStr(Closed));
     end;
 
-    { Empty and all-ASCII verses }
+    { Book lengths for the short-verse ratio: target and source text of the
+      verses both have. }
+    SrcLen := 0;
+    TgtLen := 0;
+    for I := 0 to High(Verses) do
+    begin
+      if not SourceText.TryGetValue(IntToStr(Verses[I].Chapter) + ':' +
+        IntToStr(Verses[I].Verse), Src) then
+        Src := '';
+      if Src <> '' then
+      begin
+        Inc(SrcLen, Length(U(Src)));
+        Inc(TgtLen, Length(Verses[I].Text));
+      end;
+    end;
+
+    { Empty, very short, untranslated and all-ASCII verses
+      (previousVerseCheck) }
     Singles := 0;     // here: verses that are ASCII
     for I := 0 to High(Verses) do
       if (Verses[I].Text <> '') and IsAscii(Verses[I].Text) then
@@ -669,10 +939,54 @@ begin
       C.Chapter := Verses[I].Chapter;
       C.Verse := Verses[I].Verse;
       if (Verses[I].Text = '') and not IsOptionalVerse(Book, C.Chapter, C.Verse) then
-        C.Hit(ciEmptyVerse, C.VerseRef, '')
-      else if (Verses[I].Text <> '') and IsAscii(Verses[I].Text) and
-              (Singles * 2 < Length(Verses)) then
+      begin
+        C.Hit(ciEmptyVerse, C.VerseRef, '');
+        Continue;
+      end;
+      { shortened_verse }
+      if not SourceText.TryGetValue(C.VerseRef, Src) then
+        Src := '';
+      if (Src <> '') and not ((C.Book = 'PSA') and (C.Verse = 1)) then
+      begin
+        if (SrcLen > 0) and (Length(Verses[I].Text) / Length(U(Src)) < 0.4 * TgtLen / SrcLen) then
+          C.Hit(ciShortVerse, C.VerseRef, '');
+      end
+      else if (Length(Verses[I].Text) < 12) and not IsShortVerse(Book, C.Chapter, C.Verse) then
+        C.Hit(ciShortVerse, C.VerseRef, '');
+      if (Verses[I].Text <> '') and IsAscii(Verses[I].Text) and
+         (Singles * 2 < Length(Verses)) then
         C.Hit(ciAsciiVerse, C.VerseRef, '');
+      { similarToSource: shared words of 3+ letters in lower case, over all
+        distinct words of both (Jaccard) }
+      if Src <> '' then
+      begin
+        SrcWords.Clear;
+        TgtWords.Clear;
+        SrcWords.Sorted := True;
+        SrcWords.Duplicates := dupIgnore;
+        SrcWords.CaseSensitive := True;
+        TgtWords.Sorted := True;
+        TgtWords.Duplicates := dupIgnore;
+        TgtWords.CaseSensitive := True;
+        for W in Src.Split([' ']) do
+          if W <> '' then
+            SrcWords.Add(W);
+        for W in A(Verses[I].Text).Split([' ']) do
+          if W <> '' then
+            TgtWords.Add(W);
+        Common := 0;
+        Union_ := SrcWords.Count;
+        for W in TgtWords do
+          if SrcWords.IndexOf(W) >= 0 then
+          begin
+            if (Length(U(W)) > 2) and AllLower(U(W)) then
+              Inc(Common);
+          end
+          else
+            Inc(Union_);
+        if (Union_ > 0) and (Common / Union_ > 0.4) then
+          C.Hit(ciUntranslated, C.VerseRef, '');
+      end;
     end;
 
     { Verses missing from chapters that have chunks }
@@ -709,8 +1023,21 @@ begin
     if (Doubles > 0) or (Singles > 0) then
       C.Hit(ciStraightQuotes, '', IntToStr(Doubles) + '/' + IntToStr(Singles) + '/' +
         IntToStr(Embedded));
-    Result := C.Hits;
+    { Mixed-case words used fewer than five times (reportMixedCase) }
+    for Info in C.WordOrder do
+    begin
+      Name := U(Info);
+      if (C.Words[Info] < 5) and IsMixed(Name) then
+        C.Hit(ciMixedCase, C.FirstRef[Info], Info);
+    end;
+    Result := Copy(C.Hits, 0, C.HitCount);
   finally
+    C.Words.Free;
+    C.FirstRef.Free;
+    C.WordOrder.Free;
+    TgtWords.Free;
+    SrcWords.Free;
+    SourceText.Free;
     C.Free;
   end;
 end;

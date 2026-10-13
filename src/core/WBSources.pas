@@ -28,6 +28,8 @@ type
     Chapter: string;   // as named in the container: '01', 'front'
     Chunk: string;     // '04', 'title'
     Verses: TVerseList;
+    Texts: TStringArray;  // plain text of each verse in Verses (notes left
+                          // out); '' for the 2nd.. verse of a range
   end;
 
   TSourceChunking = class
@@ -64,6 +66,8 @@ function UsxVerses(const Text: string): TVerseList;
 { First verse numbers of the \v markers in USFM text, as BTT-Writer reads
   them (render.js validateVerseMarkers: "\v 4-5" counts as 4). }
 function UsfmVerseMarkers(const Text: string): TVerseList;
+{ The plain text of each verse UsxVerses finds, in the same order. }
+function UsxVerseTexts(const Text: string): TStringArray;
 
 implementation
 
@@ -124,6 +128,95 @@ begin
           Result := Concat(Result, [V]);
     end;
     P := Pos('<verse', Text, P + 6);
+  end;
+end;
+
+{ Markup removed: notes dropped, tags removed, entities decoded, spaces
+  collapsed. }
+function PlainUsx(const S: string): string;
+var
+  I, J, Depth: Integer;
+  Buf: string;
+begin
+  Buf := '';
+  I := 1;
+  Depth := 0;
+  while I <= Length(S) do
+  begin
+    if S[I] = '<' then
+    begin
+      J := I;
+      while (J <= Length(S)) and (S[J] <> '>') do
+        Inc(J);
+      if Copy(S, I, 5) = '<note' then
+      begin
+        if (J > 1) and (S[J - 1] <> '/') then
+          Inc(Depth);
+      end
+      else if Copy(S, I, 7) = '</note>' then
+      begin
+        if Depth > 0 then
+          Dec(Depth);
+      end;
+      Buf := Buf + ' ';
+      I := J + 1;
+      Continue;
+    end;
+    if Depth = 0 then
+      Buf := Buf + S[I];
+    Inc(I);
+  end;
+  Buf := StringReplace(Buf, '&lt;', '<', [rfReplaceAll]);
+  Buf := StringReplace(Buf, '&gt;', '>', [rfReplaceAll]);
+  Buf := StringReplace(Buf, '&quot;', '"', [rfReplaceAll]);
+  Buf := StringReplace(Buf, '&apos;', '''', [rfReplaceAll]);
+  Buf := StringReplace(Buf, '&amp;', '&', [rfReplaceAll]);
+  for I := 1 to Length(Buf) do
+    if Buf[I] in [#9, #10, #13] then
+      Buf[I] := ' ';
+  while Pos('  ', Buf) > 0 do
+    Buf := StringReplace(Buf, '  ', ' ', [rfReplaceAll]);
+  Result := Trim(Buf);
+end;
+
+function UsxVerseTexts(const Text: string): TStringArray;
+var
+  P, Q, A, B, V, Next, TagEnd: Integer;
+begin
+  Result := nil;
+  P := Pos('<verse', Text);
+  while P > 0 do
+  begin
+    Next := Pos('<verse', Text, P + 6);
+    TagEnd := Pos('>', Text, P);
+    Q := P + 6;
+    while (Q <= Length(Text)) and not (Text[Q] in ['"', '<', '>']) do
+      Inc(Q);
+    if (Q <= Length(Text)) and (Text[Q] = '"') then
+    begin
+      Inc(Q);
+      A := ReadNumber(Text, Q);
+      B := A;
+      if (A >= 0) and (Q <= Length(Text)) and (Text[Q] = '-') then
+      begin
+        Inc(Q);
+        B := ReadNumber(Text, Q);
+        if B < A then
+          B := A;
+      end;
+      if A >= 0 then
+        for V := A to B do
+          if (V = A) and (TagEnd > 0) then
+          begin
+            if Next > 0 then
+              Result := Concat(Result, [PlainUsx(Copy(Text, TagEnd + 1, Next - TagEnd - 1))])
+            else
+              Result := Concat(Result, [PlainUsx(Copy(Text, TagEnd + 1, MaxInt))]);
+          end
+          else
+            Result := Concat(Result, ['']);
+    end;
+    P := Next;
   end;
 end;
 
@@ -235,6 +328,7 @@ var
     C.Chunks[N].Chapter := Parts[0];
     C.Chunks[N].Chunk := Parts[1];
     C.Chunks[N].Verses := UsxVerses(Text);
+    C.Chunks[N].Texts := UsxVerseTexts(Text);
     C.FIndex.AddObject(ChunkKey(Parts[0], Parts[1]), TObject(PtrInt(N)));
   end;
 
