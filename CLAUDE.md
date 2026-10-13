@@ -153,7 +153,8 @@ linker warnings are harmless.
 - Hot paths replace some regexes with direct scans or cheap pre-checks
   that give the same matches (they are commented); the fixtures prove it.
   Fixtures are regenerated from the upstream Python: `verifyusfm-*.tsv`,
-  `section-titles.jsonl`. When usfm-tools changes, regenerate and re-port.
+  `section-titles.jsonl`, `usfm-tools-units.jsonl` (every input of the
+  upstream tokenizer, Token, parseLine and verifyUSFM helper tests). When usfm-tools changes, regenerate and re-port.
 - A standalone FPC program using these units needs `cwstring` (lazbuild
   programs here do without), or string conversion is very slow or fails.
 - Sources are downloaded from WACS, not Door43.

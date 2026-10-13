@@ -44,7 +44,7 @@ unit WBUsfmChecks;
 interface
 
 uses
-  Classes, SysUtils, WBSources;
+  Classes, SysUtils, WBSources, WBPyText;
 
 type
   TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii,
@@ -110,10 +110,48 @@ function CheckGroupName(G: TCheckGroup): string;
   source text compared with. }
 function CheckChunks(const Book: string; const Chunks: TChunkTexts;
   Groups: TCheckGroups; Source: TSourceChunking = nil): TCheckHits;
+
+{ The pieces below are exposed for the tests that compare them with
+  usfm-tools' own functions. Positions are 1-based. }
+type
+  TToken = record
+    Kind: UnicodeString;    // marker name ('f*', '+add', ...) or 'text'
+    Value: UnicodeString;
+  end;
+  TTokens = array of TToken;
+
+  TMarkerPos = record
+    Name: UnicodeString;
+    Start: Integer;         // position of the backslash
+  end;
+  TMarkerPositions = array of TMarkerPos;
+
+{ usfmReader.list_usfm: known markers in a line. }
+function ListUsfm(const Line: UnicodeString): TMarkerPositions;
+{ usfmReader.nextpair: (marker, raw value) pairs, line by line. }
+function NextPairs(const S: UnicodeString): TTokens;
+{ usfmReader.parseString: tokens. }
+function Tokenize(const S: UnicodeString): TTokens;
+{ usfmReader.Token.isFootnote / isFootnoteInterior / isPoetry }
+function IsFootnoteMarker(const Name: UnicodeString): Boolean;
+function IsFootnoteInteriorMarker(const Name: UnicodeString): Boolean;
+function IsPoetryMarker(const Name: UnicodeString): Boolean;
+{ usfm_utils.parseLine }
+procedure ParseLine(const Line: UnicodeString; out Marker, Value, Remainder: UnicodeString);
+{ verifyUSFM.findFootnote: ':' '(' '[' or #0 for none. }
+function FindFootnote(const T: UnicodeString): Char;
+function ValidBracketedFootnote(const T: UnicodeString): Boolean;
+{ verifyUSFM.context, with Python's 0-based Start and Finish. }
+function Context(const T: UnicodeString; Start, Finish: Integer): UnicodeString;
+{ verifyUSFM.similarity: Jaccard value; Common is the n it returns. }
+function Similarity(const SA, SB: UnicodeString; out Common: Integer): Double;
+function ListWords(const T: UnicodeString): TUnicodeWords;
+function IsMixed(const W: UnicodeString): Boolean;
+
 implementation
 
 uses
-  WBRegExpr, Character, Generics.Collections, WBVersification, WBPyText,
+  WBRegExpr, Character, Generics.Collections, WBVersification,
   WBSentences, WBSectionTitles;
 
 type
@@ -485,19 +523,6 @@ end;
 
 { --- usfmReader: tokens as parseString makes them --- }
 
-type
-  TToken = record
-    Kind: UnicodeString;    // marker name ('f*', '+add', ...) or 'text'
-    Value: UnicodeString;
-  end;
-  TTokens = array of TToken;
-
-  TMarkerPos = record
-    Name: UnicodeString;
-    Start: Integer;         // 1-based position of the backslash
-  end;
-  TMarkerPositions = array of TMarkerPos;
-
 { list_usfm: known markers in a line (unknown ones stay in the text). }
 function ListUsfm(const Line: UnicodeString): TMarkerPositions;
 var
@@ -538,10 +563,10 @@ begin
 end;
 
 { parseString over one chunk's text. }
-function Tokenize(const S: UnicodeString): TTokens;
+function NextPairs(const S: UnicodeString): TTokens;
 var
   Lines: array of UnicodeString;
-  Line, Value, Leftover: UnicodeString;
+  Line: UnicodeString;
   Marks: TMarkerPositions;
   I, Start, K: Integer;
 
@@ -552,7 +577,53 @@ var
     Result[High(Result)].Value := V;
   end;
 
-  { One pair (marker, value) into tokens. }
+begin
+  Result := nil;
+  { text.split('\n') }
+  Lines := nil;
+  Start := 1;
+  for I := 1 to Length(S) + 1 do
+    if (I > Length(S)) or (S[I] = #10) then
+    begin
+      SetLength(Lines, Length(Lines) + 1);
+      Lines[High(Lines)] := Copy(S, Start, I - Start);
+      Start := I + 1;
+    end;
+  for Line in Lines do
+  begin
+    Marks := ListUsfm(Line);
+    if Length(Marks) = 0 then
+    begin
+      if Line <> '' then
+        Add('text', Line);
+      Continue;
+    end;
+    if Marks[0].Start > 1 then
+      Add('text', Copy(Line, 1, Marks[0].Start - 1));
+    for K := 0 to High(Marks) do
+    begin
+      Start := Marks[K].Start + Length(Marks[K].Name) + 1;
+      if K < High(Marks) then
+        Add(Marks[K].Name, Copy(Line, Start, Marks[K + 1].Start - Start))
+      else
+        Add(Marks[K].Name, Copy(Line, Start, MaxInt));
+    end;
+  end;
+end;
+
+{ parseString: each pair into tokens. }
+function Tokenize(const S: UnicodeString): TTokens;
+var
+  Pair: TToken;
+  Leftover: UnicodeString;
+
+  procedure Add(const Kind, V: UnicodeString);
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)].Kind := Kind;
+    Result[High(Result)].Value := V;
+  end;
+
   procedure TakePair(const Kind, V: UnicodeString);
   begin
     Leftover := '';
@@ -605,37 +676,23 @@ var
 
 begin
   Result := nil;
-  { text.split('\n') }
-  Lines := nil;
-  Start := 1;
-  for I := 1 to Length(S) + 1 do
-    if (I > Length(S)) or (S[I] = #10) then
-    begin
-      SetLength(Lines, Length(Lines) + 1);
-      Lines[High(Lines)] := Copy(S, Start, I - Start);
-      Start := I + 1;
-    end;
-  for Line in Lines do
-  begin
-    Marks := ListUsfm(Line);
-    if Length(Marks) = 0 then
-    begin
-      if Line <> '' then
-        TakePair('text', Line);
-      Continue;
-    end;
-    if Marks[0].Start > 1 then
-      TakePair('text', Copy(Line, 1, Marks[0].Start - 1));
-    for K := 0 to High(Marks) do
-    begin
-      Start := Marks[K].Start + Length(Marks[K].Name) + 1;
-      if K < High(Marks) then
-        Value := Copy(Line, Start, Marks[K + 1].Start - Start)
-      else
-        Value := Copy(Line, Start, MaxInt);
-      TakePair(Marks[K].Name, Value);
-    end;
-  end;
+  for Pair in NextPairs(S) do
+    TakePair(Pair.Kind, Pair.Value);
+end;
+
+function IsFootnoteMarker(const Name: UnicodeString): Boolean;
+begin
+  Result := InList(Name, FootnoteMarkers);
+end;
+
+function IsFootnoteInteriorMarker(const Name: UnicodeString): Boolean;
+begin
+  Result := InList(Name, FootnoteInteriorMarkers);
+end;
+
+function IsPoetryMarker(const Name: UnicodeString): Boolean;
+begin
+  Result := InList(Name, PoetryMarkers);
 end;
 
 { --- the checker --- }
@@ -810,11 +867,11 @@ type
 
 { similarity(): Jaccard over whitespace-separated words, counting shared
   words longer than 2 characters that are in lower case. }
-function Similarity(const SA, SB: UnicodeString): Double;
+function Similarity(const SA, SB: UnicodeString; out Common: Integer): Double;
 var
   SetA, SetB: TWordSet;
   W: UnicodeString;
-  Common, Union_: Integer;
+  Union_: Integer;
 begin
   SetA := TWordSet.Create;
   SetB := TWordSet.Create;
@@ -867,6 +924,7 @@ end;
 
 procedure TChecker.PreviousVerseCheck;
 var
+  Common: Integer;
   Empty: Boolean;
   Rel: Double;
   S, N: string;
@@ -895,7 +953,7 @@ begin
       S := '';
     if not SourceNotes.TryGetValue(IntToStr(Chapter) + ':' + IntToStr(Verse), N) then
       N := '';
-    if Similarity(U(S + ' ' + N), VerseText) > 0.4 then
+    if Similarity(U(S + ' ' + N), VerseText, Common) > 0.4 then
       Hit(ciUntranslated, ShortRef, '');
   end;
 end;
@@ -1084,14 +1142,13 @@ begin
 end;
 
 { findFootnote, then reportFootnotes. }
-procedure TChecker.ReportFootnotes(const T: UnicodeString);
+function FindFootnote(const T: UnicodeString): Char;
 var
   Flag: Char;
-  Dummy: string;
 begin
   Flag := #0;
   if not HasAny(T, ':()[') then
-    Exit;
+    Exit(#0);
   if (Pos(':', T) > 0) and Found(reReference, T) then
     Flag := ':'
   else if (Pos('(', T) > 0) or (Pos(')', T) > 0) then
@@ -1112,11 +1169,25 @@ begin
         Flag := #0;
     end;
   end;
+  Result := Flag;
+end;
+
+{ One bracketed part holding a chapter:verse reference. }
+function ValidBracketedFootnote(const T: UnicodeString): Boolean;
+begin
+  Result := Found(reBracketed, T) and Found(reReference, Re(reBracketed).Match[0]);
+end;
+
+procedure TChecker.ReportFootnotes(const T: UnicodeString);
+var
+  Flag: Char;
+  Dummy: string;
+begin
+  Flag := FindFootnote(T);
   if Flag = #0 then
     Exit;
   { a reference not in brackets (validBracketedFootnote) }
-  if (Flag = ':') and not (Found(reBracketed, T) and
-                           Found(reReference, Re(reBracketed).Match[0])) then
+  if (Flag = ':') and not ValidBracketedFootnote(T) then
     Hit(ciFootnoteReference, ShortRef, '')
   else if Footnoted.TryGetValue(Reference, Dummy) then
     Hit(ciFootnoteWhereSource, ShortRef, SourceId)

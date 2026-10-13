@@ -357,6 +357,164 @@ begin
   end;
 end;
 
+{ usfmReader, Token, parseLine and verifyUSFM helpers on every input of
+  usfm-tools' own tests (tests/fixtures/usfm-tools-units.jsonl). }
+procedure TestUnitsAgainstUsfmTools;
+var
+  L: TStringList;
+  Row, R: TJSONData;
+  I, J, N, Bad, Total: Integer;
+  Fn, Got, Want: string;
+  Input: UnicodeString;
+  Marks: TMarkerPositions;
+  Toks: TTokens;
+  Words: TUnicodeWords;
+  M, V, Rest: UnicodeString;
+  Flag: Char;
+  Sim: Double;
+
+  { Lists as "a|b|c", pairs as "a=b". }
+  function JoinJson(D: TJSONData): string;
+  var
+    K: Integer;
+  begin
+    case D.JSONType of
+      jtNull: Result := '<none>';
+      jtBoolean: Result := BoolToStr(D.AsBoolean, 'true', 'false');
+      jtArray:
+        begin
+          Result := '';
+          for K := 0 to D.Count - 1 do
+          begin
+            if K > 0 then
+              Result := Result + '|';
+            Result := Result + JoinJson(D.Items[K]);
+          end;
+          Result := '[' + Result + ']';
+        end;
+    else
+      Result := D.AsString;
+    end;
+  end;
+
+  function B(X: Boolean): string;
+  begin
+    Result := BoolToStr(X, 'true', 'false');
+  end;
+
+begin
+  L := TStringList.Create;
+  try
+    L.LoadFromFile(FixturePath('usfm-tools-units.jsonl'));
+    Bad := 0;
+    Total := 0;
+    for I := 1 to L.Count - 1 do
+    begin
+      if Trim(L[I]) = '' then
+        Continue;
+      Row := GetJSON(L[I]);
+      try
+        Fn := Row.Items[0].AsString;
+        Input := UTF8Decode(Row.Items[1].AsString);
+        R := Row.Items[Row.Count - 1];
+        Want := JoinJson(R);
+        Got := '';
+        if Fn = 'list_usfm' then
+        begin
+          Marks := ListUsfm(Input);
+          for J := 0 to High(Marks) do
+          begin
+            if J > 0 then
+              Got := Got + '|';
+            Got := Got + '[' + UTF8Encode(Marks[J].Name) + '|' + IntToStr(Marks[J].Start - 1) + ']';
+          end;
+          Got := '[' + Got + ']';
+        end
+        else if (Fn = 'nextpair') or (Fn = 'parseString') then
+        begin
+          if Fn = 'nextpair' then
+            Toks := NextPairs(Input)
+          else
+            Toks := Tokenize(Input);
+          for J := 0 to High(Toks) do
+          begin
+            if J > 0 then
+              Got := Got + '|';
+            Got := Got + '[' + UTF8Encode(Toks[J].Kind) + '|' + UTF8Encode(Toks[J].Value) + ']';
+          end;
+          Got := '[' + Got + ']';
+        end
+        else if Fn = 'token_kinds' then
+          Got := '[' + B(IsFootnoteMarker(Input)) + '|' + B(IsFootnoteInteriorMarker(Input)) + '|' +
+            B(IsPoetryMarker(Input)) + ']'
+        else if Fn = 'parseLine' then
+        begin
+          ParseLine(Input, M, V, Rest);
+          Got := '[' + UTF8Encode(M) + '|' + UTF8Encode(V) + '|' + UTF8Encode(Rest) + ']';
+        end
+        else if Fn = 'findFootnote' then
+        begin
+          Flag := FindFootnote(Input);
+          if Flag = #0 then
+            Got := '<none>'
+          else
+            Got := Flag;
+        end
+        else if Fn = 'validBracketedFootnote' then
+          Got := B(ValidBracketedFootnote(Input))
+        else if Fn = 'isMixed' then
+          Got := B(IsMixed(Input))
+        else if Fn = 'listwords' then
+        begin
+          Words := ListWords(Input);
+          for J := 0 to High(Words) do
+          begin
+            if J > 0 then
+              Got := Got + '|';
+            Got := Got + UTF8Encode(Words[J]);
+          end;
+          Got := '[' + Got + ']';
+        end
+        else if Fn = 'context' then
+          Got := UTF8Encode(Context(Input, Row.Items[2].AsInteger, Row.Items[3].AsInteger))
+        else if Fn = 'similarity' then
+        begin
+          Sim := Similarity(Input, UTF8Decode(Row.Items[2].AsString), N);
+          Got := FormatFloat('0.######', Sim) + ' ' + IntToStr(N);
+          Want := FormatFloat('0.######', R.Items[0].AsFloat) + ' ' + IntToStr(R.Items[1].AsInteger);
+        end
+        else
+          Continue;
+      finally
+        Row.Free;
+      end;
+      Inc(Total);
+      if Got <> Want then
+      begin
+        Inc(Bad);
+        WriteLn('    ', Fn, '(', StringReplace(UTF8Encode(Input), #10, '\n', [rfReplaceAll]),
+          '): got ', Got, ' usfm-tools ', Want);
+      end;
+    end;
+    Check((Total >= 340) and (Bad = 0),
+      Format('tokenizer, parseLine and verifyUSFM helpers match usfm-tools on %d cases (%d differ)',
+      [Total, Bad]));
+  finally
+    L.Free;
+  end;
+end;
+
+{ test_State_versebridges: references name the whole bridge. }
+procedure TestVerseBridges;
+var
+  Hits: string;
+begin
+  Hits := HitList('MAT', [Chunk('01', '01', '\c 1 \v 1-3 Text,with a comma.'),
+    Chunk('02', '20', '\c 2 \v 20-25 More,text.')], [cgPunctuation]);
+  Check(Has(Hits, '45 1:1-3 ,w') and Has(Hits, '45 2:20-25 ,t'),
+    'verse bridges: references name the whole bridge (test_State_versebridges)');
+end;
+
 procedure TestStructure;
 var
   Hits: string;
@@ -481,6 +639,8 @@ begin
   TestSentencesAgainstVerifyUsfm;
   TestSectionTitlesAgainstPython;
   TestFootnotesAgainstVerifyUsfm;
+  TestUnitsAgainstUsfmTools;
+  TestVerseBridges;
   TestStructure;
   TestModule(TempRoot);
 end;
