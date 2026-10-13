@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   Classes, SysUtils, fpjson, jsonparser,
   WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules,
-  WBSettings, TestUtil, TestTStudioImport, TestProjects, TestSettings, TestWacs;
+  WBSettings, TestUtil, TestTStudioImport, TestProjects, TestSettings, TestWacs, TestTextCheck;
 
 const
   { Real BTT-Writer layout: tabs, non-ASCII names, empty object and array,
@@ -324,6 +324,7 @@ begin
     TestProjectsModule(TempRoot);
     TestSettingsModule(TempRoot);
     TestWacsModules(TempRoot);
+    TestTextChecks(TempRoot);
   finally
     if GetEnvironmentVariable('BTW_KEEP_TEST') = '' then   // set it to inspect fixtures
       DeleteTree(TempRoot)

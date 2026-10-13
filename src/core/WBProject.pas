@@ -11,6 +11,12 @@ interface
 uses
   Classes, SysUtils, fpjson;
 
+type
+  TProjectChunk = record
+    Chapter, Chunk, Path: string;
+  end;
+  TProjectChunks = array of TProjectChunk;
+
 { String (or number) at a dotted path in a manifest; '' if absent. }
 function StrField(Obj: TJSONObject; const Path: string): string;
 { The string items of a JSON array (nil for anything else). }
@@ -24,6 +30,9 @@ function ProjectFolderName(Manifest: TJSONObject; const Fallback: string): strin
 function ChunkIdFromPath(const Path: string): string;
 { True if the file holds a line starting a git conflict marker. }
 function HasConflictMarkers(const FileName: string): Boolean;
+{ <chapter>/<chunk>.txt files of a project folder (with trailing
+  separator), in name order. }
+function ProjectChunks(const Dir: string): TProjectChunks;
 { Filters as typed: comma, space or semicolon separated, lower case. }
 function SplitList(const S: string): TStringArray;
 { True if Filter is empty or holds one of Values (case-insensitive). }
@@ -147,6 +156,49 @@ begin
     Res := Parts[3];
   Result := Matches(Langs, [Parts[0]]) and Matches(Books, [Parts[1]]) and
     Matches(Types, [Parts[2], Res, Parts[2] + '_' + Res]);
+end;
+
+{ <chapter>/<chunk>.txt files, in name order. }
+function ProjectChunks(const Dir: string): TProjectChunks;
+var
+  Ch, F: TSearchRec;
+  Names: TStringList;
+  I: Integer;
+  Parts: TStringArray;
+begin
+  Result := nil;
+  Names := TStringList.Create;
+  try
+    if FindFirst(Dir + AllFilesMask, faDirectory, Ch) = 0 then
+    try
+      repeat
+        if (Ch.Name = '.') or (Ch.Name = '..') or (Ch.Name[1] = '.') or
+           ((Ch.Attr and faDirectory) = 0) then
+          Continue;
+        if FindFirst(Dir + Ch.Name + PathDelim + '*.txt', faAnyFile, F) = 0 then
+        try
+          repeat
+            Names.Add(Ch.Name + #9 + ChangeFileExt(F.Name, ''));
+          until FindNext(F) <> 0;
+        finally
+          FindClose(F);
+        end;
+      until FindNext(Ch) <> 0;
+    finally
+      FindClose(Ch);
+    end;
+    Names.Sort;
+    SetLength(Result, Names.Count);
+    for I := 0 to Names.Count - 1 do
+    begin
+      Parts := Names[I].Split([#9]);
+      Result[I].Chapter := Parts[0];
+      Result[I].Chunk := Parts[1];
+      Result[I].Path := Dir + Parts[0] + PathDelim + Parts[1] + '.txt';
+    end;
+  finally
+    Names.Free;
+  end;
 end;
 
 end.

@@ -15,7 +15,8 @@ uses
   ModSettings,
   ModWacsAccount,
   ModWacsDownload,
-  ModWacsUpload;
+  ModWacsUpload,
+  ModTextCheck;
 
 implementation
 

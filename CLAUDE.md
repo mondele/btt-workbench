@@ -134,6 +134,15 @@ linker warnings are harmless.
 - BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
   master`, pull and push `master` by name). `projects` moves `main` to
   `master` while scanning.
+- `WBUsfmChecks` ports usfm-tools' `verifyUSFM.py` checks (WA code, open
+  licence; credit Larry Versaw). Keep verifyUSFM's check numbers and
+  regexes. It uses `uregexpr` on UnicodeString with `{$codepage utf8}`
+  (without it the curly quotes in the patterns become bytes), and maps
+  Unicode spaces to ' ' first, because uregexpr's `\s` does not match
+  them. `tests/fixtures/verifyusfm-samples.tsv` holds texts with what
+  verifyUSFM itself reports; regenerate the expected column from the
+  Python when adding samples. `WBVersification` is generated from
+  `usfm_verses.py`.
 - Run git through `WBGit.RunGit`: no shell, `LC_ALL=C`, both pipes
   drained.
 - Write `manifest.json` with `WBJson.WriteBttJSONFile`. It keeps

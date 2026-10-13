@@ -473,6 +473,215 @@ msgstr ""
 msgid "Other BTT-Writer installs found: %s"
 msgstr ""
 
+#: modtextcheck:rstitle
+msgid "Translation text checks"
+msgstr ""
+
+#: modtextcheck:rsdescription
+msgid ""
+"Checks the text of translation projects for verse, marker, punctuation, "
+"quote and number problems, using the checks of usfm-tools' verifyUSFM. "
+"Changes nothing."
+msgstr ""
+
+#: modtextcheck:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated"
+msgstr ""
+
+#: modtextcheck:rsoptbookhelp
+msgid "Only these book codes, comma-separated"
+msgstr ""
+
+#: modtextcheck:rsopttypehelp
+msgid "Only these resources, comma-separated (reg, ulb, ...)"
+msgstr ""
+
+#: modtextcheck:rsoptskip
+msgid "Skip checks"
+msgstr ""
+
+#: modtextcheck:rsoptskiphelp
+msgid ""
+"Groups of checks to leave out, comma-separated: structure, markers, "
+"punctuation, quotes, numbers, ascii"
+msgstr ""
+
+#: modtextcheck:rsoptproblemsonlyhelp
+msgid "List only projects with findings"
+msgstr ""
+
+#: modtextcheck:rsbadskip
+msgid "Unknown check group \"%s\". Use: %s"
+msgstr ""
+
+#: modtextcheck:rsheader
+msgid "%s: %s (%s), %s - %d finding(s)"
+msgstr ""
+
+#: modtextcheck:rsunknownbook
+msgid "%s: book \"%s\" is not one of the 66 books; not checked."
+msgstr ""
+
+#: modtextcheck:rssummary
+msgid "%d project(s) checked, %d with findings."
+msgstr ""
+
+#: modtextcheck:rsmissingverses
+msgid "Verses missing from chapter %s: %s"
+msgstr ""
+
+#: modtextcheck:rsversebeyond
+msgid "Verse numbers past the end of the chapter: %s"
+msgstr ""
+
+#: modtextcheck:rsversetwice
+msgid "Verses given more than once: %s"
+msgstr ""
+
+#: modtextcheck:rsverseorder
+msgid "Verses out of order: %s"
+msgstr ""
+
+#: modtextcheck:rstextbeforeverse
+msgid "Text before the first verse marker of a chunk: %s"
+msgstr ""
+
+#: modtextcheck:rsunknownmarker
+msgid "Unknown markers: %s"
+msgstr ""
+
+#: modtextcheck:rsfootnotemismatch
+msgid "Footnote start and end markers do not pair up (started/ended): %s"
+msgstr ""
+
+#: modtextcheck:rsnospacebeforenumber
+msgid "No space between \\v and the verse number: %s"
+msgstr ""
+
+#: modtextcheck:rsnospaceafternumber
+msgid "No space after the verse number: %s"
+msgstr ""
+
+#: modtextcheck:rsnothingbeforeverse
+msgid "No space before a verse marker: %s"
+msgstr ""
+
+#: modtextcheck:rsversenonumber
+msgid "Verse marker without a number: %s"
+msgstr ""
+
+#: modtextcheck:rsslashverse
+msgid "\"/v\" typed instead of \"\\v\": %s"
+msgstr ""
+
+#: modtextcheck:rsconflictparsingerror
+msgid "BTT-Writer \"Conflict Parsing Error\" text: %s"
+msgstr ""
+
+#: modtextcheck:rsanglebracket
+msgid "Angle bracket not closed: %s"
+msgstr ""
+
+#: modtextcheck:rspunctuation
+msgid "Check the punctuation: %s"
+msgstr ""
+
+#: modtextcheck:rsspacebeforepunct
+msgid "Space before phrase-ending punctuation: %s"
+msgstr ""
+
+#: modtextcheck:rsfreefloating
+msgid "Free-floating quote or bracket: %s"
+msgstr ""
+
+#: modtextcheck:rspunctafterquote
+msgid "Punctuation after the closing quote: %s"
+msgstr ""
+
+#: modtextcheck:rsrepeatedquotes
+msgid "Repeated quote marks: %s"
+msgstr ""
+
+#: modtextcheck:rswordmedialpunct
+msgid "Punctuation inside a word: %s"
+msgstr ""
+
+#: modtextcheck:rsslash
+msgid "Forward slash in the text: %s"
+msgstr ""
+
+#: modtextcheck:rsbackslash
+msgid "Backslash in the text: %s"
+msgstr ""
+
+#: modtextcheck:rsequals
+msgid "Equals sign in the text: %s"
+msgstr ""
+
+#: modtextcheck:rsorphanpunct
+msgid "Punctuation standing alone: %s"
+msgstr ""
+
+#: modtextcheck:rsstartswithpunct
+msgid "Text begins with phrase-ending punctuation: %s"
+msgstr ""
+
+#: modtextcheck:rsversenumberintext
+msgid "Verse number in the text (probable): %s"
+msgstr ""
+
+#: modtextcheck:rspossibleversenumber
+msgid "Possible verse number in the text: %s"
+msgstr ""
+
+#: modtextcheck:rsversereference
+msgid "Likely verse reference in the text (belongs in a footnote): %s"
+msgstr ""
+
+#: modtextcheck:rsembeddednumber
+msgid "Number inside a word: %s"
+msgstr ""
+
+#: modtextcheck:rsnumberprefix
+msgid "Invalid number prefix: %s"
+msgstr ""
+
+#: modtextcheck:rsnumbersuffix
+msgid "Invalid number suffix: %s"
+msgstr ""
+
+#: modtextcheck:rsunsegmented
+msgid "Long number without separators: %s"
+msgstr ""
+
+#: modtextcheck:rsspaceinnumber
+msgid "Space between digits: %s"
+msgstr ""
+
+#: modtextcheck:rsleadingzero
+msgid "Number with a leading zero: %s"
+msgstr ""
+
+#: modtextcheck:rsemptyverse
+msgid "Empty verses: %s"
+msgstr ""
+
+#: modtextcheck:rsasciiverse
+msgid "Verses entirely in ASCII (untranslated?): %s"
+msgstr ""
+
+#: modtextcheck:rsstraightquotes
+msgid "Straight quotes: %s double, %s single (not counting %s inside words)"
+msgstr ""
+
+#: modtextcheck:rsbackslasheol
+msgid "Backslash at the end of a line: %s"
+msgstr ""
+
+#: modtextcheck:rsnullbytes
+msgid "Null bytes: %s"
+msgstr ""
+
 #: modtstudioimport:rstitle
 msgid "Import .tstudio package"
 msgstr ""
@@ -922,14 +1131,6 @@ msgid ""
 "Upload does: creates the repo if needed and pushes. If the server has newer "
 "work, you choose whether to merge it first or skip that project. Check first "
 "to see what each project needs."
-msgstr ""
-
-#: modwacsupload:rsoptlanguagehelp
-msgid "Only these target language codes, comma-separated"
-msgstr ""
-
-#: modwacsupload:rsoptbookhelp
-msgid "Only these book codes, comma-separated"
 msgstr ""
 
 #: modwacsupload:rsoptproject
