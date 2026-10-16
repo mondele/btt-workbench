@@ -77,6 +77,13 @@ LCL_WS=qt6 ./build.sh       # GUI on Qt6 instead of the default GTK2
 
 The binaries go in `bin/`.
 
+For Windows, cross-build from Linux once FPC has its win64 units:
+`lazbuild --os=win64 --cpu=x86_64 --ws=win32 src/gui/BttWorkbench.lpi`
+(and `src/cli/btw.lpi`). The `.exe` files use only DLLs that come with
+Windows: web access goes through Windows' own WinHTTP, so no OpenSSL is
+needed. They do need git for Windows (2.38 or newer), which the
+BTT-Writer installer sets up.
+
 ## Translating
 
 ```sh

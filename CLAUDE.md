@@ -127,6 +127,13 @@ linker warnings are harmless.
 - FPC 3.2.2's `openssl` unit only looks for OpenSSL up to 1.1 on Unix;
   `WBHttp`'s initialization adds `.3` to `DLLVersions` so HTTPS works on
   current Linux.
+- On Windows `WBHttp` sends requests through WinHTTP (`WBWinHttp`, own
+  declarations: FPC 3.2.2's `winhttp` unit misnames WinHttpSetTimeouts), so
+  Windows builds need no OpenSSL DLLs; TLS, certificates and proxies come
+  from Windows. Tests run on Linux and never reach that code: check it on
+  Windows after changing it.
+- Windows cross build on the laptop: `lazbuild --os=win64 --cpu=x86_64
+  --ws=win32 <project>.lpi` (win64 units installed in fpcupdeluxe).
 - `WBImport` is shared by tstudio-import and wacs-download:
   `TImportContext.FromServer` switches the wording, `OnConflict = 'skip'`
   leaves a project alone when a merge would conflict. Initialise contexts

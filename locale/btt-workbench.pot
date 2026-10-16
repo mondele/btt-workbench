@@ -1573,6 +1573,34 @@ msgstr ""
 msgid "The server answered %d: %s"
 msgstr ""
 
+#: wbhttp:rstimedout
+msgid "no answer in time"
+msgstr ""
+
+#: wbhttp:rsnamenotresolved
+msgid "server name not found; check the internet connection"
+msgstr ""
+
+#: wbhttp:rscannotconnect
+msgid "could not connect"
+msgstr ""
+
+#: wbhttp:rsconnectionerror
+msgid "the connection was broken off"
+msgstr ""
+
+#: wbhttp:rssecurefailure
+msgid "the secure connection failed (certificate or TLS problem)"
+msgstr ""
+
+#: wbhttp:rsbadurl
+msgid "not a valid address"
+msgstr ""
+
+#: wbhttp:rswindowserror
+msgid "Windows error %d"
+msgstr ""
+
 #: wbimport:rsbranchrenamed
 msgid ""
 "The git branch was main; moved it to master, the only branch BTT-Writer uses."

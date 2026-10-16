@@ -6,8 +6,12 @@ unit WBHttp;
   BIEL Public Data API: JSON in and out, timeouts, our own User-Agent
   (Cloudflare in front of both servers blocks some default ones), Basic or
   token auth, readable errors, one retry of a GET on a 5xx or a dropped
-  connection. HTTPS needs OpenSSL at run time (opensslsockets): present
-  on Linux, shipped as DLLs on Windows. FPC 3.2.2 only looks for OpenSSL
+  connection.
+
+  On Windows requests go through WinHTTP (WBWinHttp), Windows' own client:
+  TLS, certificates and proxies come from Windows, and no OpenSSL DLLs are
+  needed. Elsewhere fphttpclient is used, and HTTPS needs OpenSSL at run
+  time (opensslsockets), which Linux has. FPC 3.2.2 only looks for OpenSSL
   up to 1.1 on Unix; current Linux has only 3, so the initialization adds
   '.3' to the library versions it tries. }
 
@@ -50,7 +54,8 @@ var
 implementation
 
 uses
-  fphttpclient, opensslsockets, openssl, jsonparser, base64, WBVersion;
+  {$IFDEF WINDOWS}WBWinHttp,{$ELSE}fphttpclient, opensslsockets, openssl,{$ENDIF}
+  jsonparser, base64, WBVersion;
 
 resourcestring
   rsUnreachable = 'Could not reach %s (%s).';
@@ -59,6 +64,14 @@ resourcestring
   rsForbidden = 'Not allowed: %s';
   rsNotFound = 'Not found: %s';
   rsServerSaid = 'The server answered %d: %s';
+  { Windows only (WinHTTP); declared everywhere so the .pot has them. }
+  rsTimedOut = 'no answer in time';
+  rsNameNotResolved = 'server name not found; check the internet connection';
+  rsCannotConnect = 'could not connect';
+  rsConnectionError = 'the connection was broken off';
+  rsSecureFailure = 'the secure connection failed (certificate or TLS problem)';
+  rsBadUrl = 'not a valid address';
+  rsWindowsError = 'Windows error %d';
 
 function NoAuth: TWBHttpAuth;
 begin
@@ -114,6 +127,59 @@ begin
   Result.Status := Status;
 end;
 
+function AgentName: string;
+begin
+  if HttpUserAgent <> '' then
+    Result := HttpUserAgent
+  else
+    Result := 'btt-workbench/' + WorkbenchVersion;
+end;
+
+function AuthHeader(const Auth: TWBHttpAuth): string;
+begin
+  case Auth.Kind of
+    haBasic: Result := 'Basic ' + EncodeStringBase64(Auth.User + ':' + Auth.Secret);
+    haToken: Result := 'token ' + Auth.Secret;
+  else
+    Result := '';
+  end;
+end;
+
+{$IFDEF WINDOWS}
+function FailureText(Code: Cardinal): string;
+begin
+  case Code of
+    WinHttpErrTimeout: Result := rsTimedOut;
+    WinHttpErrNameNotResolved: Result := rsNameNotResolved;
+    WinHttpErrCannotConnect: Result := rsCannotConnect;
+    WinHttpErrConnectionError: Result := rsConnectionError;
+    WinHttpErrSecureFailure: Result := rsSecureFailure;
+    WinHttpErrBadUrl: Result := rsBadUrl;
+  else
+    Result := Format(rsWindowsError, [Code]);
+  end;
+end;
+
+{ One request; Status 0 means it never got an answer. }
+function Request(const Method, URL: string; const Auth: TWBHttpAuth;
+  const Body: string; TimeoutMs: Integer; out Status: Integer;
+  out Failure: string): string;
+var
+  Headers: string;
+  Code: Cardinal;
+begin
+  Failure := '';
+  Headers := 'Accept: application/json'#13#10;
+  if Auth.Kind <> haNone then
+    Headers := Headers + 'Authorization: ' + AuthHeader(Auth) + #13#10;
+  if Body <> '' then
+    Headers := Headers + 'Content-Type: application/json'#13#10;
+  Result := WinHttpRequest(Method, URL, AgentName, Headers, Body, 15000, TimeoutMs,
+    Status, Code);
+  if Status = 0 then
+    Failure := FailureText(Code);
+end;
+{$ELSE}
 { One request; Status 0 means it never got an answer. }
 function Request(const Method, URL: string; const Auth: TWBHttpAuth;
   const Body: string; TimeoutMs: Integer; out Status: Integer;
@@ -133,16 +199,10 @@ begin
     Http.AllowRedirect := True;
     Http.ConnectTimeout := 15000;
     Http.IOTimeout := TimeoutMs;
-    if HttpUserAgent <> '' then
-      Http.AddHeader('User-Agent', HttpUserAgent)
-    else
-      Http.AddHeader('User-Agent', 'btt-workbench/' + WorkbenchVersion);
+    Http.AddHeader('User-Agent', AgentName);
     Http.AddHeader('Accept', 'application/json');
-    case Auth.Kind of
-      haBasic: Http.AddHeader('Authorization',
-        'Basic ' + EncodeStringBase64(Auth.User + ':' + Auth.Secret));
-      haToken: Http.AddHeader('Authorization', 'token ' + Auth.Secret);
-    end;
+    if Auth.Kind <> haNone then
+      Http.AddHeader('Authorization', AuthHeader(Auth));
     if Body <> '' then
     begin
       Sent := TStringStream.Create(Body);
@@ -166,6 +226,7 @@ begin
     Http.Free;
   end;
 end;
+{$ENDIF}
 
 function ServerMessage(Reply: TJSONData; const Raw: string): string;
 begin
