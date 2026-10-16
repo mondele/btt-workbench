@@ -334,5 +334,5 @@ begin
   end;
   WriteLn;
   WriteLn(Checks - Failures, '/', Checks, ' checks passed');
-  ExitCode := Failures;
+  ExitCode := Ord(Failures > 0);   // not the count: 256 would wrap to 0
 end.
