@@ -57,6 +57,136 @@ msgstr ""
 msgid "error: "
 msgstr ""
 
+#: modcrosscheck:rstitle
+msgid "Text copied between books"
+msgstr ""
+
+#: modcrosscheck:rsdescription
+msgid ""
+"Finds chunks holding text from another book of the same language: chunks "
+"pasted over, blocks of verses, and the end of another book's chunk stuck "
+"onto a chunk. Earlier versions in each project's history show which book had "
+"the text first and the commit that brought it in (the version before that "
+"commit has the chunk's own text). Real parallels are left out by comparing "
+"the English ULB. Changes nothing."
+msgstr ""
+
+#: modcrosscheck:rsoptlanguage
+msgid "Languages"
+msgstr ""
+
+#: modcrosscheck:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated"
+msgstr ""
+
+#: modcrosscheck:rsoptbook
+msgid "Books"
+msgstr ""
+
+#: modcrosscheck:rsoptbookhelp
+msgid ""
+"Only report on these book codes, comma-separated (all books of the language "
+"are still compared)"
+msgstr ""
+
+#: modcrosscheck:rsopttype
+msgid "Project types"
+msgstr ""
+
+#: modcrosscheck:rsopttypehelp
+msgid "Only these resources, comma-separated (reg, ulb, ...)"
+msgstr ""
+
+#: modcrosscheck:rsoptnohistory
+msgid "Current text only"
+msgstr ""
+
+#: modcrosscheck:rsoptnohistoryhelp
+msgid ""
+"Leave out earlier versions (faster, but which book had the text first is "
+"then unknown)"
+msgstr ""
+
+#: modcrosscheck:rsopttargetdir
+msgid "Projects folder"
+msgstr ""
+
+#: modcrosscheck:rsopttargetdirhelp
+msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
+msgstr ""
+
+#: modcrosscheck:rsnotargetdir
+msgid "Projects folder not found: %s"
+msgstr ""
+
+#: modcrosscheck:rsfolder
+msgid "Projects folder: %s"
+msgstr ""
+
+#: modcrosscheck:rscompared
+msgid "%s: compared %d project(s), %d chunk file(s) and %d earlier version(s)."
+msgstr ""
+
+#: modcrosscheck:rsnogit
+msgid "%s: no git history; only its current text is compared."
+msgstr ""
+
+#: modcrosscheck:rsheader
+msgid "%s: %s (%s), %s - %d chunk(s) with text from other books"
+msgstr ""
+
+#: modcrosscheck:rsheadernotes
+msgid "%s: %s (%s), %s"
+msgstr ""
+
+#: modcrosscheck:rswhole
+msgid "%s: replaced by text from %s"
+msgstr ""
+
+#: modcrosscheck:rspart
+msgid "%s: verses %s hold text from %s"
+msgstr ""
+
+#: modcrosscheck:rspartnoverse
+msgid "%s: part holds text from %s"
+msgstr ""
+
+#: modcrosscheck:rstail
+msgid "%s: ends with text from %s"
+msgstr ""
+
+#: modcrosscheck:rsglued
+msgid "%s: ends with text from %s, run onto the last word: \"%s\""
+msgstr ""
+
+#: modcrosscheck:rsearlier
+msgid "%s (an earlier version of it)"
+msgstr ""
+
+#: modcrosscheck:rsunordered
+msgid "; both have it and which came first is unknown"
+msgstr ""
+
+#: modcrosscheck:rsuncommitted
+msgid "; not yet committed"
+msgstr ""
+
+#: modcrosscheck:rssince
+msgid "; since %s (%s, %s)"
+msgstr ""
+
+#: modcrosscheck:rsalsochanged
+msgid "; that commit also changed %d other chunk file(s)"
+msgstr ""
+
+#: modcrosscheck:rscopiedout
+msgid "The text of %s appears later in: %s"
+msgstr ""
+
+#: modcrosscheck:rssummary
+msgid "%d project(s) checked, %d with text from other books."
+msgstr ""
+
 #: modprojects:rstitle
 msgid "Project list and problems"
 msgstr ""
@@ -78,24 +208,12 @@ msgstr ""
 msgid "Report projects on branch main without moving them to master"
 msgstr ""
 
-#: modprojects:rsoptlanguage
-msgid "Languages"
-msgstr ""
-
 #: modprojects:rsoptlanguagehelp
 msgid "Only these target language codes, comma-separated (e.g. sah,udm)"
 msgstr ""
 
-#: modprojects:rsoptbook
-msgid "Books"
-msgstr ""
-
 #: modprojects:rsoptbookhelp
 msgid "Only these book codes, comma-separated (e.g. tit,jon)"
-msgstr ""
-
-#: modprojects:rsopttype
-msgid "Project types"
 msgstr ""
 
 #: modprojects:rsopttypehelp
@@ -129,22 +247,6 @@ msgstr ""
 msgid ""
 "BTT-Writer's index.sqlite to compare project languages with (default: the "
 "one in BTT-Writer's library folder, else the one bundled with BTT-Writer)"
-msgstr ""
-
-#: modprojects:rsopttargetdir
-msgid "Projects folder"
-msgstr ""
-
-#: modprojects:rsopttargetdirhelp
-msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
-msgstr ""
-
-#: modprojects:rsnotargetdir
-msgid "Projects folder not found: %s"
-msgstr ""
-
-#: modprojects:rsfolder
-msgid "Projects folder: %s"
 msgstr ""
 
 #: modprojects:rsfilter
@@ -484,16 +586,8 @@ msgid ""
 "Changes nothing."
 msgstr ""
 
-#: modtextcheck:rsoptlanguagehelp
-msgid "Only these target language codes, comma-separated"
-msgstr ""
-
 #: modtextcheck:rsoptbookhelp
 msgid "Only these book codes, comma-separated"
-msgstr ""
-
-#: modtextcheck:rsopttypehelp
-msgid "Only these resources, comma-separated (reg, ulb, ...)"
 msgstr ""
 
 #: modtextcheck:rsoptskip

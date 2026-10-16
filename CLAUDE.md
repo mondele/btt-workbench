@@ -155,6 +155,18 @@ linker warnings are harmless.
   Fixtures are regenerated from the upstream Python: `verifyusfm-*.tsv`,
   `section-titles.jsonl`, `usfm-tools-units.jsonl` (every input of the
   upstream tokenizer, Token, parseLine and verifyUSFM helper tests). When usfm-tools changes, regenerate and re-port.
+- `cross-check` (`ModCrossCheck`, engine `WBCrossCheck`) compares the text
+  projects of a language as runs of 4 words (`TokenizeWords`: markers out,
+  case folded), over every committed version of every chunk
+  (`WBChunkHistory`: one `git log --all -p -U1000000` per project, parsed
+  by `ParseChunkLog`). The first time each run appears per book decides
+  which book it came from. Reported: blocks (25+ words, or 8+ covering
+  half the chunk), tails (6+ words ending both chunks, on a chunk that
+  ended there 6+ hours earlier) and text glued onto the last word. Real
+  parallels are dropped by comparing the English ULB (articles left out),
+  unless the chunk's verse numbers don't fit its chapter. Thresholds were
+  tuned on the Chimanika damage of October 2026 (all found) and the
+  udm/sah backup (nothing reported); check both again when changing them.
 - A standalone FPC program using these units needs `cwstring` (lazbuild
   programs here do without), or string conversion is very slow or fails.
 - Sources are downloaded from WACS, not Door43.
