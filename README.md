@@ -45,7 +45,7 @@ Source chunking comes from BTT-Writer's library
 unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
 `BTW_BUNDLED_SOURCES` if the bundled folder isn't found.
 
-In the GUI, a module with a check gets a **Check** button next to **Run**.
+In the GUI, a module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
 
 ### Double-click `.tstudio` files (Linux)
 

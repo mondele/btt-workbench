@@ -1906,3 +1906,39 @@ msgstr ""
 #: workbenchform:rsstillrunning
 msgid "A task is still running. Quit anyway?"
 msgstr ""
+
+#: workbenchform:rssavereport
+msgid "Save report…"
+msgstr ""
+
+#: workbenchform:rssavereporttitle
+msgid "Save the report as a text file"
+msgstr ""
+
+#: workbenchform:rstextfiles
+msgid "Text files (*.txt)|*.txt|All files|*"
+msgstr ""
+
+#: workbenchform:rssavefailed
+msgid "Could not save the report to %s: %s"
+msgstr ""
+
+#: workbenchform:rsreporttitle
+msgid "BTT Workbench %s - %s (%s)"
+msgstr ""
+
+#: workbenchform:rsreportdate
+msgid "Date: %s"
+msgstr ""
+
+#: workbenchform:rsreportcheck
+msgid "Check only: nothing was changed."
+msgstr ""
+
+#: workbenchform:rsreportfind
+msgid "Find: %s"
+msgstr ""
+
+#: workbenchform:rsreportoptions
+msgid "Options: %s"
+msgstr ""

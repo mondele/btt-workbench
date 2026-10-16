@@ -75,6 +75,9 @@ type
     FOptionsPanel: TPanel;
     FRunButton: TButton;
     FCheckButton: TButton;
+    FSaveButton: TButton;
+    FReportHead: string;       // what the log is the report of (Save report)
+    FSaveDir: string;          // where the last report was saved
     FHasCheck: Boolean;
     FLog: TMemo;
     FEditors: array of TOptionEditor;
@@ -86,6 +89,8 @@ type
     procedure StartJob(Job: TModuleJob);
     procedure JobDone(Sender: TObject);
     procedure SetBusy(Value: Boolean);
+    procedure UpdateSaveButton;
+    procedure SaveReportClick(Sender: TObject);
     procedure FlushLog(Data: PtrInt);
     procedure QueueLog(const Line: string);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -147,6 +152,15 @@ resourcestring
   rsFound = 'Found %d item(s). Check the ones you want, then press Run.';
   rsWorking = 'Working…';
   rsStillRunning = 'A task is still running. Quit anyway?';
+  rsSaveReport = 'Save report…';
+  rsSaveReportTitle = 'Save the report as a text file';
+  rsTextFiles = 'Text files (*.txt)|*.txt|All files|*';
+  rsSaveFailed = 'Could not save the report to %s: %s';
+  rsReportTitle = 'BTT Workbench %s - %s (%s)';
+  rsReportDate = 'Date: %s';
+  rsReportCheck = 'Check only: nothing was changed.';
+  rsReportFind = 'Find: %s';
+  rsReportOptions = 'Options: %s';
 
 type
   { Hands messages from the job's thread to the form's log. }
@@ -275,15 +289,100 @@ begin
   FLangCombo.Enabled := not Value;
   for B in FFindButtons do
     B.Enabled := not Value;
+  UpdateSaveButton;
   if Value then
     Screen.Cursor := crAppStart
   else
     Screen.Cursor := crDefault;
 end;
 
+procedure TWorkbenchForm.UpdateSaveButton;
+begin
+  if FSaveButton <> nil then
+    FSaveButton.Enabled := not FBusy and (Trim(FLog.Text) <> '');
+end;
+
+procedure TWorkbenchForm.SaveReportClick(Sender: TObject);
+var
+  Dlg: TSaveDialog;
+  Report: TStringList;
+  M: TWBModule;
+begin
+  M := ModuleAt(FSelected);
+  Dlg := TSaveDialog.Create(Self);
+  try
+    Dlg.Title := rsSaveReportTitle;
+    Dlg.Filter := rsTextFiles;
+    Dlg.DefaultExt := 'txt';
+    Dlg.Options := Dlg.Options + [ofOverwritePrompt, ofPathMustExist];
+    Dlg.FileName := M.Id + '-' + FormatDateTime('yyyy-mm-dd-hhnn', Now) + '.txt';
+    if FSaveDir <> '' then
+      Dlg.InitialDir := FSaveDir
+    else
+      Dlg.InitialDir := GetUserDir;
+    if not Dlg.Execute then
+      Exit;
+    Report := TStringList.Create;
+    try
+      Report.Text := FReportHead + FLog.Text;
+      try
+        Report.SaveToFile(Dlg.FileName);
+        FSaveDir := ExtractFileDir(Dlg.FileName);
+      except
+        on E: Exception do
+          MessageDlg(Format(rsSaveFailed, [Dlg.FileName, E.Message]), mtError, [mbOK], 0);
+      end;
+    finally
+      Report.Free;
+    end;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+{ The top of a saved report: program, module, date, what was run with
+  which options (passwords left out). }
+function ReportHead(Job: TModuleJob): string;
+var
+  Def, D: TWBOptionDef;
+  Parts: TStringArray;
+  Opts, V: string;
+  I: Integer;
+begin
+  Opts := '';
+  for I := 0 to Job.Options.Count - 1 do
+  begin
+    Def := Default(TWBOptionDef);
+    for D in Job.Module.OptionDefs do
+      if D.Name = Job.Options.Names[I] then
+        Def := D;
+    if (Def.Kind = okPassword) or (Job.Options.Names[I] = 'dry-run') then
+      Continue;
+    Opts := Opts + ' --' + Job.Options.Names[I];
+    if Def.Kind = okFlag then
+      Continue;
+    Parts := Job.Options.ValueFromIndex[I].Split([#10]);
+    for V in Parts do
+      if Pos(' ', V) > 0 then
+        Opts := Opts + ' "' + V + '"'
+      else
+        Opts := Opts + ' ' + V;
+  end;
+  Result := Format(rsReportTitle, [WorkbenchVersion, Job.Module.Title, Job.Module.Id]) +
+    LineEnding + Format(rsReportDate, [FormatDateTime('yyyy-mm-dd hh:nn', Now)]) + LineEnding;
+  if Job.Kind = jkFind then
+    Result := Result + Format(rsReportFind, [Job.OptionName]) + LineEnding
+  else if Job.IsCheck then
+    Result := Result + rsReportCheck + LineEnding;
+  if Opts <> '' then
+    Result := Result + Format(rsReportOptions, [Trim(Opts)]) + LineEnding;
+  Result := Result + LineEnding;
+end;
+
 procedure TWorkbenchForm.StartJob(Job: TModuleJob);
 begin
   FJob := Job;
+  FReportHead := ReportHead(Job);
   SetBusy(True);
   FLog.Clear;
   FLog.Lines.Add(rsWorking);
@@ -479,6 +578,14 @@ begin
     FRunButton.Caption := rsRun;
     FRunButton.OnClick := @RunClick;
 
+    FSaveButton := TButton.Create(Self);
+    FSaveButton.Parent := Buttons;
+    FSaveButton.Align := alRight;
+    FSaveButton.AutoSize := True;
+    FSaveButton.Caption := rsSaveReport;
+    FSaveButton.OnClick := @SaveReportClick;
+    FSaveButton.Enabled := False;
+
     FLog := TMemo.Create(Self);
     FLog.Parent := Detail;
     FLog.Align := alClient;
@@ -512,6 +619,7 @@ procedure TWorkbenchForm.RebuildUI(Data: PtrInt);
 begin
   while ControlCount > 0 do
     Controls[0].Free;
+  FSaveButton := nil;
   FEditors := nil;
   BuildUI;
 end;
@@ -532,6 +640,8 @@ begin
   FTitleLabel.Caption := M.Title;
   FDescLabel.Caption := M.Description;
   FLog.Clear;
+  FReportHead := '';
+  UpdateSaveButton;
 
   FOptionsPanel.DisableAutoSizing;
   try
