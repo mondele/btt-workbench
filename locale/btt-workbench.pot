@@ -187,6 +187,200 @@ msgstr ""
 msgid "%d project(s) checked, %d with text from other books."
 msgstr ""
 
+#: modcrossrepair:rstitle
+msgid "Repair copied text"
+msgstr ""
+
+#: modcrossrepair:rsdescription
+msgid ""
+"Puts back chunks that hold text copied from another book (as Text copied "
+"between books finds them): a chunk that was there before gets its version "
+"from before the damaging commit back, a chunk the damage added is removed. "
+"Everything else those commits changed stays. Chunks edited since are left "
+"alone. Find, check the chunks to repair, then Check to see what would "
+"happen. Upload afterwards with Upload to WACS."
+msgstr ""
+
+#: modcrossrepair:rsoptbookhelp
+msgid "Only these book codes, comma-separated"
+msgstr ""
+
+#: modcrossrepair:rsoptchunk
+msgid "Chunks"
+msgstr ""
+
+#: modcrossrepair:rsoptchunkhelp
+msgid "The damaged chunks to repair (project/chapter/chunk)"
+msgstr ""
+
+#: modcrossrepair:rsoptincludemixed
+msgid "Also mixed chunks"
+msgstr ""
+
+#: modcrossrepair:rsoptincludemixedhelp
+msgid ""
+"Also repair chunks whose damaging commit changed their own words too (those "
+"changes are undone with it)"
+msgstr ""
+
+#: modcrossrepair:rsoptdryrun
+msgid "Check only"
+msgstr ""
+
+#: modcrossrepair:rsoptdryrunhelp
+msgid "Report what repairing would do without changing anything"
+msgstr ""
+
+#: modcrossrepair:rscolfrom
+msgid "Copied from"
+msgstr ""
+
+#: modcrossrepair:rscolby
+msgid "Brought in by"
+msgstr ""
+
+#: modcrossrepair:rscolrepair
+msgid "Repair"
+msgstr ""
+
+#: modcrossrepair:rsactrestore
+msgid "restore"
+msgstr ""
+
+#: modcrossrepair:rsactremove
+msgid "remove"
+msgstr ""
+
+#: modcrossrepair:rsactmixed
+msgid "%s (mixed)"
+msgstr ""
+
+#: modcrossrepair:rsholdedited
+msgid "leave: edited since"
+msgstr ""
+
+#: modcrossrepair:rsholduncommitted
+msgid "leave: uncommitted changes"
+msgstr ""
+
+#: modcrossrepair:rsholdnohistory
+msgid "leave: not in history"
+msgstr ""
+
+#: modcrossrepair:rsnogit
+msgid ""
+"git was not found. BTT-Writer projects are git repositories; install git "
+"first."
+msgstr ""
+
+#: modcrossrepair:rsnothingchecked
+msgid "No chunks checked."
+msgstr ""
+
+#: modcrossrepair:rsnotfound
+msgid "%s: not damaged now (already repaired?). Skipped."
+msgstr ""
+
+#: modcrossrepair:rsproject
+msgid "Project %s:"
+msgstr ""
+
+#: modcrossrepair:rsrestore
+msgid ""
+"%s: restored to its version from before %s (%s, %s); it held text from %s."
+msgstr ""
+
+#: modcrossrepair:rswouldrestore
+msgid ""
+"%s: would be restored to its version from before %s (%s, %s); it holds text "
+"from %s."
+msgstr ""
+
+#: modcrossrepair:rsremove
+msgid "%s: removed; %s (%s, %s) added it with text from %s."
+msgstr ""
+
+#: modcrossrepair:rswouldremove
+msgid "%s: would be removed; %s (%s, %s) added it with text from %s."
+msgstr ""
+
+#: modcrossrepair:rsmixednote
+msgid ""
+"%s: that commit also changed this chunk's own words; repairing undoes them "
+"too."
+msgstr ""
+
+#: modcrossrepair:rsmixedskipped
+msgid ""
+"%s: left alone: that commit also changed this chunk's own words, which "
+"repairing would undo. Check \"Also mixed chunks\" (--include-mixed) to "
+"repair it anyway."
+msgstr ""
+
+#: modcrossrepair:rseditedsince
+msgid "%s: left alone: changed since by %s (%s, %s). Repair it by hand."
+msgstr ""
+
+#: modcrossrepair:rsuncommittedhold
+msgid "%s: left alone: it has changes not yet committed."
+msgstr ""
+
+#: modcrossrepair:rsnohistoryhold
+msgid "%s: left alone: the copied text is not in its history."
+msgstr ""
+
+#: modcrossrepair:rscommitfirst
+msgid "Uncommitted work was committed first."
+msgstr ""
+
+#: modcrossrepair:rswouldcommitfirst
+msgid "Uncommitted work would be committed first."
+msgstr ""
+
+#: modcrossrepair:rscommitted
+msgid "Committed: %d chunk(s) repaired."
+msgstr ""
+
+#: modcrossrepair:rsfailed
+msgid ""
+"Repair failed (%s); the project may be partly changed: check it with git."
+msgstr ""
+
+#: modcrossrepair:rsstillfound
+msgid "%s: still holds text from other books after the repair."
+msgstr ""
+
+#: modcrossrepair:rsallclean
+msgid "Checked again: no text from other books is left in the repaired chunks."
+msgstr ""
+
+#: modcrossrepair:rssummary
+msgid "%d chunk(s) repaired, %d left alone."
+msgstr ""
+
+#: modcrossrepair:rswouldsummary
+msgid "%d chunk(s) would be repaired, %d left alone."
+msgstr ""
+
+#: modcrossrepair:rsafter
+msgid ""
+"Next: upload the repaired projects (Upload to WACS). The devices that sent "
+"the damage must delete these projects and import them again, or their next "
+"upload brings the damage back."
+msgstr ""
+
+#: modcrossrepair:rscommitmessage
+msgid "Repair text copied from other books (BTT Workbench)"
+msgstr ""
+
+#: modcrossrepair:rsmsgrestore
+msgid "%s: restored from before %s"
+msgstr ""
+
+#: modcrossrepair:rsmsgremove
+msgid "%s: removed (added by %s)"
+msgstr ""
+
 #: modprojects:rstitle
 msgid "Project list and problems"
 msgstr ""
@@ -586,10 +780,6 @@ msgid ""
 "Changes nothing."
 msgstr ""
 
-#: modtextcheck:rsoptbookhelp
-msgid "Only these book codes, comma-separated"
-msgstr ""
-
 #: modtextcheck:rsoptskip
 msgid "Skip checks"
 msgstr ""
@@ -924,18 +1114,8 @@ msgid ""
 "backups)"
 msgstr ""
 
-#: modtstudioimport:rsoptdryrun
-msgid "Check only"
-msgstr ""
-
 #: modtstudioimport:rsoptdryrunhelp
 msgid "Report what the import would do without changing anything"
-msgstr ""
-
-#: modtstudioimport:rsnogit
-msgid ""
-"git was not found. BTT-Writer projects are git repositories; install git "
-"first."
 msgstr ""
 
 #: modtstudioimport:rsnofile
@@ -1419,10 +1599,6 @@ msgstr ""
 
 #: modwacsupload:rsuploadas
 msgid "Uploading to %s/%s as %s."
-msgstr ""
-
-#: modwacsupload:rsproject
-msgid "Project %s:"
 msgstr ""
 
 #: modwacsupload:rsnoproject

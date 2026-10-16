@@ -61,6 +61,7 @@ type
     Since: Integer;        // first version of this book that had all of it
     Unordered: Boolean;    // same time: which came first is unknown
     Fragment: string;      // ckGlued: the text run on (UTF-8)
+    Hash: QWord;           // the first word run matched (0 for ckGlued)
   end;
   TCrossFindings = array of TCrossFinding;
 
@@ -75,6 +76,12 @@ function FindCopiedText(const Docs: TCrossDocs; const Report: array of Boolean;
 type
   THashList = array of QWord;
 procedure TokenizeWords(const Text: string; out Hashes: THashList; out Verses: TVerseList);
+{ Word runs of ShingleWords words. }
+function Shingles(const W: THashList; Size: Integer): THashList;
+{ Text with markers left out and white space made single. }
+function NormalText(const S: string): string;
+{ Whether a version of a chunk holds the copied text of finding F. }
+function HasCopiedText(const Doc: TCrossDoc; const F: TCrossFinding): Boolean;
 
 implementation
 
@@ -334,6 +341,7 @@ type
     function OriginStillHas(O: Integer; H: QWord): Boolean;
     function EndedBefore(D: Integer; const Sh: THashList; St: Integer;
       const Own: array of Integer): Boolean;
+    function MostMatched(const Orig: array of Integer; St, K: Integer): Integer;
     procedure CheckDoc(D: Integer);
     procedure CheckGlued(D: Integer);
     function Norm(D: Integer): string;
@@ -610,8 +618,32 @@ begin
   end;
 end;
 
+{ Position in Orig[St..K-1] whose chunk the most positions match. }
+function TChecker.MostMatched(const Orig: array of Integer; St, K: Integer): Integer;
+var
+  I, J, N, BestN: Integer;
+begin
+  Result := St;
+  BestN := 0;
+  for I := St to K - 1 do
+  begin
+    N := 0;
+    for J := St to K - 1 do
+      if (Docs[Orig[J]].Project = Docs[Orig[I]].Project) and
+         (Docs[Orig[J]].Chapter = Docs[Orig[I]].Chapter) and
+         (Docs[Orig[J]].Chunk = Docs[Orig[I]].Chunk) then
+        Inc(N);
+    if N > BestN then
+    begin
+      BestN := N;
+      Result := I;
+    end;
+  end;
+end;
+
 procedure TChecker.CheckDoc(D: Integer);
 var
+  Pb: Integer;
   Sh: THashList;
   Orig, Own: array of Integer;
   Unord: array of Boolean;
@@ -686,8 +718,12 @@ begin
       Tail := False;
     if not (Big or Tail) then
       Continue;
+    { The run's source: the chunk most of it matches. Its first words may
+      be a phrase that chunk shares with others ("Write to the angel of the
+      church in ..."), so the first match alone can name the wrong one. }
+    Pb := MostMatched(Orig, St, K);
     VS := VerseSpan(WordVerses[D], St, K + ShingleWords - 2);
-    if Parallel(D, Orig[St], VS) then
+    if Parallel(D, Orig[Pb], VS) then
       Continue;
     F := Default(TCrossFinding);
     F.Doc := D;
@@ -699,10 +735,11 @@ begin
       F.Kind := ckPart;
     F.Verses := SpanText(VS);
     F.Words := L;
-    F.Origin := Orig[St];
-    F.OriginCurrent := OriginStillHas(Orig[St], Sh[St]);
+    F.Origin := Orig[Pb];
+    F.OriginCurrent := OriginStillHas(Orig[Pb], Sh[Pb]);
     F.Since := Own[St];
     F.Unordered := Unord[St];
+    F.Hash := Sh[Pb];
     for E := St to K - 1 do
       if (Own[E] >= 0) and (Docs[Own[E]].Time > Docs[F.Since].Time) then
       begin
@@ -713,7 +750,6 @@ begin
   end;
 end;
 
-{ Text with markers left out and white space made single. }
 function NormalText(const S: string): string;
 var
   I, J: Integer;
@@ -844,6 +880,21 @@ begin
     Findings := Concat(Findings, [F]);
     Exit;    // one per chunk: the first glue point covers what follows
   end;
+end;
+
+function HasCopiedText(const Doc: TCrossDoc; const F: TCrossFinding): Boolean;
+var
+  W: THashList;
+  VS: TVerseList;
+  H: QWord;
+begin
+  if F.Kind = ckGlued then
+    Exit(Pos(F.Fragment, NormalText(Doc.Text)) > 0);
+  TokenizeWords(Doc.Text, W, VS);
+  for H in Shingles(W, ShingleWords) do
+    if H = F.Hash then
+      Exit(True);
+  Result := False;
 end;
 
 function FindCopiedText(const Docs: TCrossDocs; const Report: array of Boolean;

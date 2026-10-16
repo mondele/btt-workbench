@@ -20,7 +20,8 @@ implementation
 
 uses
   Classes, SysUtils, fpjson,
-  WBReporter, WBGit, WBJson, WBDataPaths, WBSources, WBChunkHistory, WBCrossCheck, TestUtil;
+  WBReporter, WBModule, WBCommandLine, WBGit, WBJson, WBDataPaths, WBSources, WBProject,
+  WBChunkHistory, WBCrossCheck, TestUtil;
 
 var
   Target: string;
@@ -254,11 +255,223 @@ begin
   end;
 end;
 
+function Run(const ModuleId: string; const Args: array of string; out Code: Integer): string;
+var
+  R: TWBListReporter;
+begin
+  Code := RunModule(ModuleId, Args, R);
+  try
+    Result := Lines(R);
+  finally
+    R.Free;
+  end;
+  if GetEnvironmentVariable('BTW_SHOW') <> '' then
+    WriteLn(Result);
+end;
+
+{ The module's checklist, one line per item: value and columns. }
+function ListOf(const ModuleId: string; const Args: array of string; out Code: Integer): string;
+var
+  R: TWBListReporter;
+  Options, ArgList: TStringList;
+  M: TWBModule;
+  List: TWBChoiceList;
+  C: TWBChoice;
+  Err, A: string;
+begin
+  Result := '';
+  M := FindModule(ModuleId);
+  R := TWBListReporter.Create;
+  Options := TStringList.Create;
+  ArgList := TStringList.Create;
+  try
+    for A in Args do
+      ArgList.Add(A);
+    Code := 2;
+    if not ParseModuleArgs(M, ArgList, Options, Err) then
+      Exit;
+    Code := 1;
+    if not M.Choices(ChecklistOption(M), Options, R, List) then
+      Exit;
+    Code := 0;
+    for C in List.Items do
+      Result := Result + C.Value + ' | ' + String.Join(' | ', C.Columns) + #10;
+  finally
+    ArgList.Free;
+    Options.Free;
+    R.Free;
+  end;
+  if GetEnvironmentVariable('BTW_SHOW') <> '' then
+    WriteLn(Result);
+end;
+
+function Finished(const Dir: string): TStringArray;
+var
+  M: TJSONObject;
+begin
+  M := ReadJSONObjectFile(Dir + 'manifest.json');
+  try
+    Result := StringsOf(M.Find('finished_chunks'));
+  finally
+    M.Free;
+  end;
+end;
+
+procedure SetFinished(const Dir: string; const Ids: array of string);
+var
+  M: TJSONObject;
+  A: TJSONArray;
+  S: string;
+begin
+  M := ReadJSONObjectFile(Dir + 'manifest.json');
+  try
+    A := TJSONArray.Create;
+    for S in Ids do
+      A.Add(S);
+    if M.Find('finished_chunks') <> nil then
+      M.Delete('finished_chunks');
+    M.Add('finished_chunks', A);
+    WriteBttJSONFile(Dir + 'manifest.json', M);
+  finally
+    M.Free;
+  end;
+end;
+
+function CommitCount(const Dir: string): Integer;
+begin
+  Result := StrToIntDef(Trim(RunGit(Dir, ['rev-list', '--count', 'HEAD']).Output), -1);
+end;
+
+(* cross-repair. Titus is damaged by two "Paster" commits and then edited
+   for real by "Editor":
+   01/05  pasted over (Philemon 01/04), more pasted on by the 2nd commit
+          -> restore from before the 1st
+   01/09  added, holding Jude 01/01, and marked finished -> remove
+   02/01  Philemon 01/08's end added, but its own words changed too
+          -> mixed: only with --include-mixed
+   02/03  added with Philemon 01/12, edited since by Editor -> left alone
+   02/05  pasted over (Jude 01/01), has uncommitted changes -> left alone
+   03/01  pasted over by the 2nd commit (Philemon 01/12) -> restore
+   The 1st commit also renamed the chapter title: that must stay. *)
+procedure TestRepair(const TempRoot: string);
+var
+  Data, Tit, Output, S, OldBundled: string;
+  Code, Before: Integer;
+  Ids: TStringArray;
+begin
+  Section('cross-repair module');
+  Data := TempRoot + 'crossrepair' + PathDelim;
+  Target := Data + 'targetTranslations' + PathDelim;
+  OldBundled := BundledSourcesOverride;
+  BundledSourcesOverride := TempRoot + 'no-bundled-sources';
+  try
+    MakeProject('phm', [
+      '01/04.txt=\v 4 ' + Words('phm0104', 1, 24) + '.',
+      '01/08.txt=\v 8 ' + Words('phm0108', 1, 20) + '.',
+      '01/12.txt=\v 12 ' + Words('phm0112', 1, 30) + '.']);
+    MakeProject('jud', ['01/01.txt=\v 1 ' + Words('jud0101', 1, 30) + '.']);
+    Tit := MakeProject('tit', [
+      '01/title.txt=Chapter one',
+      '01/01.txt=\v 1 ' + Words('tit0101', 1, 25) + '.',
+      '01/05.txt=\v 5 ' + Words('tit0105', 1, 30) + '.',
+      '02/01.txt=\v 1 ' + Words('tit0201', 1, 25) + '.',
+      '02/05.txt=\v 5 ' + Words('tit0205', 1, 20) + '.',
+      '03/01.txt=\v 1 ' + Words('tit0301', 1, 20) + '.']);
+
+    { the first damaging session }
+    Put(Tit + '01/title.txt', 'Sura 1');
+    Put(Tit + '01/05.txt', '\v 5 ' + Words('phm0104', 1, 24) + '.');
+    Put(Tit + '01/09.txt', '\v 9 ' + Words('jud0101', 1, 30) + '.');
+    Put(Tit + '02/01.txt', '\v 1 ' + Words('titedit', 1, 10) + ' ' + Words('tit0201', 11, 25) +
+      '. ' + Words('phm0108', 13, 20) + '.');
+    Put(Tit + '02/03.txt', '\v 3 ' + Words('phm0112', 1, 30) + '.');
+    Put(Tit + '02/05.txt', '\v 5 ' + Words('jud0101', 1, 30) + '.');
+    SetFinished(Tit, ['01-01', '01-05', '01-09']);
+    Git(Tit, '2026-03-01T10:00:00+0200', 'Paster', ['add', '--all']);
+    Git(Tit, '2026-03-01T10:00:00+0200', 'Paster', ['commit', '-q', '-m', 'session 1']);
+    { the second }
+    Put(Tit + '01/05.txt', '\v 5 ' + Words('phm0104', 1, 24) + '. ' + Words('phm0108', 1, 10) + '.');
+    Put(Tit + '03/01.txt', '\v 1 ' + Words('phm0112', 1, 30) + '.');
+    Git(Tit, '2026-03-02T10:00:00+0200', 'Paster', ['add', '--all']);
+    Git(Tit, '2026-03-02T10:00:00+0200', 'Paster', ['commit', '-q', '-m', 'session 2']);
+    { real work on a damaged chunk, then uncommitted typing }
+    Put(Tit + '02/03.txt', '\v 3 ' + Words('phm0112', 1, 30) + ' ' + Words('fix', 1, 3) + '.');
+    Git(Tit, '2026-03-05T10:00:00+0200', 'Editor', ['add', '--all']);
+    Git(Tit, '2026-03-05T10:00:00+0200', 'Editor', ['commit', '-q', '-m', 'edit']);
+    Put(Tit + '02/05.txt', '\v 5 ' + Words('jud0101', 1, 30) + ' typing.');
+
+    Output := ListOf('cross-repair', ['--target-dir', Target], Code);
+    Check((Code = 0) and (LineWith(Output, 'xx_tit_text_reg/01/05', 'restore') <> ''),
+      'list: a chunk pasted over is restored');
+    Check(LineWith(Output, 'xx_tit_text_reg/01/09', 'remove') <> '',
+      'list: a chunk the damage added is removed');
+    Check(LineWith(Output, 'xx_tit_text_reg/02/01', 'mixed') <> '',
+      'list: a chunk whose own words changed too is mixed');
+    Check(LineWith(Output, 'xx_tit_text_reg/02/03', 'edited since') <> '',
+      'list: a chunk edited since is left alone');
+    Check(LineWith(Output, 'xx_tit_text_reg/02/05', 'uncommitted') <> '',
+      'list: a chunk with uncommitted changes is left alone');
+    Check(LineWith(Output, 'xx_tit_text_reg/03/01', 'restore') <> '',
+      'list: a chunk damaged by the second session is restored');
+    Check(LineWith(Output, 'xx_tit_text_reg/01/05', 'Philemon 01/04') <> '',
+      'list: says where the text came from');
+
+    Before := CommitCount(Tit);
+    Output := Run('cross-repair', ['--target-dir', Target, '--all', '--dry-run'], Code);
+    Check((Code = 0) and (CommitCount(Tit) = Before) and
+      (Pos('phm0104', ReadFileText(Tit + '01/05.txt')) > 0) and FileExists(Tit + '01/09.txt'),
+      'the check changes nothing');
+    Check((LineWith(Output, '01/05: would be restored', 'from before ') <> '') and
+      (LineWith(Output, '01/09: would be removed') <> '') and
+      (LineWith(Output, 'Uncommitted work would be committed first') <> ''),
+      'the check says what would happen');
+    Check(LineWith(Output, 'devices that sent the damage') = '',
+      'the check does not tell you to upload');
+
+    Output := Run('cross-repair', ['--target-dir', Target, '--all'], Code);
+    Check(Code = 0, 'repairs');
+    Check(ReadFileText(Tit + '01/05.txt') = '\v 5 ' + Words('tit0105', 1, 30) + '.',
+      'pasted over twice: back to the version from before the first session');
+    Check(ReadFileText(Tit + '03/01.txt') = '\v 1 ' + Words('tit0301', 1, 20) + '.',
+      'pasted over by the second session: restored');
+    Ids := Finished(Tit);
+    Check(not FileExists(Tit + '01/09.txt') and not Contains(Ids, '01-09') and
+      Contains(Ids, '01-05'), 'an added chunk is removed and no longer finished');
+    Check(Pos('titedit', ReadFileText(Tit + '02/01.txt')) > 0,
+      'a mixed chunk is left alone without --include-mixed');
+    Check(Pos('fix', ReadFileText(Tit + '02/03.txt')) > 0, 'a chunk edited since is left alone');
+    Check(Pos('typing', ReadFileText(Tit + '02/05.txt')) > 0,
+      'a chunk with uncommitted changes is left alone');
+    Check(ReadFileText(Tit + '01/title.txt') = 'Sura 1',
+      'the rest of what the damaging commits did stays');
+    Check(CommitCount(Tit) = Before + 2, 'loose work committed first, then one repair commit');
+    S := RunGit(Tit, ['log', '-1', '--format=%B']).Output;
+    Check((Pos('01/05: restored from before ', S) > 0) and (Pos('01/09: removed (added by ', S) > 0),
+      'the commit lists what was done');
+    Check(Trim(RunGit(Tit, ['status', '--porcelain']).Output) = '', 'nothing left uncommitted');
+    Check(LineWith(Output, 'Checked again: no text from other books is left') <> '',
+      'checked again afterwards');
+    Check(LineWith(Output, 'devices that sent the damage') <> '',
+      'reminds that the field devices must re-import');
+
+    Output := Run('cross-repair', ['--target-dir', Target, '--chunk',
+      'xx_tit_text_reg/02/01', '--include-mixed'], Code);
+    Check((Code = 0) and (ReadFileText(Tit + '02/01.txt') = '\v 1 ' + Words('tit0201', 1, 25) + '.'),
+      '--include-mixed repairs a mixed chunk');
+    Output := Run('cross-repair', ['--target-dir', Target, '--chunk', 'xx_tit_text_reg/01/05'], Code);
+    Check((Code = 0) and (LineWith(Output, 'not damaged now') <> ''),
+      'an already repaired chunk is reported, not touched');
+  finally
+    BundledSourcesOverride := OldBundled;
+  end;
+end;
+
 procedure TestCrossChecks(const TempRoot: string);
 begin
   TestParseLog;
   TestTokenize;
   TestModule(TempRoot);
+  TestRepair(TempRoot);
 end;
 
 end.

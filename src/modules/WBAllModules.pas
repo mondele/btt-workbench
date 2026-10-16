@@ -17,7 +17,8 @@ uses
   ModWacsDownload,
   ModWacsUpload,
   ModTextCheck,
-  ModCrossCheck;
+  ModCrossCheck,
+  ModCrossRepair;
 
 implementation
 

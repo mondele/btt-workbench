@@ -174,6 +174,17 @@ linker warnings are harmless.
   unless the chunk's verse numbers don't fit its chapter. Thresholds were
   tuned on the Chimanika damage of October 2026 (all found) and the
   udm/sah backup (nothing reported); check both again when changing them.
+- `cross-check` and `cross-repair` gather projects and history through
+  `WBCrossScan` (`ListTextProjects`, `ScanLanguage`). `WBCrossRepair`
+  plans per damaged chunk: the version that brought the copied text into
+  that file (`HasCopiedText` with the finding's `Hash`/`Fragment`) gives
+  the damaging commit; restore = the file at `<commit>^`, remove = the
+  file did not exist there. Later commits to the file are fine only if
+  they also brought copied text into the project; uncommitted changes
+  hold it. Mixed = words added since the old version that no chunk of
+  another book sharing 2+ word runs has (slack 2). On the Chimanika copy
+  (2026-10-16) all 103 damaged chunks planned clean and repaired with
+  cross-check then finding nothing; rehearse on a copy (`--target-dir`).
 - A standalone FPC program using these units needs `cwstring` (lazbuild
   programs here do without), or string conversion is very slow or fails.
 - Sources are downloaded from WACS, not Door43.
