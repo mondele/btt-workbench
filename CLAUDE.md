@@ -132,8 +132,16 @@ linker warnings are harmless.
   Windows builds need no OpenSSL DLLs; TLS, certificates and proxies come
   from Windows. Tests run on Linux and never reach that code: check it on
   Windows after changing it.
-- Windows cross build on the laptop: `lazbuild --os=win64 --cpu=x86_64
-  --ws=win32 <project>.lpi` (win64 units installed in fpcupdeluxe).
+- Windows cross build on the laptop: `./build.sh --win64` (win64 units
+  installed in fpcupdeluxe).
+- Version: `<release>+<build>` like BTT-Writer's `1.6.0+1073`. Bump
+  `WorkbenchRelease` in `WBVersion` by hand for a release; `build.sh` sets
+  `BTW_BUILD` (git commit count) and `BTW_COMMIT` (short hash,
+  `-modified` when dirty), read with `{$I %BTW_BUILD%}`, and touches
+  `WBVersion.pas` when they change. The GUI and CLI .lpi files carry
+  `<VersionInfo>`; `build.sh` builds a temporary `.<name>-build.lpi` copy
+  with the numbers filled in (never edit the real .lpi for a build).
+  `tools/release.sh` makes the dist/ archives.
 - `WBImport` is shared by tstudio-import and wacs-download:
   `TImportContext.FromServer` switches the wording, `OnConflict = 'skip'`
   leaves a project alone when a merge would conflict. Initialise contexts

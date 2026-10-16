@@ -79,9 +79,22 @@ LCL_WS=qt6 ./build.sh       # GUI on Qt6 instead of the default GTK2
 
 The binaries go in `bin/`.
 
+The version is written as BTT-Writer writes its own, `<release>+<build>`
+(for example `0.2.0+26`): the release is set by hand in
+`src/core/WBVersion.pas`, the build number is the git commit count, and
+the short commit goes with it (`btw --version`, the window title, saved
+reports, the Windows file properties). A build from uncommitted changes
+says `-modified`; one made outside `build.sh` says `+dev`.
+
+```sh
+tools/release.sh            # dist/btt-workbench-<version>-linux-x86_64.tar.gz and -win64.zip
+```
+
+It refuses uncommitted changes, builds and tests everything, strips the
+programs and packs them with the README, licence and translations.
+
 For Windows, cross-build from Linux once FPC has its win64 units:
-`lazbuild --os=win64 --cpu=x86_64 --ws=win32 src/gui/BttWorkbench.lpi`
-(and `src/cli/btw.lpi`). The `.exe` files use only DLLs that come with
+`./build.sh --win64` (the CLI and the GUI). The `.exe` files use only DLLs that come with
 Windows: web access goes through Windows' own WinHTTP, so no OpenSSL is
 needed. They do need git for Windows (2.38 or newer), which the
 BTT-Writer installer sets up.

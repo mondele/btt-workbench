@@ -1,6 +1,7 @@
 program BttWorkbench;
 
 {$mode objfpc}{$H+}
+{$R *.res}   // version information (Windows file properties)
 
 { Desktop GUI.
 

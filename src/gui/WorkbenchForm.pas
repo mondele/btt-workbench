@@ -368,7 +368,7 @@ begin
       else
         Opts := Opts + ' ' + V;
   end;
-  Result := Format(rsReportTitle, [WorkbenchVersion, Job.Module.Title, Job.Module.Id]) +
+  Result := Format(rsReportTitle, [WorkbenchVersionLong, Job.Module.Title, Job.Module.Id]) +
     LineEnding + Format(rsReportDate, [FormatDateTime('yyyy-mm-dd hh:nn', Now)]) + LineEnding;
   if Job.Kind = jkFind then
     Result := Result + Format(rsReportFind, [Job.OptionName]) + LineEnding

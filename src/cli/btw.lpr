@@ -1,6 +1,7 @@
 program btw;
 
 {$mode objfpc}{$H+}
+{$R *.res}   // version information (Windows file properties)
 
 { btw: command-line front end for BTT Workbench.
 
@@ -305,7 +306,7 @@ begin
     begin
       if Args[0] = '--version' then
       begin
-        WriteLn('btw ', WorkbenchVersion);
+        WriteLn('btw ', WorkbenchVersionLong);
         Exit(0);
       end
       else if (Args[0] = '--help') then

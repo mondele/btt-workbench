@@ -11,6 +11,11 @@
       <SessionStorage Value="InProjectDir"/>
       <Title Value="BTT Workbench"/>
     </General>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+      <MinorVersionNr Value="2"/>
+      <StringTable CompanyName="Wycliffe Associates" FileDescription="BTT Workbench" InternalName="btt-workbench" LegalCopyright="MIT licence" OriginalFilename="btt-workbench.exe" ProductName="BTT Workbench" ProductVersion="0.2.0"/>
+    </VersionInfo>
     <BuildModes>
       <Item Name="Default" Default="True"/>
     </BuildModes>

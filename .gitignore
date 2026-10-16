@@ -1,6 +1,9 @@
 # Build output
 /bin/
 /lib/
+/dist/
+.*-build.lpi
+.*-build.lps
 *.o
 *.ppu
 *.compiled
