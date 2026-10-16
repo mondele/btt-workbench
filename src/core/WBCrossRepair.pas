@@ -43,16 +43,20 @@ type
 function RepairValue(const Item: TRepairItem): string;
 { Plans a repair for every damaged chunk of the projects reported on. }
 function PlanRepairs(Scan: TCrossScan; const TargetDir: string): TRepairItems;
+{ Who repair commits are by: the WACS user logged in here, else BTT
+  Workbench. A project's own git settings hold the field user's name, which
+  would make the repair look like theirs. }
+procedure RepairIdentity(out Name, Email: string);
 { Applies Items (all of one project, and repairable) and commits them with
-  Message. False with Failure set if anything went wrong. }
+  Message as Name <Email>. False with Failure set if anything went wrong. }
 function ApplyRepairs(const ProjectDir: string; const Items: TRepairItems;
-  const Message: string; out Failure: string): Boolean;
+  const Message, Name, Email: string; out Failure: string): Boolean;
 
 implementation
 
 uses
   fpjson, Generics.Collections, WBGit, WBJson, WBProject, WBImport, WBVersification,
-  WBSources;
+  WBSources, WBWacs;
 
 function RepairValue(const Item: TRepairItem): string;
 begin
@@ -352,9 +356,42 @@ begin
   end;
 end;
 
-function ApplyRepairs(const ProjectDir: string; const Items: TRepairItems;
-  const Message: string; out Failure: string): Boolean;
+procedure RepairIdentity(out Name, Email: string);
 var
+  A: TWacsAccount;
+  Host: string;
+  P: Integer;
+begin
+  A := LoadWacsAccount;
+  if LoggedIn(A) and (A.User <> '') then
+  begin
+    Host := A.Server;
+    P := Pos('://', Host);
+    if P > 0 then
+      Delete(Host, 1, P + 2);
+    P := Pos('/', Host);
+    if P > 0 then
+      SetLength(Host, P - 1);
+    P := Pos(':', Host);
+    if P > 0 then
+      SetLength(Host, P - 1);
+    if Host = '' then
+      Host := 'wacs';
+    Name := A.User;
+    Email := A.User + '@' + Host;
+  end
+  else
+  begin
+    Name := 'BTT Workbench';
+    Email := 'btt-workbench@localhost';
+  end;
+end;
+
+function ApplyRepairs(const ProjectDir: string; const Items: TRepairItems;
+  const Message, Name, Email: string; out Failure: string): Boolean;
+var
+  R: TGitResult;
+  Dir: string;
   Item: TRepairItem;
   FileName: string;
   Manifest: TJSONObject;
@@ -409,9 +446,14 @@ begin
       Manifest.Free;
     end;
   end;
-  if not CommitAll(ExcludeTrailingPathDelimiter(ProjectDir), Message) then
+  Dir := ExcludeTrailingPathDelimiter(ProjectDir);
+  R := RunGit(Dir, ['add', '--all']);
+  if R.ExitCode = 0 then
+    R := RunGit(Dir, ['-c', 'user.name=' + Name, '-c', 'user.email=' + Email,
+      'commit', '-q', '-m', Message]);
+  if R.ExitCode <> 0 then
   begin
-    Failure := 'git commit';
+    Failure := 'git commit: ' + Trim(R.ErrorOutput);
     Exit;
   end;
   Result := True;

@@ -21,7 +21,7 @@ implementation
 uses
   Classes, SysUtils, fpjson,
   WBReporter, WBModule, WBCommandLine, WBGit, WBJson, WBDataPaths, WBSources, WBProject,
-  WBChunkHistory, WBCrossCheck, TestUtil;
+  WBChunkHistory, WBCrossCheck, WBCrossRepair, WBWacs, TestUtil;
 
 var
   Target: string;
@@ -358,6 +358,8 @@ var
   Data, Tit, Output, S, OldBundled: string;
   Code, Before: Integer;
   Ids: TStringArray;
+  Account: TWacsAccount;
+  Name, Email: string;
 begin
   Section('cross-repair module');
   Data := TempRoot + 'crossrepair' + PathDelim;
@@ -378,6 +380,9 @@ begin
       '02/05.txt=\v 5 ' + Words('tit0205', 1, 20) + '.',
       '03/01.txt=\v 1 ' + Words('tit0301', 1, 20) + '.']);
 
+    { as BTT-Writer does: the field user's name in the project's settings }
+    RunGit(Tit, ['config', 'user.name', 'Field User']);
+    RunGit(Tit, ['config', 'user.email', 'field@example.org']);
     { the first damaging session }
     Put(Tit + '01/title.txt', 'Sura 1');
     Put(Tit + '01/05.txt', '\v 5 ' + Words('phm0104', 1, 24) + '.');
@@ -445,6 +450,10 @@ begin
     Check(ReadFileText(Tit + '01/title.txt') = 'Sura 1',
       'the rest of what the damaging commits did stays');
     Check(CommitCount(Tit) = Before + 2, 'loose work committed first, then one repair commit');
+    Check(Trim(RunGit(Tit, ['log', '-1', '--format=%an']).Output) = 'BTT Workbench',
+      'the repair commit is by BTT Workbench (not logged in), not the project''s user');
+    Check(Trim(RunGit(Tit, ['log', '-2', '--format=%an']).Output.Split([#10])[1]) = 'Field User',
+      'loose work is committed as the project''s own user');
     S := RunGit(Tit, ['log', '-1', '--format=%B']).Output;
     Check((Pos('01/05: restored from before ', S) > 0) and (Pos('01/09: removed (added by ', S) > 0),
       'the commit lists what was done');
@@ -453,6 +462,21 @@ begin
       'checked again afterwards');
     Check(LineWith(Output, 'devices that sent the damage') <> '',
       'reminds that the field devices must re-import');
+
+    Account := Default(TWacsAccount);
+    Account.Server := 'https://wacs.example.org:8443/';
+    Account.User := 'tech';
+    Account.Token := 'not-a-real-token';
+    SaveWacsAccount(Account);
+    try
+      RepairIdentity(Name, Email);
+      Check((Name = 'tech') and (Email = 'tech@wacs.example.org'),
+        'logged in to WACS: repairs are by that user');
+    finally
+      ClearWacsAccount;
+    end;
+    RepairIdentity(Name, Email);
+    Check(Name = 'BTT Workbench', 'logged out: by BTT Workbench again');
 
     Output := Run('cross-repair', ['--target-dir', Target, '--chunk',
       'xx_tit_text_reg/02/01', '--include-mixed'], Code);

@@ -85,7 +85,7 @@ resourcestring
   rsNoHistoryHold = '%s: left alone: the copied text is not in its history.';
   rsCommitFirst = 'Uncommitted work was committed first.';
   rsWouldCommitFirst = 'Uncommitted work would be committed first.';
-  rsCommitted = 'Committed: %d chunk(s) repaired.';
+  rsCommitted = 'Committed: %d chunk(s) repaired, as %s.';
   rsFailed = 'Repair failed (%s); the project may be partly changed: check it with git.';
   rsStillFound = '%s: still holds text from other books after the repair.';
   rsAllClean = 'Checked again: no text from other books is left in the repaired chunks.';
@@ -211,7 +211,7 @@ end;
 
 function TCrossRepairModule.Execute(Options: TStrings; Reporter: TWBReporter): Integer;
 var
-  TargetDir, Dir, Chunk, Msg, Failure, Project, Value: string;
+  TargetDir, Dir, Chunk, Msg, Failure, Project, Value, CommitName, CommitEmail: string;
   Wanted, Projects: TStringArray;
   Items, ToApply, Again: TRepairItems;
   Item: TRepairItem;
@@ -249,6 +249,7 @@ begin
     if (All or Contains(Wanted, RepairValue(Item))) and not Contains(Projects, Item.Project) then
       Projects := Concat(Projects, [Item.Project]);
 
+  RepairIdentity(CommitName, CommitEmail);
   Repaired := 0;
   Left := 0;
   for Project in Projects do
@@ -333,9 +334,9 @@ begin
       end;
       Reporter.Info(rsCommitFirst);
     end;
-    if ApplyRepairs(Dir, ToApply, Msg, Failure) then
+    if ApplyRepairs(Dir, ToApply, Msg, CommitName, CommitEmail, Failure) then
     begin
-      Reporter.Info(Format(rsCommitted, [Length(ToApply)]));
+      Reporter.Info(Format(rsCommitted, [Length(ToApply), CommitName]));
       Inc(Repaired, Length(ToApply));
     end
     else

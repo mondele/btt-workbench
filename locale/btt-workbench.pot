@@ -338,7 +338,7 @@ msgid "Uncommitted work would be committed first."
 msgstr ""
 
 #: modcrossrepair:rscommitted
-msgid "Committed: %d chunk(s) repaired."
+msgid "Committed: %d chunk(s) repaired, as %s."
 msgstr ""
 
 #: modcrossrepair:rsfailed
