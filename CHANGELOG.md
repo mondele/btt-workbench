@@ -12,8 +12,12 @@ Each release's section below is also its release notes on GitHub.
   chapter titles with another chapter's number are reported. Titles were
   too short for the copied-text check, and the Chimanika damage had
   changed several (Luke and Mark both "JudaBERU", Acts and John
-  "Marako"). cross-repair restores a book title that came in with copied
-  text.
+  "Marako"). Spaces don't count, and a title another book got in the
+  same session counts even after that book was put right. cross-repair
+  offers every title found: a book title goes back to the last earlier
+  title of its own (not another book's, not set in the same session), a
+  chapter title to an earlier version with its number or gets its number
+  corrected; a title with nothing to go back to is left to fix by hand.
 - cross-check can also compare with other languages: `--other-languages`
   (projects of other languages in the projects folder), `--sources`
   (BTT-Writer's source texts of the same books) and `--compare-dir`

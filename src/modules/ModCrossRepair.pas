@@ -37,8 +37,10 @@ resourcestring
     'Text copied between books finds them): a chunk that was there before ' +
     'gets its version from before the damaging commit back, a chunk the ' +
     'damage added is removed. Everything else those commits changed stays. ' +
-    'Chunks edited since are left alone. Find, check the chunks to repair, ' +
-    'then Check to see what would happen. Upload afterwards with Upload to WACS.';
+    'Chunks edited since are left alone. Titles found wrong get an earlier ' +
+    'title of their own back (a chapter title its right number). Find, check ' +
+    'the chunks to repair, then Check to see what would happen. Upload ' +
+    'afterwards with Upload to WACS.';
   rsOptLanguage = 'Languages';
   rsOptLanguageHelp = 'Only these language codes, comma-separated (a first ' +
     'part such as mxc takes every code that starts with it)';
@@ -66,6 +68,14 @@ resourcestring
   rsHoldEdited = 'leave: edited since';
   rsHoldUncommitted = 'leave: uncommitted changes';
   rsHoldNoHistory = 'leave: not in history';
+  rsHoldByHand = 'leave: fix by hand';
+  rsActTitle = 'title "%s"';
+  rsWrongNumber = 'wrong chapter number';
+  rsByHandHold = '%s: left alone: "%s" has no earlier title of its own to go ' +
+    'back to. If it is wrong, correct it in BTT-Writer.';
+  rsTitleSet = '%s: title set to "%s" (was "%s").';
+  rsWouldTitle = '%s: title would be set to "%s" (now "%s").';
+  rsMsgTitle = '%s: title "%s" (was "%s")';
 
   rsNoTargetDir = 'Projects folder not found: %s';
   rsNoGit = 'git was not found. BTT-Writer projects are git repositories; ' +
@@ -180,7 +190,10 @@ begin
     rhEditedSince: Exit(rsHoldEdited);
     rhUncommitted: Exit(rsHoldUncommitted);
     rhNoHistory: Exit(rsHoldNoHistory);
+    rhByHand: Exit(rsHoldByHand);
   end;
+  if Item.Title then
+    Exit(Format(rsActTitle, [NormalText(Item.Restored)]));
   if Item.Action = raRestore then
     Result := rsActRestore
   else
@@ -204,8 +217,12 @@ begin
   for Item in Items do
   begin
     C.Value := RepairValue(Item);
-    C.Columns := [Item.Origins, Copy(Item.Commit, 1, 7) + ' ' + Item.Date + ' ' + Item.Author,
-      RepairColumn(Item)];
+    if Item.Title and (Item.Origins = '') then
+      C.Columns := [rsWrongNumber]
+    else
+      C.Columns := [Item.Origins];
+    C.Columns := Concat(C.Columns, [Trim(Copy(Item.Commit, 1, 7) + ' ' + Item.Date + ' ' +
+      Item.Author), RepairColumn(Item)]);
     List.Items := Concat(List.Items, [C]);
   end;
 end;
@@ -285,6 +302,22 @@ begin
             Inc(Left);
             Continue;
           end;
+        rhByHand:
+          begin
+            Reporter.Warn(Format(rsByHandHold, [Chunk, Item.OldTitle]));
+            Inc(Left);
+            Continue;
+          end;
+      end;
+      if Item.Title then
+      begin
+        if DryRun then
+          Reporter.Info(Format(rsWouldTitle, [Chunk, NormalText(Item.Restored), Item.OldTitle]))
+        else
+          Reporter.Info(Format(rsTitleSet, [Chunk, NormalText(Item.Restored), Item.OldTitle]));
+        Msg := Msg + #10 + Format(rsMsgTitle, [Chunk, NormalText(Item.Restored), Item.OldTitle]);
+        ToApply := Concat(ToApply, [Item]);
+        Continue;
       end;
       if Item.Mixed and not Mixed then
       begin
@@ -356,7 +389,8 @@ begin
       if PlanAll(TargetDir, Options, Again, Reporter) then
         for I := 0 to High(Again) do
           if (All or Contains(Wanted, RepairValue(Again[I]))) and
-             (Again[I].Hold = rhNone) and not (Again[I].Mixed and not Mixed) then
+             (Again[I].Hold = rhNone) and not Again[I].Title and
+             not (Again[I].Mixed and not Mixed) then
           begin
             Reporter.Warn(Format(rsStillFound, [RepairValue(Again[I])]));
             Clean := False;

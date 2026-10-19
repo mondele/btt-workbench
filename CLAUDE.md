@@ -195,8 +195,14 @@ linker warnings are harmless.
   before this book first did, is reported on every book that has it now
   (none is assumed original: Chimanika Luke and Mark both became
   "JudaBERU"); chapter titles whose numbers leave out their chapter.
-  cross-repair restores a book title only when the commit that brought it
-  also brought copied text in, walking back past every such commit.
+  Book titles compare without spaces (`CompactKey`); another book's
+  earlier title counts if it had it before this book, or within
+  `SessionGap` (24 h) after (Chimanika Mark kept "JudaBERU" after Luke was
+  repaired). cross-repair offers every title (`TitleRepair`): a book title
+  goes back to the last earlier title not set in the same session and
+  never another book's (John: past "Marakori ya Johani" to "Evangeri ya
+  Johani"), else it is left to fix by hand (2/3 John); a chapter title to
+  an earlier version with its number, else renumbered.
 - Other languages (`WBForeignCheck`, cross-check `--other-languages`,
   `--sources`, `--compare-dir`): verse against the same verse, with
   `WBSimilarity.SequenceRatio` (a port of Python difflib's ratio, checked

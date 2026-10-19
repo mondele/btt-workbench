@@ -612,7 +612,7 @@ end;
 
 procedure TestTitlesAndOtherLanguages(const TempRoot: string);
 var
-  Data, Other, Lib, Tit, Phm, Ref1, Output, S, OldBundled: string;
+  Data, Other, Lib, Tit, Phm, Jud, Jas, Ref1, Output, S, OldBundled: string;
   Code: Integer;
 begin
   Section('cross-check: titles and other languages');
@@ -641,7 +641,18 @@ begin
       '01/01.txt=\v 1 ' + Gib('xx-tit-1-1', 14) + '.',
       '02/title.txt=Sura 2',
       '02/01.txt=\v 1 ' + Gib('xx-tit-2-1', 14) + '.',
-      '02/03.txt=\v 3 ' + Gib('xx-tit-2-3', 14) + '.']);
+      '02/03.txt=\v 3 ' + Gib('xx-tit-2-3', 14) + '.',
+      '03/title.txt=Sura 7']);
+    { Jude and James both get the title "Bwatoka" in one session; James is
+      put right the next day (as Chimanika Mark and Luke, "JudaBERU") }
+    Jud := MakeProject('jud', ['front/title.txt=Yuda', '01/01.txt=\v 1 ' + Gib('xx-jud-1-1', 14) + '.']);
+    Jas := MakeProject('jas', ['front/title.txt=Yakobo', '01/01.txt=\v 1 ' + Gib('xx-jas-1-1', 14) + '.']);
+    Put(Jud + 'front/title.txt', 'Bwatoka');
+    Git(Jud, '2026-03-01T10:00:00+0200', 'Paster', ['commit', '-q', '-a', '-m', 'session']);
+    Put(Jas + 'front/title.txt', 'Bwa toka');
+    Git(Jas, '2026-03-01T10:05:00+0200', 'Paster', ['commit', '-q', '-a', '-m', 'session']);
+    Put(Jas + 'front/title.txt', 'Yakobo');
+    Git(Jas, '2026-03-02T10:00:00+0200', 'Fixer', ['commit', '-q', '-a', '-m', 'fix']);
     Phm := MakeProject('phm', [
       'front/title.txt=Pilimona',
       '01/01.txt=\v 1 ' + Gib('xx-phm-1-1', 30) + '.']);
@@ -667,6 +678,11 @@ begin
     Check(LineWith(Output, '02/title: the chapter title "Sura 5" has another chapter''s number') <> '',
       'a chapter title with another chapter''s number');
     Check(LineWith(Output, '01/title:') = '', 'a right chapter title is not reported');
+    Check(LineWith(Output, '03/title: the chapter title "Sura 7"') <> '',
+      'a chapter title wrong from the start');
+    Check(LineWith(Output, 'front/title: the book title "Bwatoka" is also an earlier title of James') <> '',
+      'a title another book got in the same session (spaces aside) and lost since');
+    Check(LineWith(Output, '"Yakobo"') = '', 'the book put right is not reported');
     Check((LineWith(Output, 'reworded') = '') and (LineWith(Output, 'Also compared') = ''),
       'other languages only on request');
 
@@ -695,8 +711,12 @@ begin
       'cross-repair gives a book title brought in with copied text its own back');
     Check(Trim(ReadFileText(Phm + 'front' + PathDelim + 'title.txt')) = 'Pilimona',
       'and leaves the other book''s alone');
-    Check(Trim(ReadFileText(Tit + '02' + PathDelim + 'title.txt')) = 'Sura 5',
-      'a wrong chapter number is only reported');
+    Check(Trim(ReadFileText(Tit + '02' + PathDelim + 'title.txt')) = 'Sura 2',
+      'a chapter title gets an earlier version with its number back');
+    Check(Trim(ReadFileText(Tit + '03' + PathDelim + 'title.txt')) = 'Sura 3',
+      'or, with none, its number corrected');
+    Check(Trim(ReadFileText(Jud + 'front' + PathDelim + 'title.txt')) = 'Yuda',
+      'a book title goes back to its own earlier title');
   finally
     BundledSourcesOverride := OldBundled;
   end;

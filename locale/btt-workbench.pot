@@ -290,8 +290,9 @@ msgid ""
 "between books finds them): a chunk that was there before gets its version "
 "from before the damaging commit back, a chunk the damage added is removed. "
 "Everything else those commits changed stays. Chunks edited since are left "
-"alone. Find, check the chunks to repair, then Check to see what would "
-"happen. Upload afterwards with Upload to WACS."
+"alone. Titles found wrong get an earlier title of their own back (a chapter "
+"title its right number). Find, check the chunks to repair, then Check to see "
+"what would happen. Upload afterwards with Upload to WACS."
 msgstr ""
 
 #: modcrossrepair:rsoptlanguagehelp
@@ -364,6 +365,36 @@ msgstr ""
 
 #: modcrossrepair:rsholdnohistory
 msgid "leave: not in history"
+msgstr ""
+
+#: modcrossrepair:rsholdbyhand
+msgid "leave: fix by hand"
+msgstr ""
+
+#: modcrossrepair:rsacttitle
+msgid "title \"%s\""
+msgstr ""
+
+#: modcrossrepair:rswrongnumber
+msgid "wrong chapter number"
+msgstr ""
+
+#: modcrossrepair:rsbyhandhold
+msgid ""
+"%s: left alone: \"%s\" has no earlier title of its own to go back to. If it "
+"is wrong, correct it in BTT-Writer."
+msgstr ""
+
+#: modcrossrepair:rstitleset
+msgid "%s: title set to \"%s\" (was \"%s\")."
+msgstr ""
+
+#: modcrossrepair:rswouldtitle
+msgid "%s: title would be set to \"%s\" (now \"%s\")."
+msgstr ""
+
+#: modcrossrepair:rsmsgtitle
+msgid "%s: title \"%s\" (was \"%s\")"
 msgstr ""
 
 #: modcrossrepair:rsnogit

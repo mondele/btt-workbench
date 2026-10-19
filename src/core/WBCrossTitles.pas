@@ -7,13 +7,21 @@ unit WBCrossTitles;
    so pasted titles need their own check:
 
    - a book title (front/title) that another book of the language has, or
-     had before this book first did, is reported on the book that has it
-     now. Titles belong to one book, so neither is assumed to be the
+     had before this book first did (or within a day after: one editing
+     session), is reported on the book that has it now. Spaces are ignored
+     ("yaJohani" = "ya Johani"). Titles belong to one book, so neither is assumed to be the
      original: in the Chimanika damage of October 2026, Luke and Mark both
      became "JudaBERU", a title no book had before. A title another book
      had only later, and has since lost, was that book's mistake (Bwile
      2 John once had 1 John's title).
-   - a chapter title (01/title) whose number is not its chapter's. *)
+   - a chapter title (01/title) whose number is not its chapter's.
+
+   TitleRepair picks what a title should go back to: for a book title, the
+   last earlier title that is not, and never was, another book's title and
+   was not set in the same session (Chimanika John went "Evangeri ya
+   Johani" -> "Marakori ya Johani" -> "Marako" in one night); for a chapter
+   title, the last earlier version with the right number, else the title
+   with its number corrected. *)
 
 interface
 
@@ -36,12 +44,27 @@ type
   end;
   TTitleFindings = array of TTitleFinding;
 
+const
+  { versions this close together are one editing session (seconds) }
+  SessionGap = 24 * 60 * 60;
+
 { Title findings for the current docs whose Report entry is set (missing
   entries count as set). }
 function FindTitleProblems(const Docs: TCrossDocs;
   const Report: array of Boolean): TTitleFindings;
-{ A title as compared: its words in lower case. }
+{ A title's words in lower case, single spaces. }
 function TitleKey(const Text: string): UnicodeString;
+{ A book title as compared: TitleKey without the spaces. }
+function CompactKey(const Text: string): UnicodeString;
+{ Whether a chapter title has numbers and none is its chapter's. }
+function WrongChapterTitle(const Text, Chapter: string): Boolean;
+{ Text with its only number set to Chapter's; '' if it has no number or
+  several. }
+function RenumberedTitle(const Text, Chapter: string): string;
+{ What the title of finding T should become (False: nothing found, to be
+  fixed by hand). }
+function TitleRepair(const Docs: TCrossDocs; const T: TTitleFinding;
+  out NewText: string): Boolean;
 { The committed versions of Doc's file, newest first. }
 function VersionsOf(const Docs: TCrossDocs; Doc: Integer): TDocList;
 
@@ -50,6 +73,11 @@ implementation
 function TitleKey(const Text: string): UnicodeString;
 begin
   Result := WordText(NormalText(Text));
+end;
+
+function CompactKey(const Text: string): UnicodeString;
+begin
+  Result := UnicodeString(StringReplace(UTF8Encode(TitleKey(Text)), ' ', '', [rfReplaceAll]));
 end;
 
 function SameFile(const A, B: TCrossDoc): Boolean;
@@ -88,12 +116,12 @@ begin
   V := VersionsOf(Docs, Doc);
   if Length(V) = 0 then
     Exit(-1);
-  Key := TitleKey(Docs[Doc].Text);
-  if TitleKey(Docs[V[0]].Text) <> Key then
+  Key := CompactKey(Docs[Doc].Text);
+  if CompactKey(Docs[V[0]].Text) <> Key then
     Exit(Doc);
   Result := V[0];
   for I := 1 to High(V) do
-    if TitleKey(Docs[V[I]].Text) = Key then
+    if CompactKey(Docs[V[I]].Text) = Key then
       Result := V[I]
     else
       Break;
@@ -109,25 +137,126 @@ begin
       Exit(False);
 end;
 
-{ A chapter title's numbers (whole words) leave out its chapter. }
-function WrongChapterNumber(const Title: UnicodeString; const Chapter: string): Boolean;
+{ How many numbers (whole words) a chapter title has, and whether one is
+  its chapter's. }
+procedure ChapterNumbers(const Text, Chapter: string; out Count: Integer;
+  out Right: Boolean);
 var
   W, T: string;
-  N, Has: Integer;
+  N: Integer;
 begin
+  Count := 0;
+  Right := False;
   N := StrToIntDef(Chapter, -1);
-  if N < 0 then
-    Exit(False);
-  Has := 0;
-  T := UTF8Encode(Title);
+  T := UTF8Encode(TitleKey(Text));
   for W in T.Split([' ']) do
     if IsDigits(UnicodeString(W)) then
     begin
+      Inc(Count);
       if StrToIntDef(W, -2) = N then
-        Exit(False);
-      Inc(Has);
+        Right := True;
     end;
-  Result := Has > 0;
+end;
+
+function WrongChapterTitle(const Text, Chapter: string): Boolean;
+var
+  Count: Integer;
+  Right: Boolean;
+begin
+  if StrToIntDef(Chapter, -1) < 0 then
+    Exit(False);
+  ChapterNumbers(Text, Chapter, Count, Right);
+  Result := (Count > 0) and not Right;
+end;
+
+function RenumberedTitle(const Text, Chapter: string): string;
+var
+  I, J, Start, Stop, Found: Integer;
+begin
+  Result := '';
+  Found := 0;
+  Start := 0;
+  Stop := 0;
+  I := 1;
+  while I <= Length(Text) do
+    if Text[I] in ['0'..'9'] then
+    begin
+      J := I;
+      while (J <= Length(Text)) and (Text[J] in ['0'..'9']) do
+        Inc(J);
+      { a whole word: no letter (or any non-ASCII byte) on either side }
+      if ((I = 1) or not (Text[I - 1] in ['a'..'z', 'A'..'Z', #128..#255])) and
+         ((J > Length(Text)) or not (Text[J] in ['a'..'z', 'A'..'Z', #128..#255])) then
+      begin
+        Inc(Found);
+        Start := I;
+        Stop := J;
+      end;
+      I := J;
+    end
+    else
+      Inc(I);
+  if (Found <> 1) or (StrToIntDef(Chapter, -1) < 0) then
+    Exit;
+  Result := Copy(Text, 1, Start - 1) + IntToStr(StrToInt(Chapter)) +
+    Copy(Text, Stop, MaxInt);
+end;
+
+function TitleRepair(const Docs: TCrossDocs; const T: TTitleFinding;
+  out NewText: string): Boolean;
+var
+  V: TDocList;
+  Q, X, Count: Integer;
+  Right: Boolean;
+  Key: UnicodeString;
+  Others: TStringList;
+begin
+  NewText := '';
+  Result := False;
+  V := VersionsOf(Docs, T.Doc);
+  Q := 0;
+  if T.Since >= 0 then
+    while (Q <= High(V)) and (V[Q] <> T.Since) do
+      Inc(Q);
+  Inc(Q);   // the versions before the one that brought the title in
+  if T.Kind = tkChapterNumber then
+  begin
+    for Q := Q to High(V) do
+    begin
+      ChapterNumbers(Docs[V[Q]].Text, Docs[T.Doc].Chapter, Count, Right);
+      if Right then
+      begin
+        NewText := Docs[V[Q]].Text;
+        Exit(True);
+      end;
+    end;
+    NewText := RenumberedTitle(Docs[T.Doc].Text, Docs[T.Doc].Chapter);
+    Exit(NewText <> '');
+  end;
+  if T.Since < 0 then
+    Exit;
+  Key := CompactKey(Docs[T.Doc].Text);
+  Others := TStringList.Create;
+  try
+    Others.Sorted := True;
+    Others.Duplicates := dupIgnore;
+    for X := 0 to High(Docs) do
+      if (Docs[X].Book <> Docs[T.Doc].Book) and (Docs[X].Chapter = 'front') and
+         (Docs[X].Chunk = 'title') then
+        Others.Add(UTF8Encode(CompactKey(Docs[X].Text)));
+    for Q := Q to High(V) do
+    begin
+      X := V[Q];
+      if (Docs[X].Time > Docs[T.Since].Time - SessionGap) or
+         (CompactKey(Docs[X].Text) = '') or (CompactKey(Docs[X].Text) = Key) or
+         (Others.IndexOf(UTF8Encode(CompactKey(Docs[X].Text))) >= 0) then
+        Continue;
+      NewText := Docs[X].Text;
+      Exit(True);
+    end;
+  finally
+    Others.Free;
+  end;
 end;
 
 function FindTitleProblems(const Docs: TCrossDocs;
@@ -139,12 +268,17 @@ var
   D, X, K: Integer;
   First: Int64;
   V: TDocList;
+  Compact: array of UnicodeString;
 begin
   Result := nil;
   SetLength(Keys, Length(Docs));
+  SetLength(Compact, Length(Docs));
   for D := 0 to High(Docs) do
     if Docs[D].Chunk = 'title' then
+    begin
       Keys[D] := TitleKey(Docs[D].Text);
+      Compact[D] := CompactKey(Docs[D].Text);
+    end;
   Books := TStringList.Create;
   try
     for D := 0 to High(Docs) do
@@ -161,15 +295,16 @@ begin
         First := Docs[D].Time;
         V := VersionsOf(Docs, D);
         for X in V do
-          if (Keys[X] = Keys[D]) and (Docs[X].Time < First) then
+          if (Compact[X] = Compact[D]) and (Docs[X].Time < First) then
             First := Docs[X].Time;
         { per other book: its current title if it reads the same, else the
-          first version that did (and came before this book had it) }
+          first version that did (before this book had it, or in the same
+          session) }
         Books.Clear;
         for X := 0 to High(Docs) do
           if (Docs[X].Book <> Docs[D].Book) and (Docs[X].Chapter = 'front') and
-             (Docs[X].Chunk = 'title') and (Keys[X] = Keys[D]) and
-             (Docs[X].Current or (Docs[X].Time < First)) then
+             (Docs[X].Chunk = 'title') and (Compact[X] = Compact[D]) and
+             (Docs[X].Current or (Docs[X].Time < First + SessionGap)) then
           begin
             K := Books.IndexOf(Docs[X].Book);
             if K < 0 then
@@ -184,7 +319,7 @@ begin
         for K := 0 to Books.Count - 1 do
           F.Others := Concat(F.Others, [Integer(PtrInt(Books.Objects[K]))]);
       end
-      else if WrongChapterNumber(Keys[D], Docs[D].Chapter) then
+      else if WrongChapterTitle(Docs[D].Text, Docs[D].Chapter) then
         F.Kind := tkChapterNumber
       else
         Continue;
