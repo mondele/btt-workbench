@@ -5,9 +5,10 @@
 #   dist/btt-workbench-<version>-linux-x86_64.tar.gz   btt-workbench, btw
 #   dist/btt-workbench-<version>-win64.zip             btt-workbench.exe, btw.exe
 #
-# each with README.md, LICENSE and the translations (locale/*/*.po). The
-# version is <release>+<build> (see build.sh). A release is built from
-# committed work only; --allow-modified overrides that for a trial.
+# each with README.md, CHANGELOG.md, LICENSE and the translations
+# (locale/*/*.po). The version is <release>+<build> (see build.sh). A
+# release is built from committed work only; --allow-modified overrides
+# that for a trial.
 #
 #   tools/release.sh [--allow-modified]
 
@@ -40,7 +41,7 @@ stage() {
     cp "bin/$f" "$dir/"
     strip "$dir/$f"
   done
-  cp README.md LICENSE "$dir/"
+  cp README.md CHANGELOG.md LICENSE "$dir/"
   for po in locale/*/btt-workbench.po; do
     [[ -e "$po" ]] || continue
     mkdir -p "$dir/$(dirname "$po")"
