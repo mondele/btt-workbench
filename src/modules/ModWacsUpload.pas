@@ -31,12 +31,13 @@ type
     function Choices(const OptionName: string; Options: TStrings;
       Reporter: TWBReporter; out List: TWBChoiceList): Boolean; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  fpjson, WBJson, WBGit, WBGitea, WBWacs, WBDataPaths, WBProject, WBImport, WBFiles;
+  WBSuggest,  fpjson, WBJson, WBGit, WBGitea, WBWacs, WBDataPaths, WBProject, WBImport, WBFiles;
 
 resourcestring
   rsTitle = 'Upload to WACS';
@@ -135,9 +136,9 @@ end;
 function TWacsUploadModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
     ChecklistOptionDef('project', True, rsOptProject, rsOptProjectHelp),
     OptionDef('owner', okString, False, False, rsOptOwner, rsOptOwnerHelp),
     ChoiceOptionDef('when-ahead', ['skip', 'merge'], 'skip', rsOptWhenAhead, rsOptWhenAheadHelp),
@@ -553,6 +554,11 @@ begin
       Counts[ocUpToDate], Counts[ocSkipped], Counts[ocFailed]]));
   if Counts[ocFailed] = 0 then
     Result := 0;
+end;
+
+function TWacsUploadModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := FolderSuggestions(OptionName, TargetDirOption(Options));
 end;
 
 initialization

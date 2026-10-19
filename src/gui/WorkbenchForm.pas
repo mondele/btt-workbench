@@ -16,7 +16,9 @@ unit WorkbenchForm;
   A Multiple file/directory option is a multi-line field, one per line.
   A password option is a masked field. A checklist option is a list with
   check boxes: Find fills it from the module's Choices using the other
-  fields as filters; nothing starts checked.
+  fields as filters; nothing starts checked. A string option the module
+  suggests values for (Suggestions: languages, books, types) is a picker,
+  an editable drop-down (WBPicker).
 
   Find, Check and Run work on a background thread (TModuleJob), since
   WACS and the BIEL Public Data API can take a minute: the window stays
@@ -29,7 +31,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Graphics,
-  ComCtrls, SyncObjs, WBReporter, WBModule;
+  ComCtrls, SyncObjs, WBReporter, WBModule, WBPicker;
 
 type
   TOptionEditor = record
@@ -39,6 +41,7 @@ type
     Check: TCheckBox;
     Combo: TComboBox;
     List: TListView;    // checklist options
+    Picker: TPickerBox; // string options with suggestions
   end;
 
   TJobKind = (jkRun, jkFind);
@@ -111,6 +114,7 @@ type
     { After options arrive from the command line: Find if a checklist has
       nothing checked yet (its check could only complain), else Check. }
     procedure AutoStart(Module: TWBModule; Options: TStrings);
+    function PickerSuggestions(Sender: TObject): TWBSuggestions;
     procedure CheckAllClick(Sender: TObject);
     procedure CheckNoneClick(Sender: TObject);
   public
@@ -658,6 +662,7 @@ begin
       FEditors[I].Check := nil;
       FEditors[I].Combo := nil;
       FEditors[I].List := nil;
+      FEditors[I].Picker := nil;
       if (Defs[I].Kind = okFlag) and (Defs[I].Name = 'dry-run') then
       begin
         FHasCheck := True;     // shown as the Check button, not a checkbox
@@ -807,6 +812,19 @@ begin
         Btn.OnClick := @BrowseClick;
       end;
 
+      if (Defs[I].Kind = okString) and Defs[I].Suggests then
+      begin
+        FEditors[I].Picker := TPickerBox.Create(Self);
+        FEditors[I].Picker.Parent := Row;
+        FEditors[I].Picker.Align := alClient;
+        FEditors[I].Picker.Tag := I;
+        FEditors[I].Picker.Hint := Defs[I].Help;
+        FEditors[I].Picker.ShowHint := True;
+        FEditors[I].Picker.TextHint := Defs[I].Help;
+        FEditors[I].Picker.OnNeedSuggestions := @PickerSuggestions;
+        Continue;
+      end;
+
       FEditors[I].Edit := TEdit.Create(Self);
       FEditors[I].Edit.Parent := Row;
       FEditors[I].Edit.Align := alClient;
@@ -855,6 +873,8 @@ begin
     end
     else if FEditors[I].Edit <> nil then
       FEditors[I].Edit.Text := Value
+    else if FEditors[I].Picker <> nil then
+      FEditors[I].Picker.Text := Value
     else if FEditors[I].Check <> nil then
       FEditors[I].Check.Checked := OptionIsSet(Options, FEditors[I].Def.Name)
     else if FEditors[I].Combo <> nil then
@@ -1044,6 +1064,8 @@ begin
       if E.Combo.ItemIndex >= 0 then
         Options.Values[E.Def.Name] := E.Combo.Items[E.Combo.ItemIndex];
     end
+    else if (E.Picker <> nil) and (Trim(E.Picker.Text) <> '') then
+      Options.Values[E.Def.Name] := Trim(E.Picker.Text)
     else if (E.Edit <> nil) and (Trim(E.Edit.Text) <> '') then
     begin
       if E.Def.Kind = okPassword then
@@ -1092,6 +1114,26 @@ begin
   Job.Options := TStringList.Create;
   CollectOptions(Job.Options);
   StartJob(Job);
+end;
+
+{ What a picker suggests, with the other fields as they are now. Not while
+  a job runs: a module may be filling what it suggests from (Find). }
+function TWorkbenchForm.PickerSuggestions(Sender: TObject): TWBSuggestions;
+var
+  Options: TStringList;
+  I: Integer;
+begin
+  Result := nil;
+  I := TComponent(Sender).Tag;
+  if FBusy or (I > High(FEditors)) then
+    Exit;
+  Options := TStringList.Create;
+  try
+    CollectOptions(Options);
+    Result := ModuleAt(FSelected).Suggestions(FEditors[I].Def.Name, Options);
+  finally
+    Options.Free;
+  end;
 end;
 
 procedure TWorkbenchForm.CheckAllClick(Sender: TObject);

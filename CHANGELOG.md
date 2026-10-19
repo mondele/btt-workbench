@@ -8,6 +8,12 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- GUI: the language, book and type filters, and the WACS owner, are
+  pickers: editable drop-downs that complete what is typed, list the
+  matches and still take anything (each value of a comma-separated list on
+  its own). The projects modules offer what the projects folder holds;
+  Download from WACS offers every language in BTT-Writer's language
+  database, every book and the usual types, and after Find what WACS has.
 - cross-check: book titles that another book has (or had first) and
   chapter titles with another chapter's number are reported. Titles were
   too short for the copied-text check, and the Chimanika damage had

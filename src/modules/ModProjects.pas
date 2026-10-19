@@ -59,12 +59,13 @@ type
     function Description: string; override;
     function OptionDefs: TWBOptionDefs; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages, WBImport;
+  WBSuggest,  fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages, WBImport;
 
 resourcestring
   rsTitle = 'Project list and problems';
@@ -635,9 +636,9 @@ end;
 function TProjectsModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
     OptionDef('dry-run', okFlag, False, False, rsOptDryRun, rsOptDryRunHelp),
     OptionDef('deep-git', okFlag, False, False, rsOptDeepGit, rsOptDeepGitHelp),
@@ -827,6 +828,11 @@ begin
     Sources.Free;
     Names.Free;
   end;
+end;
+
+function TProjectsModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := FolderSuggestions(OptionName, TargetDirOption(Options));
 end;
 
 initialization

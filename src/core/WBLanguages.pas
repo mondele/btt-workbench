@@ -23,6 +23,8 @@ type
     ApprovedAs: string;
   end;
 
+  TLanguageInfos = array of TLanguageInfo;
+
   TLanguageIndex = class
   private
     FLanguages: specialize TDictionary<string, TLanguageInfo>;
@@ -37,6 +39,8 @@ type
       case-insensitively, as BTT-Writer's do. }
     function Find(const Code: string; out Info: TLanguageInfo): Boolean;
     function Count: Integer;
+    { Every language, in no particular order. }
+    function All: TLanguageInfos;
     property FileName: string read FFileName;
   end;
 
@@ -104,6 +108,20 @@ end;
 function TLanguageIndex.Count: Integer;
 begin
   Result := FLanguages.Count;
+end;
+
+function TLanguageIndex.All: TLanguageInfos;
+var
+  Info: TLanguageInfo;
+  I: Integer;
+begin
+  SetLength(Result, FLanguages.Count);
+  I := 0;
+  for Info in FLanguages.Values do
+  begin
+    Result[I] := Info;
+    Inc(I);
+  end;
 end;
 
 end.

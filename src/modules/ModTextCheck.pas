@@ -22,12 +22,13 @@ type
     function Description: string; override;
     function OptionDefs: TWBOptionDefs; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification, WBSources;
+  WBSuggest,  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification, WBSources;
 
 resourcestring
   rsTitle = 'Translation text checks';
@@ -281,9 +282,9 @@ end;
 function TTextCheckModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
     OptionDef('skip', okString, False, False, rsOptSkip, rsOptSkipHelp),
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
@@ -432,6 +433,11 @@ begin
   Reporter.Info('');
   Reporter.Info(Format(rsSummary, [Checked, WithHits]));
   Result := 0;
+end;
+
+function TTextCheckModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := FolderSuggestions(OptionName, TargetDirOption(Options));
 end;
 
 initialization

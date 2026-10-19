@@ -26,6 +26,8 @@ uses
 
 type
   TWacsDownloadModule = class(TWBModule)
+  private
+    FFound: TStringArray;   // owner/repo of the last Find, for Suggestions
   public
     function Id: string; override;
     function Title: string; override;
@@ -34,12 +36,13 @@ type
     function Choices(const OptionName: string; Options: TStrings;
       Reporter: TWBReporter; out List: TWBChoiceList): Boolean; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  WBGit, WBGitea, WBWacs, WBBielCatalog, WBDataPaths, WBProject, WBImport, WBFiles;
+  WBSuggest,  WBGit, WBGitea, WBWacs, WBBielCatalog, WBDataPaths, WBProject, WBImport, WBFiles;
 
 resourcestring
   rsTitle = 'Download from WACS';
@@ -140,10 +143,10 @@ end;
 function TWacsDownloadModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
-    OptionDef('owner', okString, False, False, rsOptOwner, rsOptOwnerHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('owner', rsOptOwner, rsOptOwnerHelp),
     ChecklistOptionDef('repo', True, rsOptRepo, rsOptRepoHelp),
     ChoiceOptionDef('on-existing', ['stop', 'merge', 'overwrite'], 'stop',
       rsOptOnExisting, rsOptOnExistingHelp),
@@ -247,6 +250,10 @@ begin
     if not BielStates(Terms, States, Err) then
       Reporter.Warn(Format(rsStateFailed, [Err]));
   end;
+
+  FFound := nil;
+  for R in Repos do
+    FFound := Concat(FFound, [R.FullName]);
 
   { Sorted by project, then owner. }
   Sorted := TStringList.Create;
@@ -406,6 +413,25 @@ begin
   Reporter.Info(Format(rsSummary, [Length(Wanted) - Failed, Length(Wanted), Failed]));
   if Failed > 0 then
     Result := 1;
+end;
+
+function TWacsDownloadModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  { What the last Find found on WACS first; then every language in the
+    language database, every book, the usual types. }
+  if OptionName = 'language' then
+    Result := MergeSuggestions(NameSuggestions(OptionName, FFound),
+      DatabaseLanguages(TargetDirOption(Options)))
+  else if (OptionName = 'book') or (OptionName = 'type') or (OptionName = 'owner') then
+  begin
+    Result := NameSuggestions(OptionName, FFound);
+    if OptionName = 'book' then
+      Result := MergeSuggestions(Result, AllBooks)
+    else if OptionName = 'type' then
+      Result := MergeSuggestions(Result, KnownTypes);
+  end
+  else
+    Result := nil;
 end;
 
 initialization

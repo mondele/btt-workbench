@@ -23,12 +23,13 @@ type
     function Choices(const OptionName: string; Options: TStrings;
       Reporter: TWBReporter; out List: TWBChoiceList): Boolean; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  WBDataPaths, WBProject, WBSources, WBGit, WBImport, WBCrossCheck, WBCrossScan,
+  WBSuggest,  WBDataPaths, WBProject, WBSources, WBGit, WBImport, WBCrossCheck, WBCrossScan,
   WBCrossRepair;
 
 resourcestring
@@ -127,9 +128,9 @@ end;
 function TCrossRepairModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
     ChecklistOptionDef('chunk', True, rsOptChunk, rsOptChunkHelp),
     OptionDef('include-mixed', okFlag, False, False, rsOptIncludeMixed, rsOptIncludeMixedHelp),
     OptionDef('dry-run', okFlag, False, False, rsOptDryRun, rsOptDryRunHelp),
@@ -403,6 +404,11 @@ begin
   if (Repaired > 0) and not DryRun then
     Reporter.Info(rsAfter);
   Result := 0;
+end;
+
+function TCrossRepairModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := FolderSuggestions(OptionName, TargetDirOption(Options));
 end;
 
 initialization

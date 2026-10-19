@@ -47,7 +47,7 @@ Source chunking comes from BTT-Writer's library
 unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
 `BTW_BUNDLED_SOURCES` if the bundled folder isn't found.
 
-In the GUI, a module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
+In the GUI, the language, book and type filters (and the WACS owner) are pickers: editable drop-downs that complete what you type from what is likely (each part of a comma-separated list on its own; Backspace does not complete), list the matches, and still take anything typed. The projects modules suggest what the projects folder holds; Download from WACS suggests every language in BTT-Writer's language database, every book and the usual types, and after **Find** what WACS has (books, types, owners). A module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
 
 ### Double-click `.tstudio` files (Linux)
 

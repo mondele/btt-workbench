@@ -76,6 +76,19 @@ linker warnings are harmless.
   None, the CLI prints `btw <module> --list [filters]` and takes `--all`
   (stored as `AllChoices`, `*`), libbtw has `btw_choices`. Read the values
   with `ChecklistValues`, which expands `*`. Nothing is pre-checked.
+- Suggesting options (`SuggestingOptionDef`, `Suggests`) are pickers in the
+  GUI (`src/gui/WBPicker.pas`, an editable `TComboBox`): override
+  `TWBModule.Suggestions` (quick and local; asked on the GUI thread when the
+  field is entered or its list opens, never while a job runs). `WBSuggest`
+  has the sources: the projects folder (`FolderSuggestions`, kept 10 s),
+  the language database (`DatabaseLanguages`), `AllBooks`, `KnownTypes`,
+  repo names (`NameSuggestions`; wacs-download keeps its last Find's repos
+  in `FFound`), and the picker's matching (`SplitLast`, `CompletionOf`,
+  `Matching`). The picker sets its text and caret by `QueueAsyncCall`:
+  set inside GTK's own change handling they are put back. To try the GUI
+  without a person: run it on `Xvfb :99` with its own `XDG_RUNTIME_DIR`
+  (else it hands off to an open window), drive it with pynput (needs
+  python-xlib) and look with `import -window root`.
 - Password options (`PasswordOptionDef`, `okPassword`) are masked in the
   GUI, never forwarded to another window, and asked for without echo by
   the CLI when their `PromptWith` option is given.

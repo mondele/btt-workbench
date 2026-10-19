@@ -50,6 +50,7 @@ type
     Default: string;     // used when the option is not given ('' = none)
     Multiple: Boolean;   // takes a list of values (see OptionValues)
     PromptWith: string;  // okPassword: CLI asks for it when this option is given
+    Suggests: Boolean;   // okString: the module's Suggestions has values (a picker)
   end;
   TWBOptionDefs = array of TWBOptionDef;
 
@@ -63,6 +64,13 @@ type
     Headers: TStringArray;  // translated column titles
     Items: array of TWBChoice;
   end;
+
+  { A value an option is likely to take, for a picker: Value is what goes
+    in the field, Caption what the list shows ('udm  удмурт кыл'). }
+  TWBSuggestion = record
+    Value, Caption: string;
+  end;
+  TWBSuggestions = array of TWBSuggestion;
 
   TWBModule = class
   public
@@ -80,6 +88,11 @@ type
       be found. Modules with a checklist override this. }
     function Choices(const OptionName: string; Options: TStrings;
       Reporter: TWBReporter; out List: TWBChoiceList): Boolean; virtual;
+    { Values a string option is likely to take (language codes in the
+      projects folder, say), with the other Options as context; quick and
+      local, as the GUI asks when a field is entered. A module may add what
+      its last Choices found. None by default: a plain field. }
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; virtual;
   end;
 
 const
@@ -97,6 +110,8 @@ function ListOptionDef(const AName: string; AKind: TWBOptionKind;
 function ChecklistOptionDef(const AName: string; ARequired: Boolean;
   const ACaption, AHelp: string): TWBOptionDef;
 function PasswordOptionDef(const AName, APromptWith, ACaption, AHelp: string): TWBOptionDef;
+{ A string option the module suggests values for (Suggestions). }
+function SuggestingOptionDef(const AName, ACaption, AHelp: string): TWBOptionDef;
 { The checked values of a checklist option, AllChoices expanded through
   Module.Choices. False if that fails. }
 function ChecklistValues(Module: TWBModule; const AName: string; Options: TStrings;
@@ -193,6 +208,11 @@ begin
   Result := True;
 end;
 
+function TWBModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := nil;
+end;
+
 function TWBModule.Choices(const OptionName: string; Options: TStrings;
   Reporter: TWBReporter; out List: TWBChoiceList): Boolean;
 begin
@@ -200,6 +220,12 @@ begin
   List.Items := nil;
   Reporter.Error(Format(rsNoChoices, [OptionName]));
   Result := False;
+end;
+
+function SuggestingOptionDef(const AName, ACaption, AHelp: string): TWBOptionDef;
+begin
+  Result := OptionDef(AName, okString, False, False, ACaption, AHelp);
+  Result.Suggests := True;
 end;
 
 function ListOptionDef(const AName: string; AKind: TWBOptionKind;

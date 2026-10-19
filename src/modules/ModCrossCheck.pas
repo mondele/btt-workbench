@@ -24,12 +24,13 @@ type
     function Description: string; override;
     function OptionDefs: TWBOptionDefs; override;
     function Execute(Options: TStrings; Reporter: TWBReporter): Integer; override;
+    function Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions; override;
   end;
 
 implementation
 
 uses
-  WBDataPaths, WBProject, WBSources, WBVersification, WBCrossCheck, WBCrossScan,
+  WBSuggest,  WBDataPaths, WBProject, WBSources, WBVersification, WBCrossCheck, WBCrossScan,
   WBCrossTitles, WBForeignCheck;
 
 resourcestring
@@ -123,9 +124,9 @@ end;
 function TCrossCheckModule.OptionDefs: TWBOptionDefs;
 begin
   Result := [
-    OptionDef('language', okString, False, False, rsOptLanguage, rsOptLanguageHelp),
-    OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
-    OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
+    SuggestingOptionDef('language', rsOptLanguage, rsOptLanguageHelp),
+    SuggestingOptionDef('book', rsOptBook, rsOptBookHelp),
+    SuggestingOptionDef('type', rsOptType, rsOptTypeHelp),
     OptionDef('no-history', okFlag, False, False, rsOptNoHistory, rsOptNoHistoryHelp),
     OptionDef('other-languages', okFlag, False, False, rsOptOtherLanguages,
       rsOptOtherLanguagesHelp),
@@ -401,6 +402,11 @@ begin
   Reporter.Info('');
   Reporter.Info(Format(rsSummary, [Checked, WithFindings]));
   Result := 0;
+end;
+
+function TCrossCheckModule.Suggestions(const OptionName: string; Options: TStrings): TWBSuggestions;
+begin
+  Result := FolderSuggestions(OptionName, TargetDirOption(Options));
 end;
 
 initialization
