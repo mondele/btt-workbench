@@ -18,7 +18,8 @@ uses
   ModWacsUpload,
   ModTextCheck,
   ModCrossCheck,
-  ModCrossRepair;
+  ModCrossRepair,
+  ModLanguageChange;
 
 implementation
 

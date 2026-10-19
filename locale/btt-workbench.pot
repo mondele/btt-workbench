@@ -511,6 +511,202 @@ msgstr ""
 msgid "%s: removed (added by %s)"
 msgstr ""
 
+#: modlanguagechange:rstitle
+msgid "Change project language"
+msgstr ""
+
+#: modlanguagechange:rsdescription
+msgid ""
+"Gives the checked projects another language code, name or text direction, so "
+"that a language's projects agree: BTT-Writer copies these into each project "
+"when it is made and never updates them. The manifest is changed and "
+"committed, and the folder renamed to match a new code. WACS is not changed: "
+"a project with a new code uploads to a repo of its new name, and devices "
+"with the old project must import the new one. Find, check the projects, set "
+"what they should become, then Check to see what would happen."
+msgstr ""
+
+#: modlanguagechange:rsoptlanguagehelp
+msgid ""
+"Find projects of these language codes, comma-separated (a first part such as "
+"mxc takes every code that starts with it)"
+msgstr ""
+
+#: modlanguagechange:rsopttypehelp
+msgid "Only these types or resources, comma-separated (text, reg, tn, ...)"
+msgstr ""
+
+#: modlanguagechange:rsoptproject
+msgid "Projects"
+msgstr ""
+
+#: modlanguagechange:rsoptprojecthelp
+msgid "The projects to change"
+msgstr ""
+
+#: modlanguagechange:rsoptcode
+msgid "New language code"
+msgstr ""
+
+#: modlanguagechange:rsoptcodehelp
+msgid "The code the projects should have (empty: keep each one's code)"
+msgstr ""
+
+#: modlanguagechange:rsoptname
+msgid "New language name"
+msgstr ""
+
+#: modlanguagechange:rsoptnamehelp
+msgid ""
+"The name (empty: the language database's name for the code, or the project's "
+"own name if the database has none)"
+msgstr ""
+
+#: modlanguagechange:rsoptdirection
+msgid "Text direction"
+msgstr ""
+
+#: modlanguagechange:rsoptdirectionhelp
+msgid ""
+"database: the language database's direction for the code (the project's own "
+"if the database has none)"
+msgstr ""
+
+#: modlanguagechange:rsoptlanguagedb
+msgid "Language database"
+msgstr ""
+
+#: modlanguagechange:rsoptlanguagedbhelp
+msgid ""
+"BTT-Writer's index.sqlite to take names and directions from (default: the "
+"one in BTT-Writer's data folder)"
+msgstr ""
+
+#: modlanguagechange:rsoptdryrunhelp
+msgid "Report what would change without changing anything"
+msgstr ""
+
+#: modlanguagechange:rscollanguage
+msgid "Language now"
+msgstr ""
+
+#: modlanguagechange:rscolchange
+msgid "Change"
+msgstr ""
+
+#: modlanguagechange:rsnochange
+msgid "none"
+msgstr ""
+
+#: modlanguagechange:rschangecode
+msgid "code %s"
+msgstr ""
+
+#: modlanguagechange:rschangename
+msgid "name \"%s\""
+msgstr ""
+
+#: modlanguagechange:rschangedirection
+msgid "direction %s"
+msgstr ""
+
+#: modlanguagechange:rschangefolder
+msgid "folder %s"
+msgstr ""
+
+#: modlanguagechange:rsfoldertaken
+msgid "blocked: %s exists"
+msgstr ""
+
+#: modlanguagechange:rslanguagedb
+msgid "Language database: %s"
+msgstr ""
+
+#: modlanguagechange:rsnolanguagedb
+msgid ""
+"No language database found: names and directions stay as the projects have "
+"them unless given."
+msgstr ""
+
+#: modlanguagechange:rsbadlanguagedb
+msgid "Cannot read the language database %s (%s)."
+msgstr ""
+
+#: modlanguagechange:rsbadcode
+msgid "A language code cannot contain \"%s\": %s"
+msgstr ""
+
+#: modlanguagechange:rsnotbcp47
+msgid ""
+"%s is not a well-formed BCP 47 language tag, so tools that need one "
+"(Scripture Burrito) will not accept it."
+msgstr ""
+
+#: modlanguagechange:rsunknowncode
+msgid "%s is not in the language database."
+msgstr ""
+
+#: modlanguagechange:rsnothingchecked
+msgid "No projects checked."
+msgstr ""
+
+#: modlanguagechange:rsnotfound
+msgid "%s: not found (or not shown by the filters). Skipped."
+msgstr ""
+
+#: modlanguagechange:rssame
+msgid "%s: already %s, \"%s\", %s."
+msgstr ""
+
+#: modlanguagechange:rstaken
+msgid "%s: cannot rename it to %s, which already exists. Left alone."
+msgstr ""
+
+#: modlanguagechange:rswould
+msgid "%s: would become %s, \"%s\", %s%s."
+msgstr ""
+
+#: modlanguagechange:rsdone
+msgid "%s: now %s, \"%s\", %s%s."
+msgstr ""
+
+#: modlanguagechange:rsrenamedto
+msgid "; folder %s"
+msgstr ""
+
+#: modlanguagechange:rsloosework
+msgid "Uncommitted work, before a language change"
+msgstr ""
+
+#: modlanguagechange:rscommit
+msgid "Language: %s \"%s\" %s -> %s \"%s\" %s (BTT Workbench)"
+msgstr ""
+
+#: modlanguagechange:rsfailed
+msgid "%s: could not change it (%s)."
+msgstr ""
+
+#: modlanguagechange:rsrenamefailed
+msgid ""
+"%s: changed and committed, but the folder could not be renamed to %s; rename "
+"it by hand."
+msgstr ""
+
+#: modlanguagechange:rssummary
+msgid "%d project(s) changed, %d left alone."
+msgstr ""
+
+#: modlanguagechange:rswouldsummary
+msgid "%d project(s) would be changed, %d left alone."
+msgstr ""
+
+#: modlanguagechange:rsafter
+msgid ""
+"Projects with a new code upload to WACS under their new names; the repos "
+"under the old names stay. Devices with the old projects should delete them "
+"and import the changed ones."
+msgstr ""
+
 #: modprojects:rstitle
 msgid "Project list and problems"
 msgstr ""
@@ -533,7 +729,9 @@ msgid "Report projects on branch main without moving them to master"
 msgstr ""
 
 #: modprojects:rsoptlanguagehelp
-msgid "Only these target language codes, comma-separated (e.g. sah,udm)"
+msgid ""
+"Only these target language codes, comma-separated (e.g. sah,udm; a first "
+"part such as mxc takes every code that starts with it)"
 msgstr ""
 
 #: modprojects:rsoptbookhelp
@@ -561,10 +759,6 @@ msgstr ""
 #: modprojects:rsoptdeepgithelp
 msgid ""
 "Also run git fsck on each project to find corrupt or missing history (slower)"
-msgstr ""
-
-#: modprojects:rsoptlanguagedb
-msgid "Language database"
 msgstr ""
 
 #: modprojects:rsoptlanguagedbhelp
@@ -629,13 +823,32 @@ msgstr ""
 #: modprojects:rslangname
 msgid ""
 "Language name is out of date: the project says \"%s\", the language database "
-"says \"%s\"."
+"says \"%s\". Change project language sets it."
 msgstr ""
 
 #: modprojects:rslangdirection
 msgid ""
 "Text direction is out of date: the project says %s, the language database "
-"says %s."
+"says %s. Change project language sets it."
+msgstr ""
+
+#: modprojects:rslangnotbcp47
+msgid ""
+"Language code %s is not a well-formed BCP 47 tag, which tools such as "
+"Scripture Burrito need. Change project language can give the project another "
+"code."
+msgstr ""
+
+#: modprojects:rsmixednames
+msgid ""
+"The projects of %s use %d language names: %s. Change project language can "
+"make them one."
+msgstr ""
+
+#: modprojects:rsmixedcodes
+msgid ""
+"Language %s has projects under %d codes: %s. Change project language can "
+"give them one code."
 msgstr ""
 
 #: modprojects:rsnodirection
@@ -1669,10 +1882,6 @@ msgid ""
 "to see what each project needs."
 msgstr ""
 
-#: modwacsupload:rsoptproject
-msgid "Projects"
-msgstr ""
-
 #: modwacsupload:rsoptprojecthelp
 msgid "The project folders to upload"
 msgstr ""
@@ -1725,10 +1934,6 @@ msgstr ""
 
 #: modwacsupload:rslookupfailed
 msgid "Could not reach WACS: %s"
-msgstr ""
-
-#: modwacsupload:rsnothingchecked
-msgid "No projects checked."
 msgstr ""
 
 #: modwacsupload:rsuploadas
