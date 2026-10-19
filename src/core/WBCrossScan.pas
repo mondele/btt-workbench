@@ -15,7 +15,7 @@ unit WBCrossScan;
 interface
 
 uses
-  Classes, SysUtils, Generics.Collections, WBCrossCheck, WBSources;
+  Classes, SysUtils, Generics.Collections, WBCrossCheck, WBCrossTitles, WBSources;
 
 type
   TCrossProject = record
@@ -33,6 +33,7 @@ type
     Docs: TCrossDocs;
     Report: array of Boolean;
     Findings: TCrossFindings;
+    Titles: TTitleFindings;
     { project#9commit -> chunk files that commit changed }
     CommitFiles: specialize TDictionary<string, Integer>;
     NProjects, NCurrent, NEarlier: Integer;
@@ -271,6 +272,7 @@ begin
   end;
   specialize TArrayHelper<string>.Sort(Result.Codes);
   Result.Findings := FindCopiedText(Result.Docs, Result.Report, Sources);
+  Result.Titles := FindTitleProblems(Result.Docs, Result.Report);
 end;
 
 end.

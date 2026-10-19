@@ -83,6 +83,19 @@ function NormalText(const S: string): string;
 { Whether a version of a chunk holds the copied text of finding F. }
 function HasCopiedText(const Doc: TCrossDoc; const F: TCrossFinding): Boolean;
 
+type
+  TVerseText = record
+    Verse: Integer;
+    Text: UnicodeString;   // its words in lower case, single spaces
+  end;
+  TVerseTexts = array of TVerseText;
+{ The words of each verse of USFM chunk text, as TokenizeWords finds them,
+  in order (a \v 4-5 range counts as 4; a verse marked twice is joined).
+  Words before the first \v are left out. }
+function VerseWordTexts(const Text: string): TVerseTexts;
+{ The words of plain text (no markers), lower case, single spaces. }
+function WordText(const S: string): UnicodeString;
+
 implementation
 
 uses
@@ -182,6 +195,103 @@ begin
   end;
   SetLength(Hashes, N);
   SetLength(Verses, N);
+end;
+
+function VerseWordTexts(const Text: string): TVerseTexts;
+var
+  U, Marker, W: UnicodeString;
+  I, J, K, Verse, V, N: Integer;
+begin
+  U := UTF8Decode(Text);
+  Result := nil;
+  N := 0;
+  Verse := 0;
+  I := 1;
+  while I <= Length(U) do
+  begin
+    if U[I] = '\' then
+    begin
+      J := I + 1;
+      while (J <= Length(U)) and (U[J] in ['a'..'z', 'A'..'Z', '0'..'9', '*', '+']) do
+        Inc(J);
+      Marker := Copy(U, I + 1, J - I - 1);
+      I := J;
+      if (Marker = 'v') or (Marker = 'c') then
+      begin
+        while (I <= Length(U)) and (U[I] = ' ') do
+          Inc(I);
+        V := 0;
+        while (I <= Length(U)) and (U[I] in ['0'..'9']) do
+        begin
+          V := V * 10 + Ord(U[I]) - Ord('0');
+          Inc(I);
+        end;
+        if (I < Length(U)) and (U[I] = '-') and (U[I + 1] in ['0'..'9']) then
+        begin
+          Inc(I);
+          while (I <= Length(U)) and (U[I] in ['0'..'9']) do
+            Inc(I);
+        end;
+        if Marker = 'v' then
+          Verse := V;
+      end;
+      Continue;
+    end;
+    if IsWordChar(U[I]) then
+    begin
+      J := I;
+      while (J <= Length(U)) and IsWordChar(U[J]) do
+        Inc(J);
+      if Verse > 0 then
+      begin
+        W := TCharacter.ToLower(Copy(U, I, J - I));
+        if (N > 0) and (Result[N - 1].Verse = Verse) then
+          Result[N - 1].Text := Result[N - 1].Text + ' ' + W
+        else
+        begin
+          K := -1;
+          for V := 0 to N - 1 do
+            if Result[V].Verse = Verse then
+              K := V;
+          if K >= 0 then
+            Result[K].Text := Result[K].Text + ' ' + W
+          else
+          begin
+            SetLength(Result, N + 1);
+            Result[N].Verse := Verse;
+            Result[N].Text := W;
+            Inc(N);
+          end;
+        end;
+      end;
+      I := J;
+      Continue;
+    end;
+    Inc(I);
+  end;
+end;
+
+function WordText(const S: string): UnicodeString;
+var
+  U: UnicodeString;
+  I, J: Integer;
+begin
+  U := UTF8Decode(S);
+  Result := '';
+  I := 1;
+  while I <= Length(U) do
+    if IsWordChar(U[I]) then
+    begin
+      J := I;
+      while (J <= Length(U)) and IsWordChar(U[J]) do
+        Inc(J);
+      if Result <> '' then
+        Result := Result + ' ';
+      Result := Result + TCharacter.ToLower(Copy(U, I, J - I));
+      I := J;
+    end
+    else
+      Inc(I);
 end;
 
 function Shingles(const W: THashList; Size: Integer): THashList;

@@ -8,6 +8,21 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- cross-check: book titles that another book has (or had first) and
+  chapter titles with another chapter's number are reported. Titles were
+  too short for the copied-text check, and the Chimanika damage had
+  changed several (Luke and Mark both "JudaBERU", Acts and John
+  "Marako"). cross-repair restores a book title that came in with copied
+  text.
+- cross-check can also compare with other languages: `--other-languages`
+  (projects of other languages in the projects folder), `--sources`
+  (BTT-Writer's source texts of the same books) and `--compare-dir`
+  (projects in other folders, such as a neighbouring language's repos).
+  It reports verses the same as another language's, verses reworded to
+  read like another language's, and chunks taken from another language.
+  On the Bwile 1 Peter and 1 John repos compared with Bemba it finds the
+  8 verses reworded towards the Bemba Bible in October 2026, and nothing
+  else.
 - cross-check and cross-repair: a language's projects are compared
   together even when they carry different codes that share their first
   part. Chimanika's Luke (`mxc-MZ-chimanika`) had been compared only with

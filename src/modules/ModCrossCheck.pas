@@ -6,7 +6,10 @@ unit ModCrossCheck;
    projects of each language with each other, including every earlier
    version of their chunk files in git, and reports chunks holding text
    another book had first (WBCrossCheck), with the commit that brought it
-   in. Changes nothing. *)
+   in; also book titles another book has and chapter titles with the wrong
+   number (WBCrossTitles). On request it also compares with other
+   languages: projects in the projects folder or other folders, and
+   BTT-Writer's source texts (WBForeignCheck). Changes nothing. *)
 
 interface
 
@@ -26,7 +29,8 @@ type
 implementation
 
 uses
-  WBDataPaths, WBProject, WBSources, WBVersification, WBCrossCheck, WBCrossScan;
+  WBDataPaths, WBProject, WBSources, WBVersification, WBCrossCheck, WBCrossScan,
+  WBCrossTitles, WBForeignCheck;
 
 resourcestring
   rsTitle = 'Text copied between books';
@@ -35,7 +39,11 @@ resourcestring
     'book''s chunk stuck onto a chunk. Earlier versions in each project''s ' +
     'history show which book had the text first and the commit that brought ' +
     'it in (the version before that commit has the chunk''s own text). Real ' +
-    'parallels are left out by comparing the English ULB. Changes nothing.';
+    'parallels are left out by comparing the English ULB. Also reports book ' +
+    'titles another book has and chapter titles with the wrong number. With ' +
+    'the options below it also compares with other languages: verses pasted ' +
+    'or reworded from another language''s text, and chunks taken from it. ' +
+    'Changes nothing.';
   rsOptLanguage = 'Languages';
   rsOptLanguageHelp = 'Only report on these language codes, comma-separated ' +
     '(a first part such as mxc takes every code that starts with it; the ' +
@@ -48,17 +56,41 @@ resourcestring
   rsOptNoHistory = 'Current text only';
   rsOptNoHistoryHelp = 'Leave out earlier versions (faster, but which book had ' +
     'the text first is then unknown)';
+  rsOptOtherLanguages = 'Compare with other languages here';
+  rsOptOtherLanguagesHelp = 'Also compare with the projects of other languages ' +
+    'in the projects folder';
+  rsOptSources = 'Compare with source texts';
+  rsOptSourcesHelp = 'Also compare with BTT-Writer''s source texts of the same ' +
+    'books, in every language (untranslated text pasted in)';
+  rsOptCompareDir = 'Compare with folders';
+  rsOptCompareDirHelp = 'Also compare with the projects in these folders, for ' +
+    'example a neighbouring language''s repos downloaded with wacs-download ' +
+    '--target-dir';
   rsOptTargetDir = 'Projects folder';
   rsOptTargetDirHelp = 'Where projects live (default: BTT-Writer''s ' +
     'targetTranslations folder)';
 
   rsNoTargetDir = 'Projects folder not found: %s';
+  rsNoCompareDir = 'Folder to compare with not found: %s';
+  rsComparedOther = 'Also compared with %d text(s) in other languages.';
+  rsTitleShared = '%s: the book title "%s" is also %s';
+  rsTitleOf = 'the title of %s';
+  rsEarlierTitleOf = 'an earlier title of %s';
+  rsAnd = ' and ';
+  rsChapterNumber = '%s: the chapter title "%s" has another chapter''s number';
+  rsForeignSame = '%s: verse %d is the same as in %s (%d%% alike)';
+  rsForeignReworded = '%s: verse %d was reworded to read like %s (%d%% alike, ' +
+    'was %d%%)';
+  rsForeignChunk = '%s: %d%% of its text is in %s %s';
+  rsSourceText = 'the source text %s';
+  rsProjectText = '%s (%s), %s';
+  rsNoHistoryKnown = '; no history';
   rsFolder = 'Projects folder: %s';
   rsCompared = '%s: compared %d project(s), %d chunk file(s) and %d earlier version(s).';
   rsNoGit = '%s: no git history; only its current text is compared.';
   rsSeveralCodes = 'This language has projects under %d codes (%s); they are ' +
     'compared as one language.';
-  rsHeader = '%s: %s (%s), %s - %d chunk(s) with text from other books';
+  rsHeader = '%s: %s (%s), %s - %d file(s) to check';
   rsHeaderNotes = '%s: %s (%s), %s';
   rsWhole = '%s: replaced by text from %s';
   rsPart = '%s: verses %s hold text from %s';
@@ -71,7 +103,7 @@ resourcestring
   rsSince = '; since %s (%s, %s)';
   rsAlsoChanged = '; that commit also changed %d other chunk file(s)';
   rsCopiedOut = 'The text of %s appears later in: %s';
-  rsSummary = '%d project(s) checked, %d with text from other books.';
+  rsSummary = '%d project(s) checked, %d with files to check.';
 
 function TCrossCheckModule.Id: string;
 begin
@@ -95,6 +127,11 @@ begin
     OptionDef('book', okString, False, False, rsOptBook, rsOptBookHelp),
     OptionDef('type', okString, False, False, rsOptType, rsOptTypeHelp),
     OptionDef('no-history', okFlag, False, False, rsOptNoHistory, rsOptNoHistoryHelp),
+    OptionDef('other-languages', okFlag, False, False, rsOptOtherLanguages,
+      rsOptOtherLanguagesHelp),
+    OptionDef('sources', okFlag, False, False, rsOptSources, rsOptSourcesHelp),
+    ListOptionDef('compare-dir', okDirectory, False, False, rsOptCompareDir,
+      rsOptCompareDirHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
 end;
 
@@ -105,9 +142,31 @@ begin
     Result := Code;
 end;
 
+function TextName(T: TForeignText): string;
+begin
+  if T.IsSource then
+    Result := Format(rsSourceText, [T.Name])
+  else if T.LangName <> '' then
+    Result := Format(rsProjectText, [T.LangName, T.Lang, T.Name])
+  else
+    Result := T.Name;
+end;
+
+function Percent(X: Double): Integer;
+begin
+  Result := Trunc(X * 100);
+end;
+
 function TCrossCheckModule.Execute(Options: TStrings; Reporter: TWBReporter): Integer;
 var
   TargetDir, S, Lang, Origin, Line, Seen: string;
+  Texts: TForeignTexts;
+  Foreign: TForeignFindings;
+  FF: TForeignFinding;
+  T: TTitleFinding;
+  SourceBooks: TStringList;
+  NoHistory, Wide: Boolean;
+  X: Integer;
   Projects: TCrossProjects;
   P: TCrossProject;
   Scan: TCrossScan;
@@ -117,6 +176,31 @@ var
   Sources: TSourceLibrary;
   Kinds: TStringArray;
   K, Checked, WithFindings, Count: Integer;
+
+  procedure Mark(Doc: Integer);
+  begin
+    if Pos(#10 + ChunkName(Scan.Docs[Doc]) + #10, Seen) = 0 then
+    begin
+      Inc(Count);
+      Seen := Seen + ChunkName(Scan.Docs[Doc]) + #10;
+    end;
+  end;
+
+  function SinceText(Doc: Integer): string;
+  var
+    N: Integer;
+  begin
+    if Doc < 0 then
+      Exit(rsNoHistoryKnown);
+    if Scan.Docs[Doc].Current then
+      Exit(rsUncommitted);
+    Result := Format(rsSince, [Copy(Scan.Docs[Doc].Commit, 1, 7), Scan.Docs[Doc].Date,
+      Scan.Docs[Doc].Author]);
+    N := Scan.FilesChanged(P.Folder, Scan.Docs[Doc].Commit);
+    if N > 1 then
+      Result := Result + Format(rsAlsoChanged, [N - 1]);
+  end;
+
 begin
   Result := 1;
   if Options.Values['target-dir'] <> '' then
@@ -129,20 +213,52 @@ begin
     Exit;
   end;
   Reporter.Info(Format(rsFolder, [ExcludeTrailingPathDelimiter(TargetDir)]));
+  for S in OptionValues(Options, 'compare-dir') do
+    if not DirectoryExists(S) then
+    begin
+      Reporter.Error(Format(rsNoCompareDir, [S]));
+      Exit;
+    end;
   Projects := ListTextProjects(TargetDir, SplitList(Options.Values['language']),
     SplitList(Options.Values['book']), SplitList(Options.Values['type']));
+  NoHistory := OptionIsSet(Options, 'no-history');
+  Wide := OptionIsSet(Options, 'other-languages') or OptionIsSet(Options, 'sources') or
+    (Length(OptionValues(Options, 'compare-dir')) > 0);
 
   Checked := 0;
   WithFindings := 0;
   Sources := TSourceLibrary.Create(LibrarySourcesPath(TargetDir), BundledSourcesPath);
   Copied := TStringList.Create;
   Lines := TStringList.Create;
+  Texts := TForeignTexts.Create(True);
+  SourceBooks := TStringList.Create;
   try
+    if OptionIsSet(Options, 'other-languages') then
+      AddProjectTexts(TargetDir, Texts);
+    for S in OptionValues(Options, 'compare-dir') do
+      AddProjectTexts(ExpandFileName(S), Texts);
     for Lang in ReportLanguages(Projects) do
     begin
-      Scan := ScanLanguage(TargetDir, Lang, Projects, OptionIsSet(Options, 'no-history'),
-        Sources);
+      Scan := ScanLanguage(TargetDir, Lang, Projects, NoHistory, Sources);
       try
+        Foreign := nil;
+        if Wide then
+        begin
+          if OptionIsSet(Options, 'sources') then
+            for P in Projects do
+              if (P.Group = Lang) and P.Report and (SourceBooks.IndexOf(P.Book) < 0) then
+              begin
+                AddSourceTexts(Sources, LibrarySourcesPath(TargetDir), BundledSourcesPath,
+                  P.Book, Texts);
+                SourceBooks.Add(P.Book);
+              end;
+          Foreign := FindForeignText(Scan, Texts, NoHistory);
+          K := 0;
+          for X := 0 to Texts.Count - 1 do
+            if Texts[X].Group <> Lang then
+              Inc(K);
+          Reporter.Info(Format(rsComparedOther, [K]));
+        end;
         for S in Scan.NoGit do
           Reporter.Info(Format(rsNoGit, [S]));
         if Length(Scan.Codes) > 1 then
@@ -209,6 +325,47 @@ begin
             end;
             Lines.Add('W' + Line);
           end;
+          for T in Scan.Titles do
+          begin
+            if Scan.Docs[T.Doc].Project <> P.Folder then
+              Continue;
+            Mark(T.Doc);
+            S := ChunkName(Scan.Docs[T.Doc]);
+            if T.Kind = tkChapterNumber then
+              Line := Format(rsChapterNumber, [S, NormalText(Scan.Docs[T.Doc].Text)])
+            else
+            begin
+              Origin := '';
+              for X in T.Others do
+              begin
+                if Origin <> '' then
+                  Origin := Origin + rsAnd;
+                if Scan.Docs[X].Current then
+                  Origin := Origin + Format(rsTitleOf, [BookName(Scan.Docs[X].Book)])
+                else
+                  Origin := Origin + Format(rsEarlierTitleOf, [BookName(Scan.Docs[X].Book)]);
+              end;
+              Line := Format(rsTitleShared, [S, NormalText(Scan.Docs[T.Doc].Text), Origin]);
+            end;
+            Lines.Add('W' + Line + SinceText(T.Since));
+          end;
+          for FF in Foreign do
+          begin
+            if Scan.Docs[FF.Doc].Project <> P.Folder then
+              Continue;
+            Mark(FF.Doc);
+            S := ChunkName(Scan.Docs[FF.Doc]);
+            case FF.Kind of
+              fkSame: Line := Format(rsForeignSame, [S, FF.Verse, TextName(Texts[FF.Text]),
+                Percent(FF.Now)]);
+              fkReworded: Line := Format(rsForeignReworded, [S, FF.Verse,
+                TextName(Texts[FF.Text]), Percent(FF.Now), Percent(FF.Before)]) +
+                SinceText(FF.Since);
+              fkChunk: Line := Format(rsForeignChunk, [S, Percent(FF.Now),
+                TextName(Texts[FF.Text]), FF.Chunk]);
+            end;
+            Lines.Add('W' + Line);
+          end;
           for K := 0 to Copied.Count - 1 do
           begin
             Kinds := Copied.Names[K].Split([#9]);
@@ -235,6 +392,8 @@ begin
       end;
     end;
   finally
+    SourceBooks.Free;
+    Texts.Free;
     Lines.Free;
     Copied.Free;
     Sources.Free;

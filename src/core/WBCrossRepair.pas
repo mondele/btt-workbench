@@ -56,7 +56,7 @@ implementation
 
 uses
   fpjson, Generics.Collections, WBGit, WBJson, WBProject, WBImport, WBVersification,
-  WBSources, WBWacs;
+  WBSources, WBWacs, WBCrossTitles;
 
 function RepairValue(const Item: TRepairItem): string;
 begin
@@ -143,6 +143,9 @@ var
   Shared: Integer;
   Cache, ShCache: array of THashList;
   Cached, ShCached: array of Boolean;
+  T: TTitleFinding;
+  Versions: TDocList;
+  Q, X: Integer;
 
   function ShinglesOf(Doc: Integer): THashList;
   var
@@ -314,6 +317,45 @@ begin
         if not Allowed.Contains(H) then
           Inc(Unmatched);
       Result[I].Mixed := Unmatched > MixedSlack;
+    end;
+
+    { A book title another book has, brought in by a commit that also
+      brought copied text into the project: back to the title before the
+      first such commit. A title changed on its own may be a deliberate
+      edit, so it is only reported. }
+    for T in Scan.Titles do
+    begin
+      if (T.Kind <> tkShared) or (T.Since < 0) or Docs[T.Since].Current or
+         not ProjectCommits.Contains(Docs[T.Doc].Project + #9 + Docs[T.Since].Commit) then
+        Continue;
+      Item := Default(TRepairItem);
+      Item.Project := Docs[T.Doc].Project;
+      Item.Book := Docs[T.Doc].Book;
+      Item.Chapter := Docs[T.Doc].Chapter;
+      Item.Chunk := Docs[T.Doc].Chunk;
+      Item.Commit := Docs[T.Since].Commit;
+      Item.Date := Docs[T.Since].Date;
+      Item.Author := Docs[T.Since].Author;
+      for X in T.Others do
+      begin
+        if Item.Origins <> '' then
+          Item.Origins := Item.Origins + ', ';
+        Item.Origins := Item.Origins + BookName(Docs[X].Book) + ' ' + ChunkName(Docs[X]);
+      end;
+      Item.Hold := rhNoHistory;
+      Versions := VersionsOf(Docs, T.Doc);
+      Q := 0;
+      while (Q <= High(Versions)) and (Versions[Q] <> T.Since) do
+        Inc(Q);
+      for Q := Q + 1 to High(Versions) do
+        if not ProjectCommits.Contains(Item.Project + #9 + Docs[Versions[Q]].Commit) then
+        begin
+          Item.Action := raRestore;
+          Item.Restored := Docs[Versions[Q]].Text;
+          Item.Hold := rhNone;
+          Break;
+        end;
+      Result := Concat(Result, [Item]);
     end;
   finally
     Mine.Free;

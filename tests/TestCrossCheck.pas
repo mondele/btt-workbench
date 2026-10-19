@@ -21,7 +21,7 @@ implementation
 uses
   Classes, SysUtils, fpjson,
   WBReporter, WBModule, WBCommandLine, WBGit, WBJson, WBDataPaths, WBSources, WBProject,
-  WBChunkHistory, WBCrossCheck, WBCrossScan, WBCrossRepair, WBWacs, TestUtil;
+  WBChunkHistory, WBCrossCheck, WBCrossScan, WBCrossRepair, WBWacs, WBSimilarity, TestUtil;
 
 var
   Target: string;
@@ -225,11 +225,11 @@ begin
     Check((S <> '') and (Pos('"w15 phm0108w16', S) > 0), 'text run onto the last word, quoted');
     Check(LineWith(Output, '02/05:') = '', 'a phrase typed while drafting is not reported');
     Check(LineWith(Output, '03/15:') = '', 'a real parallel (alike in the English) is not reported');
-    Check(LineWith(Output, 'xx_tit_text_reg', '3 chunk(s) with text from other books') <> '',
+    Check(LineWith(Output, 'xx_tit_text_reg', '3 file(s) to check') <> '',
       'the project header counts chunks');
     Check(LineWith(Output, 'The text of 01/04 appears later in: tit 01/05') <> '',
       'the other book is told where its text went');
-    Check(LineWith(Output, '1 with text from other books') <> '', 'summary');
+    Check(LineWith(Output, '1 with files to check') <> '', 'summary');
 
     Code := RunModule('cross-check', ['--target-dir', Target, '--book', 'phm,jud'], R);
     try
@@ -519,6 +519,86 @@ begin
   end;
 end;
 
+{ Made-up words that look like a language: syllables picked by a seeded
+  generator, so two seeds give texts about as alike as two languages. }
+function Gib(const Seed: string; Count: Integer): string;
+const
+  Syl: array[0..15] of string = ('ka', 'li', 'mu', 'to', 'sha', 'ne', 'bwa', 'ro',
+    'fi', 'nyo', 'pe', 'za', 'ku', 'ye', 'di', 'mba');
+var
+  X: QWord;
+  C: Char;
+  I, J, N: Integer;
+  W: string;
+begin
+  X := 1469598103;
+  for C in Seed do
+    X := (X xor Ord(C)) * 1099511628211;
+  Result := '';
+  for I := 1 to Count do
+  begin
+    X := X * 6364136223846793005 + 1442695040888963407;
+    N := 2 + (X shr 60) mod 3;
+    W := '';
+    for J := 1 to N do
+    begin
+      X := X * 6364136223846793005 + 1442695040888963407;
+      W := W + Syl[(X shr 59) and 15];
+    end;
+    if Result <> '' then
+      Result := Result + ' ';
+    Result := Result + W;
+  end;
+end;
+
+procedure TestSimilarity;
+type
+  TCase = record
+    A, B: UnicodeString;
+    Ratio, Dice: Double;
+  end;
+const
+  { from Python: difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
+    and the trigram Dice of collections.Counter }
+  Cases: array[0..8] of TCase = (
+    (A: 'yesu alililile'; B: 'yesu alililile'; Ratio: 1.0; Dice: 1.0),
+    (A: 'ilyo alaile libela muli bakasesema wakwe mumalembo ya mushilo';
+     B: 'iyo alaile libela muli bakasesema wakwe mu malembo ya mushilo';
+     Ratio: 0.983606557377; Dice: 0.932203389831),
+    (A: 'abcd'; B: ''; Ratio: 0.0; Dice: 0.0),
+    (A: ''; B: ''; Ratio: 1.0; Dice: 0.0),
+    (A: 'the quick brown fox'; B: 'a quick brown dog jumps';
+     Ratio: 0.666666666667; Dice: 0.578947368421),
+    (A: 'muleba abatekanya kabili abashibuka umulwani wenu ciwa';
+     B: 'muletekanya kabili mulelola umulwani wenu ciwa aleendauka';
+     Ratio: 0.720720720721; Dice: 0.654205607477),
+    (A: #$03B7#$03B3#$03AC#$03C0#$03B7#$03C3#$03B5#$03BD' '#$1F41' '#$03B8#$03B5#$1F78#$03C2;
+     B: #$03B7#$03B3#$03AC#$03C0#$03B7#$03C3#$03B5' '#$03B8#$03B5#$03CC#$03C2' '#$1F41;
+     Ratio: 0.758620689655; Dice: 0.48),
+    (A: 'aaaaabbbbb'; B: 'bbbbbaaaaa'; Ratio: 0.5; Dice: 0.75),
+    (A: 'abxcdxefg'; B: 'abcdefgx'; Ratio: 0.823529411765; Dice: 0.153846153846));
+var
+  C: TCase;
+  OK: Boolean;
+  VT: TVerseTexts;
+begin
+  Section('cross-check: likeness of texts');
+  OK := True;
+  for C in Cases do
+    if Abs(SequenceRatio(C.A, C.B) - C.Ratio) > 1e-9 then
+      OK := False;
+  Check(OK, 'SequenceRatio gives difflib''s ratio');
+  OK := True;
+  for C in Cases do
+    if Abs(TrigramDice(C.A, C.B) - C.Dice) > 1e-9 then
+      OK := False;
+  Check(OK, 'TrigramDice as computed in Python');
+  VT := VerseWordTexts('\c 1 \v 1 Mwe, Bantu! \v 2-3 Ni\f + \ft note\f* ba \v 1 again');
+  Check((Length(VT) = 2) and (VT[0].Verse = 1) and (VT[0].Text = 'mwe bantu again') and
+    (VT[1].Verse = 2) and (VT[1].Text = 'ni note ba'),
+    'verse words: lower case, markers out, a range counts as its first verse');
+end;
+
 procedure TestLanguageGroup;
 begin
   Section('cross-check language groups');
@@ -530,13 +610,107 @@ begin
   Check(LanguageGroup('x-abc') = 'x-abc', 'nor are x- codes');
 end;
 
+procedure TestTitlesAndOtherLanguages(const TempRoot: string);
+var
+  Data, Other, Lib, Tit, Phm, Ref1, Output, S, OldBundled: string;
+  Code: Integer;
+begin
+  Section('cross-check: titles and other languages');
+  Data := TempRoot + 'crosswide' + PathDelim;
+  Lib := Data + 'library' + PathDelim + 'resource_containers' + PathDelim;
+  OldBundled := BundledSourcesOverride;
+  BundledSourcesOverride := TempRoot + 'no-bundled-sources';
+  try
+    { another language, yy, in a folder of its own, and the language itself
+      under another code there (never compared) }
+    Other := Data + 'other' + PathDelim;
+    Target := Other;
+    Ref1 := Gib('yy-tit-1-1', 14);
+    MakeProject('tit', [
+      '01/01.txt=\v 1 ' + Ref1 + '.',
+      '01/05.txt=\v 5 ' + Gib('yy-tit-1-5', 16) + ' \v 6 ' + Gib('yy-tit-1-6', 14) + '.'], 'yy');
+    MakeProject('tit', ['02/01.txt=\v 1 ' + Gib('xx-tit-2-1', 14) + '.'], 'xx-x-old');
+    { a source text in a third language, zz }
+    Put(Lib + 'zz_tit_ulb/content/02/03.usx',
+      '<verse number="3" style="v" />' + Gib('zz-tit-2-3', 14) + '.');
+
+    Target := Data + 'targetTranslations' + PathDelim;
+    Tit := MakeProject('tit', [
+      'front/title.txt=Kalito',
+      '01/title.txt=Sura 1',
+      '01/01.txt=\v 1 ' + Gib('xx-tit-1-1', 14) + '.',
+      '02/title.txt=Sura 2',
+      '02/01.txt=\v 1 ' + Gib('xx-tit-2-1', 14) + '.',
+      '02/03.txt=\v 3 ' + Gib('xx-tit-2-3', 14) + '.']);
+    Phm := MakeProject('phm', [
+      'front/title.txt=Pilimona',
+      '01/01.txt=\v 1 ' + Gib('xx-phm-1-1', 30) + '.']);
+
+    { one session: Philemon's title and a Philemon chunk pasted into Titus,
+      a chapter title with the wrong number, a verse reworded to read like
+      yy, a verse of the zz source pasted in, and yy's 01/05 as a new chunk }
+    Put(Tit + 'front/title.txt', 'Pilimona');
+    Put(Tit + '02/title.txt', 'Sura 5');
+    Put(Tit + '01/05.txt', '\v 1 ' + Gib('xx-phm-1-1', 30) + '.');
+    Put(Tit + '01/01.txt', '\v 1 ' + Copy(Ref1, 1, LastDelimiter(' ', Ref1)) + 'mbaka.');
+    Put(Tit + '02/03.txt', '\v 3 ' + Gib('zz-tit-2-3', 14) + '.');
+    Put(Tit + '03/01.txt', '\v 1 ' + Gib('yy-tit-1-5', 16) + ' ' + Gib('yy-tit-1-6', 14) + '.');
+    Git(Tit, '2026-03-01T10:00:00+0200', 'Paster', ['add', '--all']);
+    Git(Tit, '2026-03-01T10:00:00+0200', 'Paster', ['commit', '-q', '-m', 'session']);
+
+    Output := Run('cross-check', ['--target-dir', Target], Code);
+    Check((Code = 0) and (LineWith(Output, 'front/title: the book title "Pilimona" is also ' +
+      'the title of Philemon', 'Paster') <> ''),
+      'a book title another book has is reported, with the commit');
+    Check(LineWith(Output, 'front/title: the book title "Pilimona" is also the title of Titus') <> '',
+      'on both books: neither is assumed to be the original');
+    Check(LineWith(Output, '02/title: the chapter title "Sura 5" has another chapter''s number') <> '',
+      'a chapter title with another chapter''s number');
+    Check(LineWith(Output, '01/title:') = '', 'a right chapter title is not reported');
+    Check((LineWith(Output, 'reworded') = '') and (LineWith(Output, 'Also compared') = ''),
+      'other languages only on request');
+
+    Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Other, '--sources'], Code);
+    Check((Code = 0) and (LineWith(Output, 'Also compared with 2 text(s) in other languages') <> ''),
+      'compares with the other folder and the source texts, not the language''s own code');
+    S := LineWith(Output, '01/01: verse 1 was reworded to read like Lang xx (yy), yy_tit_text_reg');
+    Check((S <> '') and (Pos('Paster', S) > 0), 'a verse reworded to read like another language');
+    Check(LineWith(Output, '02/03: verse 3 is the same as in the source text zz_tit_ulb') <> '',
+      'a verse pasted from a source text');
+    Check(LineWith(Output, '03/01: 100% of its text is in Lang xx (yy), yy_tit_text_reg 01/05') <> '',
+      'a chunk taken from another language');
+    Check(LineWith(Output, '02/01: verse') = '', 'the language under another code is not foreign');
+    Check(LineWith(Output, '01/05: verse') = '', 'nor is another book of the language');
+
+    Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Other, '--no-history'], Code);
+    Check((Code = 0) and (LineWith(Output, 'reworded') = '') and
+      (LineWith(Output, '03/01: 100% of its text') <> ''),
+      'without history: no rewording, the rest still');
+
+    Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Data + 'nowhere'], Code);
+    Check(Code = 1, 'a missing folder to compare with is an error');
+
+    Output := Run('cross-repair', ['--target-dir', Target, '--all'], Code);
+    Check((Code = 0) and (Trim(ReadFileText(Tit + 'front' + PathDelim + 'title.txt')) = 'Kalito'),
+      'cross-repair gives a book title brought in with copied text its own back');
+    Check(Trim(ReadFileText(Phm + 'front' + PathDelim + 'title.txt')) = 'Pilimona',
+      'and leaves the other book''s alone');
+    Check(Trim(ReadFileText(Tit + '02' + PathDelim + 'title.txt')) = 'Sura 5',
+      'a wrong chapter number is only reported');
+  finally
+    BundledSourcesOverride := OldBundled;
+  end;
+end;
+
 procedure TestCrossChecks(const TempRoot: string);
 begin
   TestLanguageGroup;
   TestParseLog;
   TestTokenize;
+  TestSimilarity;
   TestModule(TempRoot);
   TestRepair(TempRoot);
+  TestTitlesAndOtherLanguages(TempRoot);
 end;
 
 end.

@@ -68,7 +68,10 @@ msgid ""
 "onto a chunk. Earlier versions in each project's history show which book had "
 "the text first and the commit that brought it in (the version before that "
 "commit has the chunk's own text). Real parallels are left out by comparing "
-"the English ULB. Changes nothing."
+"the English ULB. Also reports book titles another book has and chapter "
+"titles with the wrong number. With the options below it also compares with "
+"other languages: verses pasted or reworded from another language's text, and "
+"chunks taken from it. Changes nothing."
 msgstr ""
 
 #: modcrosscheck:rsoptlanguage
@@ -110,6 +113,35 @@ msgid ""
 "then unknown)"
 msgstr ""
 
+#: modcrosscheck:rsoptotherlanguages
+msgid "Compare with other languages here"
+msgstr ""
+
+#: modcrosscheck:rsoptotherlanguageshelp
+msgid ""
+"Also compare with the projects of other languages in the projects folder"
+msgstr ""
+
+#: modcrosscheck:rsoptsources
+msgid "Compare with source texts"
+msgstr ""
+
+#: modcrosscheck:rsoptsourceshelp
+msgid ""
+"Also compare with BTT-Writer's source texts of the same books, in every "
+"language (untranslated text pasted in)"
+msgstr ""
+
+#: modcrosscheck:rsoptcomparedir
+msgid "Compare with folders"
+msgstr ""
+
+#: modcrosscheck:rsoptcomparedirhelp
+msgid ""
+"Also compare with the projects in these folders, for example a neighbouring "
+"language's repos downloaded with wacs-download --target-dir"
+msgstr ""
+
 #: modcrosscheck:rsopttargetdir
 msgid "Projects folder"
 msgstr ""
@@ -120,6 +152,58 @@ msgstr ""
 
 #: modcrosscheck:rsnotargetdir
 msgid "Projects folder not found: %s"
+msgstr ""
+
+#: modcrosscheck:rsnocomparedir
+msgid "Folder to compare with not found: %s"
+msgstr ""
+
+#: modcrosscheck:rscomparedother
+msgid "Also compared with %d text(s) in other languages."
+msgstr ""
+
+#: modcrosscheck:rstitleshared
+msgid "%s: the book title \"%s\" is also %s"
+msgstr ""
+
+#: modcrosscheck:rstitleof
+msgid "the title of %s"
+msgstr ""
+
+#: modcrosscheck:rsearliertitleof
+msgid "an earlier title of %s"
+msgstr ""
+
+#: modcrosscheck:rsand
+msgid " and "
+msgstr ""
+
+#: modcrosscheck:rschapternumber
+msgid "%s: the chapter title \"%s\" has another chapter's number"
+msgstr ""
+
+#: modcrosscheck:rsforeignsame
+msgid "%s: verse %d is the same as in %s (%d%% alike)"
+msgstr ""
+
+#: modcrosscheck:rsforeignreworded
+msgid "%s: verse %d was reworded to read like %s (%d%% alike, was %d%%)"
+msgstr ""
+
+#: modcrosscheck:rsforeignchunk
+msgid "%s: %d%% of its text is in %s %s"
+msgstr ""
+
+#: modcrosscheck:rssourcetext
+msgid "the source text %s"
+msgstr ""
+
+#: modcrosscheck:rsprojecttext
+msgid "%s (%s), %s"
+msgstr ""
+
+#: modcrosscheck:rsnohistoryknown
+msgid "; no history"
 msgstr ""
 
 #: modcrosscheck:rsfolder
@@ -141,7 +225,7 @@ msgid ""
 msgstr ""
 
 #: modcrosscheck:rsheader
-msgid "%s: %s (%s), %s - %d chunk(s) with text from other books"
+msgid "%s: %s (%s), %s - %d file(s) to check"
 msgstr ""
 
 #: modcrosscheck:rsheadernotes
@@ -193,7 +277,7 @@ msgid "The text of %s appears later in: %s"
 msgstr ""
 
 #: modcrosscheck:rssummary
-msgid "%d project(s) checked, %d with text from other books."
+msgid "%d project(s) checked, %d with files to check."
 msgstr ""
 
 #: modcrossrepair:rstitle

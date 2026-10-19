@@ -189,7 +189,31 @@ linker warnings are harmless.
   `WBCrossScan` (`ListTextProjects`, `ScanLanguage`). Projects are compared
   per `LanguageGroup` (first subtag, so `mxc-MZ-x-manika` and
   `mxc-MZ-chimanika` meet; private-use `qaa`-`qtz`/`x-` codes stay whole);
-  `--language` only chooses what is reported, like `--book`. `WBCrossRepair`
+  `--language` only chooses what is reported, like `--book`.
+- Titles are far below cross-check's word-run sizes, so `WBCrossTitles`
+  checks them: a book title (front/title) that another book has, or had
+  before this book first did, is reported on every book that has it now
+  (none is assumed original: Chimanika Luke and Mark both became
+  "JudaBERU"); chapter titles whose numbers leave out their chapter.
+  cross-repair restores a book title only when the commit that brought it
+  also brought copied text in, walking back past every such commit.
+- Other languages (`WBForeignCheck`, cross-check `--other-languages`,
+  `--sources`, `--compare-dir`): verse against the same verse, with
+  `WBSimilarity.SequenceRatio` (a port of Python difflib's ratio, checked
+  against Python's values; keep it exact, the thresholds were calibrated
+  with difflib) after a `TrigramDice` filter (0.40; real matches were
+  0.51+). Same: >= 0.97 and 40+ chars. Reworded: an edit to >= 0.80 that
+  gained >= 0.15 over the verse's last wording seen (edit sessions leave
+  versions without the verse), still >= 0.80 now. Chunk: >= 70% of the
+  word runs in one other-language chunk. Texts of the language's own
+  group are never compared. Calibration (October 2026): WACS
+  bwile_refinement bwc 1pe/1jn/2jn against the Bemba repos
+  (bemba_refinament, Moffat_chola, felix_sichies) must give exactly the 8
+  verses of the Bwile report (1jn 2:2, 2:3, 2:20, 2:21; 1pe 1:6, 1:11,
+  2:7, 5:8); related languages are close (412 of 2978 Bwile verses were
+  0.8+ to Bemba from their first version), hence the high thresholds.
+  Floating-point: write `Double(2 * N) / M`, never `2.0 * N / M` (FPC
+  makes `2.0` a Single). `WBCrossRepair`
   plans per damaged chunk: the version that brought the copied text into
   that file (`HasCopiedText` with the finding's `Hash`/`Fragment`) gives
   the damaging commit; restore = the file at `<commit>^`, remove = the
