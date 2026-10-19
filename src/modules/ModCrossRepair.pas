@@ -40,7 +40,8 @@ resourcestring
     'Chunks edited since are left alone. Find, check the chunks to repair, ' +
     'then Check to see what would happen. Upload afterwards with Upload to WACS.';
   rsOptLanguage = 'Languages';
-  rsOptLanguageHelp = 'Only these target language codes, comma-separated';
+  rsOptLanguageHelp = 'Only these language codes, comma-separated (a first ' +
+    'part such as mxc takes every code that starts with it)';
   rsOptBook = 'Books';
   rsOptBookHelp = 'Only these book codes, comma-separated';
   rsOptType = 'Project types';

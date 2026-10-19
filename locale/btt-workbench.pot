@@ -76,7 +76,10 @@ msgid "Languages"
 msgstr ""
 
 #: modcrosscheck:rsoptlanguagehelp
-msgid "Only these target language codes, comma-separated"
+msgid ""
+"Only report on these language codes, comma-separated (a first part such as "
+"mxc takes every code that starts with it; the language's projects under "
+"other codes are still compared)"
 msgstr ""
 
 #: modcrosscheck:rsoptbook
@@ -129,6 +132,12 @@ msgstr ""
 
 #: modcrosscheck:rsnogit
 msgid "%s: no git history; only its current text is compared."
+msgstr ""
+
+#: modcrosscheck:rsseveralcodes
+msgid ""
+"This language has projects under %d codes (%s); they are compared as one "
+"language."
 msgstr ""
 
 #: modcrosscheck:rsheader
@@ -199,6 +208,12 @@ msgid ""
 "Everything else those commits changed stays. Chunks edited since are left "
 "alone. Find, check the chunks to repair, then Check to see what would "
 "happen. Upload afterwards with Upload to WACS."
+msgstr ""
+
+#: modcrossrepair:rsoptlanguagehelp
+msgid ""
+"Only these language codes, comma-separated (a first part such as mxc takes "
+"every code that starts with it)"
 msgstr ""
 
 #: modcrossrepair:rsoptbookhelp
@@ -778,6 +793,10 @@ msgid ""
 "Checks the text of translation projects for verse, marker, punctuation, "
 "quote and number problems, using the checks of usfm-tools' verifyUSFM. "
 "Changes nothing."
+msgstr ""
+
+#: modtextcheck:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated"
 msgstr ""
 
 #: modtextcheck:rsoptskip

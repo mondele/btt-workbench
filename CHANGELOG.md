@@ -8,6 +8,12 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- cross-check and cross-repair: a language's projects are compared
+  together even when they carry different codes that share their first
+  part. Chimanika's Luke (`mxc-MZ-chimanika`) had been compared only with
+  itself, so text pasted into it from Mark and Acts (`mxc-MZ-x-manika`)
+  went unreported. A warning now names the codes, and `--language` takes
+  a first part such as `mxc` and only limits what is reported.
 - Tests: the test program exits with 1 on any failure (a failure count of
   256 used to wrap round to exit code 0).
 

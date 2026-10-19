@@ -186,7 +186,10 @@ linker warnings are harmless.
   tuned on the Chimanika damage of October 2026 (all found) and the
   udm/sah backup (nothing reported); check both again when changing them.
 - `cross-check` and `cross-repair` gather projects and history through
-  `WBCrossScan` (`ListTextProjects`, `ScanLanguage`). `WBCrossRepair`
+  `WBCrossScan` (`ListTextProjects`, `ScanLanguage`). Projects are compared
+  per `LanguageGroup` (first subtag, so `mxc-MZ-x-manika` and
+  `mxc-MZ-chimanika` meet; private-use `qaa`-`qtz`/`x-` codes stay whole);
+  `--language` only chooses what is reported, like `--book`. `WBCrossRepair`
   plans per damaged chunk: the version that brought the copied text into
   that file (`HasCopiedText` with the finding's `Hash`/`Fragment`) gives
   the damaging commit; restore = the file at `<commit>^`, remove = the

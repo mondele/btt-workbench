@@ -21,7 +21,7 @@ implementation
 uses
   Classes, SysUtils, fpjson,
   WBReporter, WBModule, WBCommandLine, WBGit, WBJson, WBDataPaths, WBSources, WBProject,
-  WBChunkHistory, WBCrossCheck, WBCrossRepair, WBWacs, TestUtil;
+  WBChunkHistory, WBCrossCheck, WBCrossScan, WBCrossRepair, WBWacs, TestUtil;
 
 var
   Target: string;
@@ -59,16 +59,17 @@ begin
   RunGitEnv(Dir, All, ['GIT_AUTHOR_DATE=' + Date, 'GIT_COMMITTER_DATE=' + Date]);
 end;
 
-function MakeProject(const Book: string; const Files: array of string): string;
+function MakeProject(const Book: string; const Files: array of string;
+  const Lang: string = 'xx'): string;
 var
   M: TJSONObject;
   S: string;
   P: Integer;
 begin
-  Result := Target + 'xx_' + Book + '_text_reg' + PathDelim;
+  Result := Target + Lang + '_' + Book + '_text_reg' + PathDelim;
   ForceDirectories(Result);
   M := TJSONObject.Create(['package_version', 8,
-    'target_language', TJSONObject.Create(['id', 'xx', 'name', 'Lang xx', 'direction', 'ltr']),
+    'target_language', TJSONObject.Create(['id', Lang, 'name', 'Lang xx', 'direction', 'ltr']),
     'project', TJSONObject.Create(['id', Book, 'name', Book]),
     'type', TJSONObject.Create(['id', 'text', 'name', 'Text']),
     'resource', TJSONObject.Create(['id', 'reg', 'name', 'Regular'])]);
@@ -250,6 +251,34 @@ begin
     Check((Code = 0) and (Pos('which came first is unknown', S) > 0) and
       (LineWith(Output, 'and 0 earlier version(s)') <> ''),
       '--no-history compares current text only and cannot tell which came first');
+
+    { The same language under another code (Chimanika's Luke was
+      mxc-MZ-chimanika, its other books mxc-MZ-x-manika): Luke's chunk
+      pasted over by a Jude chunk must still be found. }
+    Phm := MakeProject('luk', ['01/01.txt=\v 1 ' + Words('luk0101', 1, 30) + '.'], 'xx-YY-alt');
+    Put(Phm + '01/01.txt', '\v 3 ' + Words('jud0103', 1, 20) + '.');
+    Git(Phm, '2026-03-02T10:00:00+0200', 'Paster', ['commit', '-q', '-a', '-m', 'session']);
+    Code := RunModule('cross-check', ['--target-dir', Target], R);
+    try
+      Output := Lines(R);
+    finally
+      R.Free;
+    end;
+    Check((Code = 0) and (LineWith(Output, 'xx, xx-YY-alt: compared 4 project(s)') <> ''),
+      'codes sharing their first part are compared as one language');
+    Check(LineWith(Output, 'under 2 codes (xx, xx-YY-alt)') <> '', 'with a warning naming them');
+    Check(LineWith(Output, '01/01: replaced by text from Jude 01/03') <> '',
+      'text copied from a book under another code is found');
+    Code := RunModule('cross-check', ['--target-dir', Target, '--language', 'xx-yy-alt'], R);
+    try
+      Output := Lines(R);
+    finally
+      R.Free;
+    end;
+    Check((Code = 0) and (LineWith(Output, 'compared 4 project(s)') <> '') and
+      (LineWith(Output, '01/01: replaced by text from Jude 01/03') <> '') and
+      (LineWith(Output, '01/05: replaced') = ''),
+      '--language reports on that code but compares the whole language');
   finally
     BundledSourcesOverride := OldBundled;
   end;
@@ -490,8 +519,20 @@ begin
   end;
 end;
 
+procedure TestLanguageGroup;
+begin
+  Section('cross-check language groups');
+  Check(LanguageGroup('mxc-MZ-x-manika') = 'mxc', 'a code''s group is its first part');
+  Check(LanguageGroup('mxc-MZ-chimanika') = 'mxc', 'so variants of a language meet');
+  Check(LanguageGroup('EN') = 'en', 'a bare code is its own group, lower case');
+  Check(LanguageGroup('qaa-x-abc') = 'qaa-x-abc', 'private-use codes are not grouped');
+  Check(LanguageGroup('qtz-x-abc') = 'qtz-x-abc', 'up to qtz');
+  Check(LanguageGroup('x-abc') = 'x-abc', 'nor are x- codes');
+end;
+
 procedure TestCrossChecks(const TempRoot: string);
 begin
+  TestLanguageGroup;
   TestParseLog;
   TestTokenize;
   TestModule(TempRoot);

@@ -4,7 +4,13 @@ unit WBCrossScan;
 
 (* Gathers what WBCrossCheck compares, for cross-check and cross-repair:
    the text projects of a projects folder, and for one language every
-   current chunk file plus every committed version (WBChunkHistory). *)
+   current chunk file plus every committed version (WBChunkHistory).
+
+   A language is compared as a group of codes that share their first
+   subtag: one language often turns up under several codes (Chimanika as
+   mxc-MZ-x-manika and mxc-MZ-chimanika), and text copied between its
+   books must be found whichever codes the projects carry. Private-use
+   codes (qaa-qtz, x-) name unrelated languages, so each is its own group. *)
 
 interface
 
@@ -14,14 +20,16 @@ uses
 type
   TCrossProject = record
     Folder, Lang, LangName, Book, Resource: string;
-    Report: Boolean;   // passes the book and type filters
+    Group: string;     // LanguageGroup(Lang)
+    Report: Boolean;   // passes the language, book and type filters
   end;
   TCrossProjects = array of TCrossProject;
 
   { One language's chunk files and their history, and what was found. }
   TCrossScan = class
   public
-    Lang: string;
+    Group: string;
+    Codes: TStringArray;   // the language codes of its projects, sorted
     Docs: TCrossDocs;
     Report: array of Boolean;
     Findings: TCrossFindings;
@@ -35,15 +43,19 @@ type
     function FilesChanged(const Project, Commit: string): Integer;
   end;
 
-{ Text projects of the languages in Langs (all when empty); Report is set
-  on those that also match Books and Types. }
+{ The group a language code is compared in: its first subtag, lower case
+  (mxc-MZ-x-manika -> mxc), or the whole code for private-use codes. }
+function LanguageGroup(const Code: string): string;
+{ All text projects; Report is set on those that match Langs (a code or a
+  group), Books and Types. }
 function ListTextProjects(const TargetDir: string;
   const Langs, Books, Types: TStringArray): TCrossProjects;
-{ The languages that have a project to report on, sorted. }
+{ The language groups that have a project to report on, sorted. }
 function ReportLanguages(const Projects: TCrossProjects): TStringArray;
-{ Loads Lang's projects (with history unless NoHistory) and finds the copied
-  text in the projects to report on. The caller frees the result. }
-function ScanLanguage(const TargetDir, Lang: string; const Projects: TCrossProjects;
+{ Loads the projects of language group Group (with history unless
+  NoHistory) and finds the copied text in the projects to report on. The
+  caller frees the result. }
+function ScanLanguage(const TargetDir, Group: string; const Projects: TCrossProjects;
   NoHistory: Boolean; Sources: TSourceLibrary): TCrossScan;
 { 01/04 }
 function ChunkName(const D: TCrossDoc): string;
@@ -86,6 +98,21 @@ begin
   finally
     S.Free;
   end;
+end;
+
+function LanguageGroup(const Code: string): string;
+var
+  First: string;
+  P: Integer;
+begin
+  Result := LowerCase(Code);
+  P := Pos('-', Result);
+  if P = 0 then
+    Exit;
+  First := Copy(Result, 1, P - 1);
+  if (First = 'x') or ((Length(First) = 3) and (First >= 'qaa') and (First <= 'qtz')) then
+    Exit;
+  Result := First;
 end;
 
 function ListTextProjects(const TargetDir: string;
@@ -133,9 +160,11 @@ begin
         P.Book := StrField(Manifest, 'project.id');
         S := StrField(Manifest, 'resource.id');
         P.Resource := S;
-        if (P.Lang = '') or (P.Book = '') or not Matches(Langs, [P.Lang]) then
+        if (P.Lang = '') or (P.Book = '') then
           Continue;
-        P.Report := Matches(Books, [P.Book]) and Matches(Types, ['text', S, 'text_' + S]);
+        P.Group := LanguageGroup(P.Lang);
+        P.Report := Matches(Langs, [P.Lang, P.Group]) and Matches(Books, [P.Book]) and
+          Matches(Types, ['text', S, 'text_' + S]);
         Result := Concat(Result, [P]);
       finally
         Manifest.Free;
@@ -158,7 +187,7 @@ begin
     L.Duplicates := dupIgnore;
     for P in Projects do
       if P.Report then
-        L.Add(P.Lang);
+        L.Add(P.Group);
     Result := nil;
     for S in L do
       Result := Concat(Result, [S]);
@@ -167,7 +196,7 @@ begin
   end;
 end;
 
-function ScanLanguage(const TargetDir, Lang: string; const Projects: TCrossProjects;
+function ScanLanguage(const TargetDir, Group: string; const Projects: TCrossProjects;
   NoHistory: Boolean; Sources: TSourceLibrary): TCrossScan;
 var
   P: TCrossProject;
@@ -179,13 +208,15 @@ var
   J, K, N: Integer;
 begin
   Result := TCrossScan.Create;
-  Result.Lang := Lang;
+  Result.Group := Group;
   N := 0;
   for P in Projects do
   begin
-    if P.Lang <> Lang then
+    if P.Group <> Group then
       Continue;
     Inc(Result.NProjects);
+    if not Contains(Result.Codes, P.Lang) then
+      Result.Codes := Concat(Result.Codes, [P.Lang]);
     Dir := TargetDir + P.Folder + PathDelim;
     Chunks := ProjectChunks(Dir);
     SetLength(Result.Docs, N + Length(Chunks));
@@ -238,6 +269,7 @@ begin
     SetLength(Result.Docs, N);
     SetLength(Result.Report, N);
   end;
+  specialize TArrayHelper<string>.Sort(Result.Codes);
   Result.Findings := FindCopiedText(Result.Docs, Result.Report, Sources);
 end;
 

@@ -37,7 +37,9 @@ resourcestring
     'it in (the version before that commit has the chunk''s own text). Real ' +
     'parallels are left out by comparing the English ULB. Changes nothing.';
   rsOptLanguage = 'Languages';
-  rsOptLanguageHelp = 'Only these target language codes, comma-separated';
+  rsOptLanguageHelp = 'Only report on these language codes, comma-separated ' +
+    '(a first part such as mxc takes every code that starts with it; the ' +
+    'language''s projects under other codes are still compared)';
   rsOptBook = 'Books';
   rsOptBookHelp = 'Only report on these book codes, comma-separated (all books ' +
     'of the language are still compared)';
@@ -54,6 +56,8 @@ resourcestring
   rsFolder = 'Projects folder: %s';
   rsCompared = '%s: compared %d project(s), %d chunk file(s) and %d earlier version(s).';
   rsNoGit = '%s: no git history; only its current text is compared.';
+  rsSeveralCodes = 'This language has projects under %d codes (%s); they are ' +
+    'compared as one language.';
   rsHeader = '%s: %s (%s), %s - %d chunk(s) with text from other books';
   rsHeaderNotes = '%s: %s (%s), %s';
   rsWhole = '%s: replaced by text from %s';
@@ -141,7 +145,11 @@ begin
       try
         for S in Scan.NoGit do
           Reporter.Info(Format(rsNoGit, [S]));
-        Reporter.Info(Format(rsCompared, [Lang, Scan.NProjects, Scan.NCurrent, Scan.NEarlier]));
+        if Length(Scan.Codes) > 1 then
+          Reporter.Warn(Format(rsSeveralCodes, [Length(Scan.Codes),
+            String.Join(', ', Scan.Codes)]));
+        Reporter.Info(Format(rsCompared, [String.Join(', ', Scan.Codes), Scan.NProjects,
+          Scan.NCurrent, Scan.NEarlier]));
 
         { where each chunk's text went }
         Copied.Clear;
@@ -158,7 +166,7 @@ begin
 
         for P in Projects do
         begin
-          if (P.Lang <> Lang) or not P.Report then
+          if (P.Group <> Lang) or not P.Report then
             Continue;
           Inc(Checked);
           Lines.Clear;
