@@ -707,6 +707,100 @@ msgid ""
 "and import the changed ones."
 msgstr ""
 
+#: modlibrarylanguages:rstitle
+msgid "Update target languages"
+msgstr ""
+
+#: modlibrarylanguages:rsdescription
+msgid ""
+"Does what BTT-Writer's Update Languages does (the target languages, "
+"temporary languages and their approved codes, and the new-language "
+"questions), downloading the catalogs at once. The result is written to a "
+"copy of BTT-Writer's index.sqlite; BTT-Writer's own is not changed."
+msgstr ""
+
+#: modlibrarylanguages:rsoptlibrarydbhelp
+msgid "The index.sqlite to start from (default: BTT-Writer's)"
+msgstr ""
+
+#: modlibrarylanguages:rsoptoutput
+msgid "Write to"
+msgstr ""
+
+#: modlibrarylanguages:rsoptoutputhelp
+msgid "The updated copy of index.sqlite to write"
+msgstr ""
+
+#: modlibrarylanguages:rsoptlanguagesurl
+msgid "Languages catalog"
+msgstr ""
+
+#: modlibrarylanguages:rsoptlanguagesurlhelp
+msgid ""
+"Where the target languages come from (default: BTT-Writer's, langnames.json)"
+msgstr ""
+
+#: modlibrarylanguages:rsoptconnections
+msgid "Downloads at once"
+msgstr ""
+
+#: modlibrarylanguages:rsoptconnectionshelp
+msgid "How many catalogs to download at the same time (default 8)"
+msgstr ""
+
+#: modlibrarylanguages:rsnosqlite
+msgid ""
+"No SQLite library was found on this computer, so index.sqlite cannot be "
+"written."
+msgstr ""
+
+#: modlibrarylanguages:rsnoinput
+msgid "The language database was not found: %s"
+msgstr ""
+
+#: modlibrarylanguages:rscannotcopy
+msgid "Cannot write %s: %s"
+msgstr ""
+
+#: modlibrarylanguages:rsusing
+msgid "From %s, written to %s (SQLite %s)."
+msgstr ""
+
+#: modlibrarylanguages:rsdone
+msgid ""
+"Target languages: %d before, %d now. Temporary languages: %d before, %d now, "
+"%d with an approved code. New-language questions: %d. (%.1f s)"
+msgstr ""
+
+#: modlibrarysources:rstitle
+msgid "Update source list"
+msgstr ""
+
+#: modlibrarysources:rsdescription
+msgid ""
+"Does what BTT-Writer's Update Sources does (the list of source texts, their "
+"languages and projects, and translationAcademy), downloading many catalogs "
+"at once: about half a minute instead of five. The source texts themselves "
+"are not downloaded. The result is written to a copy of BTT-Writer's index."
+"sqlite; BTT-Writer's own is not changed."
+msgstr ""
+
+#: modlibrarysources:rsoptserver
+msgid "Source server"
+msgstr ""
+
+#: modlibrarysources:rsoptserverhelp
+msgid ""
+"Where the source catalog comes from (default: BTT-Writer's, https://api."
+"bibletranslationtools.org)"
+msgstr ""
+
+#: modlibrarysources:rsdone
+msgid ""
+"Source languages: %d before, %d now. Projects: %d before, %d now. Resources: "
+"%d before, %d now. (%.1f s)"
+msgstr ""
+
 #: modprojects:rstitle
 msgid "Project list and problems"
 msgstr ""
@@ -2339,6 +2433,33 @@ msgstr ""
 msgid ""
 "Could not simulate importing %s; checks of later packages for this project "
 "may be incomplete."
+msgstr ""
+
+#: wblibraryupdate:rsfetching
+msgid "Downloading %s: %d of %d..."
+msgstr ""
+
+#: wblibraryupdate:rsfetchfailed
+msgid ""
+"Could not download %s (%s); it is left out, as BTT-Writer leaves it out."
+msgstr ""
+
+#: wblibraryupdate:rsbadcatalog
+msgid "%s is not what was expected (%s)."
+msgstr ""
+
+#: wblibraryupdate:rsindexing
+msgid "Writing %s..."
+msgstr ""
+
+#: wblibraryupdate:rsinvalidentry
+msgid ""
+"%s: an entry BTT-Writer would refuse (%s); it stops there, and so does this."
+msgstr ""
+
+#: wblibraryupdate:rslanguagesfailed
+msgid ""
+"The language update stopped at %s, as BTT-Writer's does; nothing was changed."
 msgstr ""
 
 #: wbmodule:rsmissingoption

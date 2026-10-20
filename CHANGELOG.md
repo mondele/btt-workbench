@@ -8,6 +8,15 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- New modules **library-languages** ("Update target languages") and
+  **library-sources** ("Update source list"): BTT-Writer's Update
+  Languages and Update Sources, downloading catalogs several at once
+  (languages about 1.5 s, sources about 30 s where BTT-Writer takes 3.5 to
+  5.5 minutes). They write an updated copy of index.sqlite with the rows
+  BTT-Writer would write; BTT-Writer's own file is not changed yet.
+- WACS and catalog access on Linux get past Cloudflare on
+  cdn.bibletranslationtools.org, and JSON with `\u` escapes keeps its
+  non-ASCII text.
 - GUI: the language, book and type filters, and the WACS owner, are
   pickers: editable drop-downs that complete what is typed, list the
   matches and still take anything (each value of a comma-separated list on

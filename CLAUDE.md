@@ -242,6 +242,29 @@ linker warnings are harmless.
   another book sharing 2+ word runs has (slack 2). On the Chimanika copy
   (2026-10-16) all 103 damaged chunks planned clean and repaired with
   cross-check then finding nothing; rehearse on a copy (`--target-dir`).
+- Library updates (`WBLibraryUpdate`, modules `library-languages`,
+  `library-sources`): BTT-Writer 1.6.0's npm door43-client-fork
+  (`updateCatalogs`, `updateResources`/`updateTA`) ported literally: the
+  same SQL text (`insertOrUpdate`: insert or ignore, then update every
+  column but the first unique one, then select the id), same order, same
+  values (`JV` binds JSON as sql.js 0.3.2 binds JavaScript values, NULL
+  for missing), same stop-at-the-first-invalid-entry per file; only the
+  downloads run in parallel (`FetchAll`, threads with
+  `HttpKeepConnections`). Checked against BTT-Writer's own output on the
+  live catalogs (October 2026): every table equal, ids included. To check
+  again: run BTT-Writer's code headless (`ELECTRON_RUN_AS_NODE=1
+  /usr/lib/btt-writer/BTT-Writer script.js` requiring
+  `resources/app/node_modules/door43-client-fork/lib/main`) on a copy of
+  the same index.sqlite and compare with `except`. Writing goes through
+  `WBSqliteDb` (the system SQLite, loaded at run time); reading stays
+  `WBSqlite`. They write a copy (`--output`), never BTT-Writer's file.
+- `WBHttp` on Linux: `TWBSSLHandler` sends the post_handshake_auth TLS
+  extension (Cloudflare on cdn.bibletranslationtools.org answers 403 to a
+  handshake without it); `DecodeJsonEscapes` turns `\uXXXX` into UTF-8
+  before parsing, because FPC 3.2.2's JSON scanner mangles them without
+  cwstring (every other Thai/CJK character became U+FFFD); keep-alive
+  connections are per thread and per server (fphttpclient would send a
+  request for one host down a connection to another).
 - A standalone FPC program using these units needs `cwstring` (lazbuild
   programs here do without), or string conversion is very slow or fails.
 - Sources are downloaded from WACS, not Door43.
