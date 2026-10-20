@@ -12,8 +12,11 @@ Each release's section below is also its release notes on GitHub.
   **library-sources** ("Update source list"): BTT-Writer's Update
   Languages and Update Sources, downloading catalogs several at once
   (languages about 1.5 s, sources about 30 s where BTT-Writer takes 3.5 to
-  5.5 minutes). They write an updated copy of index.sqlite with the rows
-  BTT-Writer would write; BTT-Writer's own file is not changed yet.
+  5.5 minutes), writing the rows BTT-Writer would write. They report what
+  changed (languages or resources added, removed and changed, and projects
+  whose language code goes), and replace BTT-Writer's index.sqlite only
+  while BTT-Writer is not running, keeping the old one beside it; or write
+  elsewhere (`--output`), or only report (Check).
 - WACS and catalog access on Linux get past Cloudflare on
   cdn.bibletranslationtools.org, and JSON with `\u` escapes keeps its
   non-ASCII text.

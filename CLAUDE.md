@@ -257,7 +257,13 @@ linker warnings are harmless.
   `resources/app/node_modules/door43-client-fork/lib/main`) on a copy of
   the same index.sqlite and compare with `except`. Writing goes through
   `WBSqliteDb` (the system SQLite, loaded at run time); reading stays
-  `WBSqlite`. They write a copy (`--output`), never BTT-Writer's file.
+  `WBSqlite`. `RunLibraryUpdate` works on a copy (temp file for
+  `--dry-run`, `<index>.workbench-new` beside it otherwise), snapshots the
+  tables before and after for the change report, then writes `--output`
+  or replaces the index: only if `WBProcesses.BttWriterRunning` is false
+  (checked before and again just before the rename; BTT-Writer holds
+  index.sqlite in memory and would write the old one back), keeping
+  `index.sqlite.before-<date-time>`. Tests set `BttWriterRunningOverride`.
 - `WBHttp` on Linux: `TWBSSLHandler` sends the post_handshake_auth TLS
   extension (Cloudflare on cdn.bibletranslationtools.org answers 403 to a
   handshake without it); `DecodeJsonEscapes` turns `\uXXXX` into UTF-8

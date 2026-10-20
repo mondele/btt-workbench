@@ -53,6 +53,24 @@ function FetchAll(const Urls: array of string; Connections: Integer;
   Reporter: TWBReporter; const What: string): TFetchedList;
 procedure FreeFetched(var List: TFetchedList);
 
+type
+  TLibraryUpdateKind = (luLanguages, luSources);
+
+  TLibraryRun = record
+    Kind: TLibraryUpdateKind;
+    Input: string;        // the index.sqlite to start from
+    Output: string;       // where to write; '' = replace Input (a backup is kept)
+    DryRun: Boolean;      // report what would change; write nothing
+    Url: string;          // languages: langnames URL; sources: the server
+    Connections: Integer;
+  end;
+
+{ Runs an update as the modules do: on a copy, with a report of what
+  changed, then (unless DryRun) writes Output or replaces Input, the latter
+  only while BTT-Writer is not running, keeping the old file as a backup.
+  Returns the exit code. }
+function RunLibraryUpdate(const Run: TLibraryRun; Reporter: TWBReporter): Integer;
+
 { BTT-Writer's own index.sqlite: <data>/library/index.sqlite. }
 function LibraryIndexFile: string;
 { Copies Source to Target (the update works on the copy) and opens it.
@@ -70,7 +88,7 @@ function UpdateSourceList(Db: TSqliteDb; const Server: string;
 implementation
 
 uses
-  SyncObjs, WBHttp, WBDataPaths;
+  SyncObjs, jsonparser, WBHttp, WBDataPaths, WBProcesses;
 
 resourcestring
   rsFetching = 'Downloading %s: %d of %d...';
@@ -82,10 +100,370 @@ resourcestring
     'does this.';
   rsLanguagesFailed = 'The language update stopped at %s, as BTT-Writer''s does; ' +
     'nothing was changed.';
+  rsNoSqlite = 'No SQLite library was found on this computer, so index.sqlite cannot be written.';
+  rsNoInput = 'The language database was not found: %s';
+  rsCannotCopy = 'Cannot write %s: %s';
+  rsRunning = 'BTT-Writer is running (%s). Close it first: it keeps index.sqlite in memory ' +
+    'and would write the old one back. Nothing was changed.';
+  rsUsingInPlace = 'Updating %s (SQLite %s).';
+  rsUsingCopy = 'From %s, written to %s (SQLite %s).';
+  rsUsingCheck = 'Checking what an update of %s would change (SQLite %s).';
+  rsNoChanges = '%s: no changes.';
+  rsAdded = '%s added: %d';
+  rsRemoved = '%s removed: %d';
+  rsChanged = '%s changed: %d';
+  rsChangedLine = '  * %s  %s  ->  %s';
+  rsTargetLanguages = 'Target languages';
+  rsTempLanguages = 'Temporary languages';
+  rsQuestions = 'New-language questions';
+  rsSourceLanguages = 'Source languages';
+  rsResources = 'Resources (language/project/resource)';
+  rsTook = 'Done in %.1f s.';
+  rsCheckOnly = 'Check only: nothing was written.';
+  rsWrote = 'Written to %s.';
+  rsReplaced = '%s updated; the old one is kept as %s.';
+  rsReplaceFailed = 'Could not put the new index.sqlite in place (%s). %s is unchanged.';
+  rsProjectsLoseLanguage = 'Projects in %s whose language code this update removes ' +
+    '(BTT-Writer will no longer know the code; the projects keep it):';
+  rsProjectLine = '  %s: %s';
 
 const
   PackageVersion = '0.1';   // resource-container spec.version
   MimeBase = 'application/tsrc+';
+
+{ ---- what changed ---- }
+
+{ key -> description, from SQL giving key || char(9) || description }
+function Snapshot(Db: TSqliteDb; const SQL: string): TStringList;
+var
+  Row: string;
+begin
+  Result := TStringList.Create;
+  Result.UseLocale := False;
+  Result.CaseSensitive := True;
+  Result.Sorted := True;
+  Result.Duplicates := dupIgnore;
+  for Row in Db.QueryTexts(SQL, []) do
+    Result.Add(Row);
+end;
+
+function KeyOf(const Row: string): string;
+begin
+  Result := Copy(Row, 1, Pos(#9, Row) - 1);
+end;
+
+function DescOf(const Row: string): string;
+begin
+  Result := Copy(Row, Pos(#9, Row) + 1, MaxInt);
+end;
+
+{ Reports what was added, removed and changed; Gone gets the removed keys. }
+procedure ReportChanges(Reporter: TWBReporter; const What: string; Before, After: TStringList;
+  out Gone: TStringArray);
+var
+  Keys: TStringList;
+  Added, Removed, Changed: TStringArray;
+  I, J: Integer;
+  K: string;
+begin
+  Keys := TStringList.Create;
+  try
+    Keys.UseLocale := False;
+    Keys.CaseSensitive := True;
+    Keys.Sorted := True;
+    for I := 0 to Before.Count - 1 do
+      Keys.AddObject(KeyOf(Before[I]), TObject(PtrInt(I)));
+    Added := nil;
+    Removed := nil;
+    Changed := nil;
+    for I := 0 to After.Count - 1 do
+    begin
+      K := KeyOf(After[I]);
+      J := Keys.IndexOf(K);
+      if J < 0 then
+        Added := Concat(Added, ['  + ' + K + '  ' + DescOf(After[I])])
+      else
+      begin
+        if DescOf(Before[PtrInt(Keys.Objects[J])]) <> DescOf(After[I]) then
+          Changed := Concat(Changed, [Format(rsChangedLine, [K,
+            DescOf(Before[PtrInt(Keys.Objects[J])]), DescOf(After[I])])]);
+        Keys.Objects[J] := TObject(PtrInt(-1));
+      end;
+    end;
+    Gone := nil;
+    for J := 0 to Keys.Count - 1 do
+      if PtrInt(Keys.Objects[J]) >= 0 then
+      begin
+        Removed := Concat(Removed, ['  - ' + Keys[J] + '  ' +
+          DescOf(Before[PtrInt(Keys.Objects[J])])]);
+        Gone := Concat(Gone, [Keys[J]]);
+      end;
+  finally
+    Keys.Free;
+  end;
+  if Length(Added) + Length(Removed) + Length(Changed) = 0 then
+  begin
+    Reporter.Info(Format(rsNoChanges, [What]));
+    Exit;
+  end;
+  if Length(Added) > 0 then
+  begin
+    Reporter.Info(Format(rsAdded, [What, Length(Added)]));
+    for K in Added do
+      Reporter.Info(K);
+  end;
+  if Length(Removed) > 0 then
+  begin
+    Reporter.Info(Format(rsRemoved, [What, Length(Removed)]));
+    for K in Removed do
+      Reporter.Info(K);
+  end;
+  if Length(Changed) > 0 then
+  begin
+    Reporter.Info(Format(rsChanged, [What, Length(Changed)]));
+    for K in Changed do
+      Reporter.Info(K);
+  end;
+end;
+
+{ Projects in Folder whose target language is one of Codes. }
+procedure ReportProjectsUsing(Reporter: TWBReporter; const Folder: string;
+  const Codes: TStringArray);
+var
+  SR: TSearchRec;
+  Set_: TStringList;
+  Lines: TStringArray;
+  M: TJSONData;
+  Code: string;
+begin
+  if (Length(Codes) = 0) or not DirectoryExists(Folder) then
+    Exit;
+  Set_ := TStringList.Create;
+  try
+    Set_.UseLocale := False;
+    Set_.Sorted := True;
+    for Code in Codes do
+      Set_.Add(LowerCase(Code));
+    Lines := nil;
+    if FindFirst(IncludeTrailingPathDelimiter(Folder) + '*', faDirectory, SR) = 0 then
+    try
+      repeat
+        if (SR.Name[1] = '.') or not FileExists(IncludeTrailingPathDelimiter(Folder) + SR.Name +
+           PathDelim + 'manifest.json') then
+          Continue;
+        try
+          with TStringList.Create do
+          try
+            LoadFromFile(IncludeTrailingPathDelimiter(Folder) + SR.Name + PathDelim + 'manifest.json');
+            M := GetJSON(Text, True);
+          finally
+            Free;
+          end;
+        except
+          Continue;
+        end;
+        try
+          Code := '';
+          if (M is TJSONObject) and (TJSONObject(M).FindPath('target_language.id') <> nil) then
+            Code := TJSONObject(M).FindPath('target_language.id').AsString;
+        finally
+          M.Free;
+        end;
+        if (Code <> '') and (Set_.IndexOf(LowerCase(Code)) >= 0) then
+          Lines := Concat(Lines, [Format(rsProjectLine, [Code, SR.Name])]);
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+    if Length(Lines) = 0 then
+      Exit;
+    Reporter.Warn(Format(rsProjectsLoseLanguage, [Folder]));
+    for Code in Lines do
+      Reporter.Warn(Code);
+  finally
+    Set_.Free;
+  end;
+end;
+
+const
+  TargetSQL = 'select slug || char(9) || name || '' ('' || coalesce(anglicized_name, '''') || ''), '' ' +
+    '|| direction || '', '' || region || case when is_gateway_language = 1 then '', gateway'' ' +
+    'else '''' end from target_language';
+  TempSQL = 'select slug || char(9) || name || '', '' || direction || ' +
+    'coalesce('', approved as '' || approved_target_language_slug, '''') from temp_target_language';
+  QuestionsSQL = 'select q.language_slug || ''/'' || qn.td_id || char(9) || qn.text from question qn ' +
+    'join questionnaire q on q.id = qn.questionnaire_id';
+  SourceLanguagesSQL = 'select slug || char(9) || name || '', '' || direction from source_language';
+  ResourcesSQL = 'select l.slug || ''/'' || p.slug || ''/'' || r.slug || char(9) || ''version '' || ' +
+    'r.version || '', checking level '' || r.checking_level || '', '' || r.type || '', modified '' || ' +
+    'coalesce((select group_concat(f.modified_at) from resource_format f where f.resource_id = r.id), ' +
+    '''-'') from resource r join project p on p.id = r.project_id join source_language l ' +
+    'on l.id = p.source_language_id';
+
+function RunLibraryUpdate(const Run: TLibraryRun; Reporter: TWBReporter): Integer;
+var
+  Version, Work, Target, Detail, Backup, Problem: string;
+  InPlace, Ok: Boolean;
+  Db: TSqliteDb;
+  SQLs: array of string;
+  Titles: array of string;
+  Before, After: array of TStringList;
+  I, K: Integer;
+  Started: QWord;
+  Gone, StillTemp: TStringArray;
+  Temps: TStringList;
+begin
+  Result := 1;
+  Version := SqliteLibraryVersion;
+  if Version = '' then
+  begin
+    Reporter.Error(rsNoSqlite);
+    Exit;
+  end;
+  if not FileExists(Run.Input) then
+  begin
+    Reporter.Error(Format(rsNoInput, [Run.Input]));
+    Exit;
+  end;
+  InPlace := Run.Output = '';
+  if InPlace then
+    Target := Run.Input
+  else
+    Target := ExpandFileName(Run.Output);
+  if InPlace and not Run.DryRun and BttWriterRunning(Detail) then
+  begin
+    Reporter.Error(Format(rsRunning, [Detail]));
+    Exit;
+  end;
+  if Run.DryRun then
+    Work := GetTempFileName(GetTempDir(False), 'btw-index-')
+  else if InPlace then
+    Work := Target + '.workbench-new'
+  else
+    Work := Target;
+  if Run.DryRun then
+    Reporter.Info(Format(rsUsingCheck, [Run.Input, Version]))
+  else if InPlace then
+    Reporter.Info(Format(rsUsingInPlace, [Run.Input, Version]))
+  else
+    Reporter.Info(Format(rsUsingCopy, [Run.Input, Target, Version]));
+
+  if Run.Kind = luLanguages then
+  begin
+    SQLs := [TargetSQL, TempSQL, QuestionsSQL];
+    Titles := [rsTargetLanguages, rsTempLanguages, rsQuestions];
+  end
+  else
+  begin
+    SQLs := [SourceLanguagesSQL, ResourcesSQL];
+    Titles := [rsSourceLanguages, rsResources];
+  end;
+  SetLength(Before, Length(SQLs));
+  SetLength(After, Length(SQLs));
+  Db := OpenCopy(Run.Input, Work, Problem);
+  if Db = nil then
+  begin
+    Reporter.Error(Format(rsCannotCopy, [Work, Problem]));
+    Exit;
+  end;
+  Ok := False;
+  try
+    try
+      for I := 0 to High(SQLs) do
+        Before[I] := Snapshot(Db, SQLs[I]);
+      Started := GetTickCount64;
+      if Run.Kind = luLanguages then
+        Ok := UpdateTargetLanguages(Db, Run.Url, Run.Connections, Reporter)
+      else
+        Ok := UpdateSourceList(Db, Run.Url, Run.Connections, Reporter);
+      if Ok then
+      begin
+        for I := 0 to High(SQLs) do
+          After[I] := Snapshot(Db, SQLs[I]);
+        Reporter.Info('');
+        for I := 0 to High(SQLs) do
+        begin
+          ReportChanges(Reporter, Titles[I], Before[I], After[I], Gone);
+          if (Run.Kind = luLanguages) and (I = 0) then
+          begin
+            { a code dropped from the target languages but still a
+              temporary one is known to BTT-Writer }
+            Temps := TStringList.Create;
+            try
+              Temps.UseLocale := False;
+              Temps.Sorted := True;
+              for K := 0 to After[1].Count - 1 do
+                Temps.Add(LowerCase(KeyOf(After[1][K])));
+              StillTemp := nil;
+              for K := 0 to High(Gone) do
+                if Temps.IndexOf(LowerCase(Gone[K])) < 0 then
+                  StillTemp := Concat(StillTemp, [Gone[K]]);
+            finally
+              Temps.Free;
+            end;
+            ReportProjectsUsing(Reporter, ExtractFilePath(ExtractFileDir(Run.Input)) +
+              'targetTranslations', StillTemp);
+          end;
+        end;
+        Reporter.Info('');
+        Reporter.Info(Format(rsTook, [(GetTickCount64 - Started) / 1000]));
+      end;
+    finally
+      Db.Free;
+      for I := 0 to High(SQLs) do
+      begin
+        Before[I].Free;
+        After[I].Free;
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      Reporter.Error(E.Message);
+      Ok := False;
+    end;
+  end;
+
+  if not Ok or Run.DryRun then
+  begin
+    if Run.DryRun or InPlace then
+      DeleteFile(Work);
+    if Ok then
+    begin
+      Reporter.Info(rsCheckOnly);
+      Result := 0;
+    end;
+    Exit;
+  end;
+  if not InPlace then
+  begin
+    Reporter.Info(Format(rsWrote, [Target]));
+    Exit(0);
+  end;
+  { replace BTT-Writer's file, if it is still not running }
+  if BttWriterRunning(Detail) then
+  begin
+    DeleteFile(Work);
+    Reporter.Error(Format(rsRunning, [Detail]));
+    Exit;
+  end;
+  Backup := Target + '.before-' + FormatDateTime('yyyy-mm-dd-hhnnss', Now);
+  if not RenameFile(Target, Backup) then
+  begin
+    DeleteFile(Work);
+    Reporter.Error(Format(rsReplaceFailed, ['cannot rename it', Target]));
+    Exit;
+  end;
+  if not RenameFile(Work, Target) then
+  begin
+    RenameFile(Backup, Target);
+    DeleteFile(Work);
+    Reporter.Error(Format(rsReplaceFailed, ['cannot rename the new one', Target]));
+    Exit;
+  end;
+  Reporter.Info(Format(rsReplaced, [Target, Backup]));
+  Result := 0;
+end;
 
 function LibraryIndexFile: string;
 begin

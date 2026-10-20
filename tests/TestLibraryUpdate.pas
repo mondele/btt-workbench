@@ -20,6 +20,7 @@ implementation
 
 uses
   Classes, SysUtils, fphttpserver, httpdefs, WBReporter, WBHttp, WBSqliteDb, WBLibraryUpdate,
+  WBProcesses,
   TestUtil;
 
 type
@@ -195,8 +196,10 @@ end;
 
 procedure TestLanguages(const Data: string);
 var
-  Index, Out1, Output: string;
+  Index, Out1, Output, Before: string;
   Code: Integer;
+  SR: TSearchRec;
+  Backups: Integer;
 begin
   Section('library-languages');
   Put('langnames.json', '[{"lc": "aa", "ln": "Qafaraf", "ang": "Afar", "ld": "ltr", ' +
@@ -211,7 +214,12 @@ begin
     '{"id": 0, "text": "Name?", "help": "h", "required": true, "input_type": "string", ' +
     '"sort": 1, "depends_on": null}, {"id": 1, "text": "Where?", "input_type": "string", ' +
     '"sort": 2, "depends_on": 0}]}]}');
-  Index := Data + 'index.sqlite';
+  { BTT-Writer's layout: <data>/library/index.sqlite, <data>/targetTranslations }
+  Index := Data + 'library' + PathDelim + 'index.sqlite';
+  ForceDirectories(Data + 'library');
+  ForceDirectories(Data + 'targetTranslations' + PathDelim + 'zz_tit_text_reg');
+  WriteFileText(Data + 'targetTranslations' + PathDelim + 'zz_tit_text_reg' + PathDelim +
+    'manifest.json', '{"target_language": {"id": "zz", "name": "Gone"}}');
   MakeIndex(Index, 'insert into target_language (slug, name, direction, region) values ' +
     '(''zz'', ''Gone'', ''ltr'', '''');' +
     'insert into temp_target_language (slug, name, direction, region, approved_target_language_slug)' +
@@ -240,7 +248,7 @@ begin
   Check(Q(Output, 'select slug || ''='' || url from catalog where slug=''langnames''') =
     'langnames=' + Base + '/langnames.json', 'the catalogs BTT-Writer keeps');
   Check(Q(Index, 'select count(*) from target_language') = '1', 'the source database is not changed');
-  Check(Pos('Target languages: 1 before, 3 now', Out1) > 0, 'reported');
+  Check((Pos('Target languages added: 3', Out1) > 0) and (Pos('Written to ', Out1) > 0), 'reported');
 
   { an entry BTT-Writer would refuse: it stops, and nothing changes }
   Put('bad.json', '[{"lc": "bb", "ln": "B", "ld": "ltr"}, {"lc": "cc", "ln": "", "ld": "ltr"}]');
@@ -250,6 +258,51 @@ begin
     'an invalid entry: stopped, rolled back');
   Out1 := Run('library-languages', ['--library-db', Index, '--output', Index], Code);
   Check(Code = 1, 'the output must be another file');
+
+  { the report, from a check that writes nothing }
+  Before := ReadFileText(Index);
+  Out1 := Run('library-languages', ['--library-db', Index, '--dry-run',
+    '--languages-url', Base + '/langnames.json'], Code);
+  Check((Code = 0) and (ReadFileText(Index) = Before) and (Pos('Check only', Out1) > 0),
+    'a check changes nothing');
+  Check((Pos('Target languages added: 3', Out1) > 0) and
+    (Pos('  + th  ไทย (Thai), ltr, Asia, gateway', Out1) > 0) and
+    (Pos('Target languages removed: 1', Out1) > 0) and (Pos('  - zz  Gone (), ltr, ', Out1) > 0),
+    'the report lists the target languages added and removed');
+  Check(Pos('  * qaa-x-000001  Old, ltr, approved as old  ->  Temp One, ltr, approved as aa',
+    Out1) > 0, 'and the temporary languages changed');
+  Check(Pos('zz: zz_tit_text_reg', Out1) > 0,
+    'projects whose language code goes are named');
+
+  { BTT-Writer's own file: not while it runs; else replaced, the old one kept }
+  BttWriterRunningOverride := 'yes';
+  try
+    Out1 := Run('library-languages', ['--library-db', Index, '--languages-url',
+      Base + '/langnames.json'], Code);
+  finally
+    BttWriterRunningOverride := '';
+  end;
+  Check((Code = 1) and (Pos('BTT-Writer is running', Out1) > 0) and (ReadFileText(Index) = Before),
+    'refused while BTT-Writer runs');
+  BttWriterRunningOverride := 'no';
+  try
+    Out1 := Run('library-languages', ['--library-db', Index, '--languages-url',
+      Base + '/langnames.json'], Code);
+  finally
+    BttWriterRunningOverride := '';
+  end;
+  Backups := 0;
+  if FindFirst(Index + '.before-*', faAnyFile, SR) = 0 then
+  begin
+    repeat
+      if ReadFileText(Data + 'library' + PathDelim + SR.Name) = Before then
+        Inc(Backups);
+    until FindNext(SR) <> 0;
+    FindClose(SR);
+  end;
+  Check((Code = 0) and (Q(Index, 'select slug from target_language order by id') = 'aa|th|ar') and
+    (Backups = 1) and not FileExists(Index + '.workbench-new'),
+    'BTT-Writer''s file replaced, the old one kept beside it');
 end;
 
 procedure TestSources(const Data: string);

@@ -713,14 +713,16 @@ msgstr ""
 
 #: modlibrarylanguages:rsdescription
 msgid ""
-"Does what BTT-Writer's Update Languages does (the target languages, "
-"temporary languages and their approved codes, and the new-language "
-"questions), downloading the catalogs at once. The result is written to a "
-"copy of BTT-Writer's index.sqlite; BTT-Writer's own is not changed."
+"Does what BTT-Writer's Update Languages does to its index.sqlite (the target "
+"languages, temporary languages and their approved codes, and the new-"
+"language questions), downloading the catalogs at once, and reports what "
+"changed. BTT-Writer must be closed; its old index.sqlite is kept beside the "
+"new one. Check first to see what would change, or write elsewhere with Write "
+"to."
 msgstr ""
 
 #: modlibrarylanguages:rsoptlibrarydbhelp
-msgid "The index.sqlite to start from (default: BTT-Writer's)"
+msgid "The index.sqlite to update (default: BTT-Writer's)"
 msgstr ""
 
 #: modlibrarylanguages:rsoptoutput
@@ -728,7 +730,13 @@ msgid "Write to"
 msgstr ""
 
 #: modlibrarylanguages:rsoptoutputhelp
-msgid "The updated copy of index.sqlite to write"
+msgid ""
+"Write the updated index.sqlite here instead (BTT-Writer's is then not "
+"changed)"
+msgstr ""
+
+#: modlibrarylanguages:rsoptdryrunhelp
+msgid "Download and report what would change, writing nothing"
 msgstr ""
 
 #: modlibrarylanguages:rsoptlanguagesurl
@@ -748,41 +756,18 @@ msgstr ""
 msgid "How many catalogs to download at the same time (default 8)"
 msgstr ""
 
-#: modlibrarylanguages:rsnosqlite
-msgid ""
-"No SQLite library was found on this computer, so index.sqlite cannot be "
-"written."
-msgstr ""
-
-#: modlibrarylanguages:rsnoinput
-msgid "The language database was not found: %s"
-msgstr ""
-
-#: modlibrarylanguages:rscannotcopy
-msgid "Cannot write %s: %s"
-msgstr ""
-
-#: modlibrarylanguages:rsusing
-msgid "From %s, written to %s (SQLite %s)."
-msgstr ""
-
-#: modlibrarylanguages:rsdone
-msgid ""
-"Target languages: %d before, %d now. Temporary languages: %d before, %d now, "
-"%d with an approved code. New-language questions: %d. (%.1f s)"
-msgstr ""
-
 #: modlibrarysources:rstitle
 msgid "Update source list"
 msgstr ""
 
 #: modlibrarysources:rsdescription
 msgid ""
-"Does what BTT-Writer's Update Sources does (the list of source texts, their "
-"languages and projects, and translationAcademy), downloading many catalogs "
-"at once: about half a minute instead of five. The source texts themselves "
-"are not downloaded. The result is written to a copy of BTT-Writer's index."
-"sqlite; BTT-Writer's own is not changed."
+"Does what BTT-Writer's Update Sources does to its index.sqlite (the list of "
+"source texts, their languages and projects, and translationAcademy), "
+"downloading many catalogs at once: about half a minute instead of five. The "
+"source texts themselves are not downloaded. Reports what changed. BTT-Writer "
+"must be closed; its old index.sqlite is kept beside the new one. Check first "
+"to see what would change, or write elsewhere with Write to."
 msgstr ""
 
 #: modlibrarysources:rsoptserver
@@ -793,12 +778,6 @@ msgstr ""
 msgid ""
 "Where the source catalog comes from (default: BTT-Writer's, https://api."
 "bibletranslationtools.org)"
-msgstr ""
-
-#: modlibrarysources:rsdone
-msgid ""
-"Source languages: %d before, %d now. Projects: %d before, %d now. Resources: "
-"%d before, %d now. (%.1f s)"
 msgstr ""
 
 #: modprojects:rstitle
@@ -2460,6 +2439,108 @@ msgstr ""
 #: wblibraryupdate:rslanguagesfailed
 msgid ""
 "The language update stopped at %s, as BTT-Writer's does; nothing was changed."
+msgstr ""
+
+#: wblibraryupdate:rsnosqlite
+msgid ""
+"No SQLite library was found on this computer, so index.sqlite cannot be "
+"written."
+msgstr ""
+
+#: wblibraryupdate:rsnoinput
+msgid "The language database was not found: %s"
+msgstr ""
+
+#: wblibraryupdate:rscannotcopy
+msgid "Cannot write %s: %s"
+msgstr ""
+
+#: wblibraryupdate:rsrunning
+msgid ""
+"BTT-Writer is running (%s). Close it first: it keeps index.sqlite in memory "
+"and would write the old one back. Nothing was changed."
+msgstr ""
+
+#: wblibraryupdate:rsusinginplace
+msgid "Updating %s (SQLite %s)."
+msgstr ""
+
+#: wblibraryupdate:rsusingcopy
+msgid "From %s, written to %s (SQLite %s)."
+msgstr ""
+
+#: wblibraryupdate:rsusingcheck
+msgid "Checking what an update of %s would change (SQLite %s)."
+msgstr ""
+
+#: wblibraryupdate:rsnochanges
+msgid "%s: no changes."
+msgstr ""
+
+#: wblibraryupdate:rsadded
+msgid "%s added: %d"
+msgstr ""
+
+#: wblibraryupdate:rsremoved
+msgid "%s removed: %d"
+msgstr ""
+
+#: wblibraryupdate:rschanged
+msgid "%s changed: %d"
+msgstr ""
+
+#: wblibraryupdate:rschangedline
+msgid "  * %s  %s  ->  %s"
+msgstr ""
+
+#: wblibraryupdate:rstargetlanguages
+msgid "Target languages"
+msgstr ""
+
+#: wblibraryupdate:rstemplanguages
+msgid "Temporary languages"
+msgstr ""
+
+#: wblibraryupdate:rsquestions
+msgid "New-language questions"
+msgstr ""
+
+#: wblibraryupdate:rssourcelanguages
+msgid "Source languages"
+msgstr ""
+
+#: wblibraryupdate:rsresources
+msgid "Resources (language/project/resource)"
+msgstr ""
+
+#: wblibraryupdate:rstook
+msgid "Done in %.1f s."
+msgstr ""
+
+#: wblibraryupdate:rscheckonly
+msgid "Check only: nothing was written."
+msgstr ""
+
+#: wblibraryupdate:rswrote
+msgid "Written to %s."
+msgstr ""
+
+#: wblibraryupdate:rsreplaced
+msgid "%s updated; the old one is kept as %s."
+msgstr ""
+
+#: wblibraryupdate:rsreplacefailed
+msgid "Could not put the new index.sqlite in place (%s). %s is unchanged."
+msgstr ""
+
+#: wblibraryupdate:rsprojectsloselanguage
+msgid ""
+"Projects in %s whose language code this update removes (BTT-Writer will no "
+"longer know the code; the projects keep it):"
+msgstr ""
+
+#: wblibraryupdate:rsprojectline
+msgid "  %s: %s"
 msgstr ""
 
 #: wbmodule:rsmissingoption
