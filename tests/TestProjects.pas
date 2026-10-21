@@ -347,7 +347,7 @@ begin
   Output := List([]);
   Check(Pos('Language database: ' + Data + 'library' + PathDelim + 'index.sqlite (621 languages)',
     Output) > 0, 'language database from the data folder''s library');
-  Check(Pos('info: 26 project(s) listed, 22 with problems.', Output) > 0,
+  Check(Pos('info: 26 project(s) listed, 20 with problems.', Output) > 0,
     'every folder and file listed, problems counted');
 
   B := Block(Output, 'aaa_tit_tq');
@@ -371,26 +371,30 @@ begin
     'clean project: progress against the source, no problems');
 
   B := Block(Output, 'bbb_tit_text_reg');
-  Check(Pos('1 chunk(s) do not match en_tit_ulb chunking', B) > 0, 'en_ulb chunking deviation found');
-  Check(Pos(': 01-03', B) > 0, '... naming the chunk');
-  Check(Pos('en_tit_ulb chunks with no file here: front-title, 01-title, 01-04', B) > 0,
-    '... and the en_ulb chunks it lacks');
-  Check(Pos('Follows ru_tit_ulb chunking', B) > 0, '... and which chunking it follows');
-  Check(Pos('do not match ru_tit_ulb', B) = 0, 'no deviation from its own source');
-  Check(Pos('Chunks and verse markers compared with: ru_tit_ulb (listed as a source), en_tit_ulb.',
-    B) > 0, 'the report says what it compared with, en_ulb included');
+  Check(Pos('Compared with en_tit_ulb (always compared): extra chunks (not in it; BTT-Writer ' +
+    'does not show them with it): 01-03', B) > 0, 'en_ulb chunking deviation found, naming the chunk');
+  Check(Pos('missing front-title, 01-title; missing 01-04, whose verses are in other chunks here',
+    B) > 0, '... and the en_ulb chunks it lacks, those covered by other chunks apart');
+  Check(Pos('Compared with ru_tit_ulb (listed as a source): no extra chunks; no chunks missing; ' +
+    'verse markers all in its chunks.', B) > 0, 'its own source: each part said to be clean');
+  Check(Pos('Matches ru_tit_ulb: nothing is lost when the project is opened with it. The ' +
+    'differences from en_tit_ulb are only another chunking', B) > 0, '... and the verdict');
+  Check(Pos('warning', B) = 0, 'another chunking of en_ulb alone is not a problem');
 
   B := Block(Output, 'ccc_tit_text_reg');
-  Check(Pos('not in that chunk of the source (en_tit_ulb)', B) > 0, 'misplaced verse marker found');
-  Check(Pos('01-04 \v 6', B) > 0, '... with chunk and verse');
+  Check(Pos('warning: Compared with en_tit_ulb (listed as a source): no extra chunks; ' +
+    'missing front-title, 01-title, 01-01, 01-06; verse markers outside its chunks (BTT-Writer ' +
+    'drops them when the chunk is opened with it): 01-04 \v 6.', B) > 0,
+    'misplaced verse marker found, with chunk and verse');
+  Check(Pos('No compared source matches', B) = 0, 'no verdict repeating the only source');
   Check(Pos('given twice in one chunk: 01-04 \v 5', B) > 0, 'repeated verse marker found');
 
   B := Block(Output, 'ddd_tit_text_reg');
   Check((Pos('not installed', B) = 0) and (Pos('(fr_tit_f10)', B) = 0),
     'bundled source used: verses checked against its larger chunk');
-  Check((Pos('not in that chunk of en_tit_ulb (always compared)', B) > 0) and (Pos('01-04 \v 7', B) > 0),
+  Check((Pos('Compared with en_tit_ulb (always compared)', B) > 0) and (Pos('01-04 \v 7', B) > 0),
     '... and against en_ulb as well, which ends that chunk at verse 5');
-  Check(Pos('Follows fr_tit_f10 chunking', B) = 0, 'no "follows" note when en_ulb matches too');
+  Check(Pos('Matches fr_tit_f10', B) > 0, '... the source it follows matching');
 
   Check(Pos('should be named eee_tit_text_reg', Block(Output, 'wrongname')) > 0,
     'misnamed folder reported');
@@ -471,7 +475,7 @@ begin
   Output := List(['--language', 'aaa']);
   Check(Pos('hhh', Output) = 0, '... and left out when the folder name does not match');
   Output := List(['--problems-only']);
-  Check((Block(Output, 'aaa_tit_text_reg') = '') and (Block(Output, 'bbb_tit_text_reg') <> '') and
+  Check((Block(Output, 'aaa_tit_text_reg') = '') and (Block(Output, 'ccc_tit_text_reg') <> '') and
     (Pos('without problems not shown', Output) > 0), '--problems-only hides clean projects');
 
   BundledSourcesOverride := TempRoot + 'no-bundled-sources';

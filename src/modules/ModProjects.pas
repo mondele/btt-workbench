@@ -189,18 +189,22 @@ resourcestring
   rsSourceMissing = 'Source %s is neither downloaded nor bundled with ' +
     'BTT-Writer, so its chunking was not checked.';
   rsUnknownBook = 'No en_ulb text for book "%s"; is the book code right?';
-  rsChunkingDiffers = '%d chunk(s) do not match %s chunking, so BTT-Writer ' +
-    'does not show them with that source: %s';
-  rsChunkingListed = ' (listed as a source)';
-  rsSourceChunksWithout = '%s chunks with no file here: %s';
-  rsFollows = 'Follows %s chunking.';
-  rsComparedWith = 'Chunks and verse markers compared with: %s.';
-  rsComparedListed = '%s (listed as a source)';
-  rsVersesOutside = 'Verse markers that are not in that chunk of the source ' +
-    '(%s); BTT-Writer drops them when the chunk is opened: %s';
+  rsSourceListed = '%s (listed as a source)';
+  rsSourceAlways = '%s (always compared)';
+  rsSourceLine = 'Compared with %s: %s.';
+  rsNoExtra = 'no extra chunks';
+  rsExtra = 'extra chunks (not in it; BTT-Writer does not show them with it): %s';
+  rsNoMissing = 'no chunks missing';
+  rsMissing = 'missing %s';
+  rsMissingCovered = 'missing %s, whose verses are in other chunks here';
+  rsNoOutside = 'verse markers all in its chunks';
+  rsOutside = 'verse markers outside its chunks (BTT-Writer drops them when the chunk ' +
+    'is opened with it): %s';
+  rsMatches = 'Matches %s: nothing is lost when the project is opened with it.';
+  rsOthersDiffer = ' The differences from %s are only another chunking; they matter only ' +
+    'if the project is opened with that source.';
+  rsNoneMatches = 'No compared source matches this project''s chunks and verse markers.';
   rsVersesTwice = 'Verse markers given twice in one chunk: %s';
-  rsVersesOutsideEn = 'Verse markers that are not in that chunk of %s (always compared); ' +
-    'BTT-Writer drops them when the chunk is opened with that source: %s';
   rsMore = '%s and %d more';
 
 const
@@ -301,6 +305,49 @@ begin
     if Source.IndexOf(C.Chapter, C.Chunk) < 0 then
       Result := Concat(Result, [ChunkLabel(C)]);
 end;
+
+{ Whether the project has a file for Chapter-Chunk. }
+function HasChunk(const Chunks: TProjectChunks; const Chapter, Chunk: string): Boolean;
+var
+  C: TProjectChunk;
+begin
+  for C in Chunks do
+    if (C.Chapter = Chapter) and (C.Chunk = Chunk) then
+      Exit(True);
+  Result := False;
+end;
+
+{ The verse markers of all the project's chunks in Chapter. }
+function ChapterMarkers(const Chunks: TProjectChunks; const Chapter: string): TVerseList;
+var
+  C: TProjectChunk;
+begin
+  Result := nil;
+  for C in Chunks do
+    if C.Chapter = Chapter then
+      Result := Concat(Result, UsfmVerseMarkers(ReadText(C.Path)));
+end;
+
+function AllIn(const A, B: TVerseList): Boolean;
+var
+  V: Integer;
+begin
+  for V in A do
+    if not IntIn(B, V) then
+      Exit(False);
+  Result := True;
+end;
+
+type
+  { How the project compares with one source. }
+  TSourceReport = record
+    Name: string;
+    IsListed: Boolean;
+    Extra: TStringArray;     // chunks here it does not have
+    Missing: TStringArray;   // its chunks with no file here
+    Covered: TStringArray;   // ... whose verses are in other chunks here
+    Outside: TStringArray;   // verse markers outside its chunk
+  end;
 
 { Source chunks with no project file. }
 function MissingChunks(const Chunks: TProjectChunks; Source: TSourceChunking): TStringArray;
@@ -538,8 +585,11 @@ var
   Lang, Book, Kind, Res, Version, Expected, State, Container, TypeLabel,
     Progress, Fsck, ProjectDir: string;
   Lng: TLanguageInfo;
-  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, OutsideEn, Twice, Containers, Compared,
-    UsedSources: TStringArray;
+  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Twice, Containers, Differ,
+    Parts: TStringArray;
+  Reports: array of TSourceReport;
+  Matching: Integer;
+  Line: string;
   Listed: TStringArray;
   Src, FollowSrc, EnUlb: TSourceChunking;
   Have: TStringList;
@@ -700,113 +750,119 @@ begin
     R.Info(rsNotChecked);
     Exit;
   end;
-  { say what is compared, so a clean report shows en_ulb was looked at }
-  Compared := nil;
   for Container in Containers do
-    if Sources.Find(Container) <> nil then
-      if Contains(Listed, Container) then
-        Compared := Concat(Compared, [Format(rsComparedListed, [Container])])
-      else
-        Compared := Concat(Compared, [Container]);
-  if Length(Compared) > 0 then
-    R.Info(Format(rsComparedWith, [String.Join(', ', Compared)]));
-  for Container in Containers do
-  begin
-    Src := Sources.Find(Container);
-    if Src = nil then
-    begin
+    if Sources.Find(Container) = nil then
       R.Info(Format(rsSourceMissing, [Container]));
-      Continue;
-    end;
-    Extra := ExtraChunks(Chunks, Src);
-    if Length(Extra) = 0 then
-      Continue;
-    if Contains(Listed, Container) then
-      R.Warn(Format(rsChunkingDiffers, [Length(Extra), Container + rsChunkingListed,
-        ShortList(Extra)]))
-    else
-      R.Warn(Format(rsChunkingDiffers, [Length(Extra), Container, ShortList(Extra)]));
-    Missing := MissingChunks(Chunks, Src);
-    if Length(Missing) > 0 then
-      R.Info(Format(rsSourceChunksWithout, [Container, ShortList(Missing)]));
-  end;
-
-  HandleExtraChunks(Dir, Chunks, Containers, Conflicted, Sources, RemoveExtra, DryRun,
-    RemovedExtra, R);
-  if RemoveExtra and not DryRun then
-    Chunks := ProjectChunks(Dir);   // removed files are gone
-
-  { Verse markers. Each chunk is checked against the chunking the project
-    follows, or, for a project that mixes chunkings, the first source that
-    has that chunk. }
   if (FollowSrc = nil) and (EnUlb = nil) and (Book <> '') and (Sources.Find(Containers[0]) = nil) then
   begin
     R.Warn(Format(rsUnknownBook, [Book]));
     Exit;
   end;
-  if (FollowSrc <> nil) and ((EnUlb = nil) or (Length(ExtraChunks(Chunks, EnUlb)) > 0)) then
-    R.Info(Format(rsFollows, [FollowSrc.Container]));
-  Outside := nil;
+
+  { Each source found: chunks here it does not have, its chunks with no
+    file here (those whose verses are in other chunks here apart), and
+    verse markers outside its chunk. A source with no extra chunks and no
+    misplaced markers matches; differences from a listed source are
+    problems (BTT-Writer opens the project with it), from en_ulb only when
+    nothing matches. }
+  Reports := nil;
+  Matching := -1;
+  for Container in Containers do
+  begin
+    Src := Sources.Find(Container);
+    if Src = nil then
+      Continue;
+    SetLength(Reports, Length(Reports) + 1);
+    with Reports[High(Reports)] do
+    begin
+      Name := Container;
+      IsListed := Contains(Listed, Container);
+      Extra := ExtraChunks(Chunks, Src);
+      Missing := nil;
+      Covered := nil;
+      for I := 0 to High(Src.Chunks) do
+        if not HasChunk(Chunks, Src.Chunks[I].Chapter, Src.Chunks[I].Chunk) then
+          if (Length(Src.Chunks[I].Verses) > 0) and
+             AllIn(Src.Chunks[I].Verses, ChapterMarkers(Chunks, Src.Chunks[I].Chapter)) then
+            Covered := Concat(Covered, [Src.Chunks[I].Chapter + '-' + Src.Chunks[I].Chunk])
+          else
+            Missing := Concat(Missing, [Src.Chunks[I].Chapter + '-' + Src.Chunks[I].Chunk]);
+      Outside := nil;
+      for C in Chunks do
+      begin
+        if Contains(Conflicted, ChunkLabel(C)) or Contains(Unreadable, ChunkLabel(C)) then
+          Continue;
+        Idx := Src.IndexOf(C.Chapter, C.Chunk);
+        if (Idx < 0) or (Length(Src.Chunks[Idx].Verses) = 0) then
+          Continue;
+        for V in UsfmVerseMarkers(ReadText(C.Path)) do
+          if not IntIn(Src.Chunks[Idx].Verses, V) and
+             not Contains(Outside, ChunkLabel(C) + ' \v ' + IntToStr(V)) then
+            Outside := Concat(Outside, [ChunkLabel(C) + ' \v ' + IntToStr(V)]);
+      end;
+      if (Matching < 0) and (Length(Extra) = 0) and (Length(Outside) = 0) then
+        Matching := High(Reports);
+    end;
+  end;
+  Differ := nil;
+  for I := 0 to High(Reports) do
+    with Reports[I] do
+    begin
+      if IsListed then
+        Line := Format(rsSourceListed, [Name])
+      else
+        Line := Format(rsSourceAlways, [Name]);
+      if Length(Extra) = 0 then
+        Parts := [rsNoExtra]
+      else
+        Parts := [Format(rsExtra, [ShortList(Extra)])];
+      if (Length(Missing) = 0) and (Length(Covered) = 0) then
+        Parts := Concat(Parts, [rsNoMissing]);
+      if Length(Missing) > 0 then
+        Parts := Concat(Parts, [Format(rsMissing, [ShortList(Missing)])]);
+      if Length(Covered) > 0 then
+        Parts := Concat(Parts, [Format(rsMissingCovered, [ShortList(Covered)])]);
+      if Length(Outside) = 0 then
+        Parts := Concat(Parts, [rsNoOutside])
+      else
+        Parts := Concat(Parts, [Format(rsOutside, [ShortList(Outside)])]);
+      Line := Format(rsSourceLine, [Line, String.Join('; ', Parts)]);
+      if (Length(Extra) + Length(Outside) > 0) and (IsListed or (Matching < 0)) then
+        R.Warn(Line)
+      else
+        R.Info(Line);
+      if (I <> Matching) and (Length(Extra) + Length(Outside) > 0) then
+        Differ := Concat(Differ, [Name]);
+    end;
+  if Matching >= 0 then
+  begin
+    Line := Format(rsMatches, [Reports[Matching].Name]);
+    if Length(Differ) > 0 then
+      Line := Line + Format(rsOthersDiffer, [String.Join(', ', Differ)]);
+    R.Info(Line);
+  end
+  else if Length(Reports) > 1 then
+    R.Warn(rsNoneMatches);
+
+  { verse markers given twice in one chunk }
   Twice := nil;
-  UsedSources := nil;
   for C in Chunks do
   begin
-    { A conflicted chunk holds every version; its markers are checked once
-      the conflict is resolved. }
     if Contains(Conflicted, ChunkLabel(C)) or Contains(Unreadable, ChunkLabel(C)) then
       Continue;
-    Src := FollowSrc;
-    if Src = nil then
-      for Container in Containers do
-        if (Src = nil) and (Sources.Find(Container) <> nil) and
-           (Sources.Find(Container).IndexOf(C.Chapter, C.Chunk) >= 0) then
-          Src := Sources.Find(Container);
-    if Src = nil then
-      Continue;
-    Idx := Src.IndexOf(C.Chapter, C.Chunk);
-    if Length(Src.Chunks[Idx].Verses) = 0 then
-      Continue;
-    Markers := UsfmVerseMarkers(ReadText(C.Path));
     Seen := nil;
-    for V in Markers do
+    for V in UsfmVerseMarkers(ReadText(C.Path)) do
     begin
-      if not IntIn(Src.Chunks[Idx].Verses, V) then
-      begin
-        Outside := Concat(Outside, [ChunkLabel(C) + ' \v ' + IntToStr(V)]);
-        if not Contains(UsedSources, Src.Container) then
-          UsedSources := Concat(UsedSources, [Src.Container]);
-      end
-      else if IntIn(Seen, V) then
+      if IntIn(Seen, V) then
         Twice := Concat(Twice, [ChunkLabel(C) + ' \v ' + IntToStr(V)]);
       Seen := Concat(Seen, [V]);
     end;
   end;
-  if Length(Outside) > 0 then
-    R.Warn(Format(rsVersesOutside, [String.Join(', ', UsedSources), ShortList(Outside)]));
   if Length(Twice) > 0 then
     R.Warn(Format(rsVersesTwice, [ShortList(Twice)]));
 
-  { And always against en_ulb, unless that was the source above: every
-    chunk en_ulb has (a chunk it lacks was reported with the chunking). }
-  if (EnUlb = nil) or (FollowSrc = EnUlb) then
-    Exit;
-  OutsideEn := nil;
-  for C in Chunks do
-  begin
-    if Contains(Conflicted, ChunkLabel(C)) or Contains(Unreadable, ChunkLabel(C)) then
-      Continue;
-    Idx := EnUlb.IndexOf(C.Chapter, C.Chunk);
-    if (Idx < 0) or (Length(EnUlb.Chunks[Idx].Verses) = 0) then
-      Continue;
-    for V in UsfmVerseMarkers(ReadText(C.Path)) do
-      if not IntIn(EnUlb.Chunks[Idx].Verses, V) and
-         not (Contains(UsedSources, EnUlb.Container) and
-              Contains(Outside, ChunkLabel(C) + ' \v ' + IntToStr(V))) and
-         not Contains(OutsideEn, ChunkLabel(C) + ' \v ' + IntToStr(V)) then
-        OutsideEn := Concat(OutsideEn, [ChunkLabel(C) + ' \v ' + IntToStr(V)]);
-  end;
-  if Length(OutsideEn) > 0 then
-    R.Warn(Format(rsVersesOutsideEn, [EnUlb.Container, ShortList(OutsideEn)]));
+  HandleExtraChunks(Dir, Chunks, Containers, Conflicted, Sources, RemoveExtra, DryRun,
+    RemovedExtra, R);
 end;
 
 { --- module --- }

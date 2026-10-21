@@ -1121,46 +1121,64 @@ msgstr ""
 msgid "No en_ulb text for book \"%s\"; is the book code right?"
 msgstr ""
 
-#: modprojects:rschunkingdiffers
-msgid ""
-"%d chunk(s) do not match %s chunking, so BTT-Writer does not show them with "
-"that source: %s"
-msgstr ""
-
-#: modprojects:rschunkinglisted
-msgid " (listed as a source)"
-msgstr ""
-
-#: modprojects:rssourcechunkswithout
-msgid "%s chunks with no file here: %s"
-msgstr ""
-
-#: modprojects:rsfollows
-msgid "Follows %s chunking."
-msgstr ""
-
-#: modprojects:rscomparedwith
-msgid "Chunks and verse markers compared with: %s."
-msgstr ""
-
-#: modprojects:rscomparedlisted
+#: modprojects:rssourcelisted
 msgid "%s (listed as a source)"
 msgstr ""
 
-#: modprojects:rsversesoutside
+#: modprojects:rssourcealways
+msgid "%s (always compared)"
+msgstr ""
+
+#: modprojects:rssourceline
+msgid "Compared with %s: %s."
+msgstr ""
+
+#: modprojects:rsnoextra
+msgid "no extra chunks"
+msgstr ""
+
+#: modprojects:rsextra
+msgid "extra chunks (not in it; BTT-Writer does not show them with it): %s"
+msgstr ""
+
+#: modprojects:rsnomissing
+msgid "no chunks missing"
+msgstr ""
+
+#: modprojects:rsmissing
+msgid "missing %s"
+msgstr ""
+
+#: modprojects:rsmissingcovered
+msgid "missing %s, whose verses are in other chunks here"
+msgstr ""
+
+#: modprojects:rsnooutside
+msgid "verse markers all in its chunks"
+msgstr ""
+
+#: modprojects:rsoutside
 msgid ""
-"Verse markers that are not in that chunk of the source (%s); BTT-Writer "
-"drops them when the chunk is opened: %s"
+"verse markers outside its chunks (BTT-Writer drops them when the chunk is "
+"opened with it): %s"
+msgstr ""
+
+#: modprojects:rsmatches
+msgid "Matches %s: nothing is lost when the project is opened with it."
+msgstr ""
+
+#: modprojects:rsothersdiffer
+msgid ""
+" The differences from %s are only another chunking; they matter only if the "
+"project is opened with that source."
+msgstr ""
+
+#: modprojects:rsnonematches
+msgid "No compared source matches this project's chunks and verse markers."
 msgstr ""
 
 #: modprojects:rsversestwice
 msgid "Verse markers given twice in one chunk: %s"
-msgstr ""
-
-#: modprojects:rsversesoutsideen
-msgid ""
-"Verse markers that are not in that chunk of %s (always compared); BTT-Writer "
-"drops them when the chunk is opened with that source: %s"
 msgstr ""
 
 #: modprojects:rsmore

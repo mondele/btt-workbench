@@ -8,6 +8,14 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- projects: chunking and verse markers are reported per source, each
+  saying what is extra, missing (missing chunks whose verses are in
+  other chunks apart) and outside its chunks, or that nothing is, then
+  which source the project matches. A project that matches a listed
+  source and only chunks differently from en_ulb (Chimanika John follows
+  pt-br_jhn_blv) is no longer reported as a problem; the en_ulb line
+  says what would be lost if it were opened with en_ulb.
+
 - cross-check, other languages: a verse or chunk two projects share is
   reported only on the project that had it later, by both projects' git
   history, with the commit that brought it in; a rewording only if the
