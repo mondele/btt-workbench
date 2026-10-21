@@ -1080,6 +1080,14 @@ msgstr ""
 msgid "Follows %s chunking."
 msgstr ""
 
+#: modprojects:rscomparedwith
+msgid "Chunks and verse markers compared with: %s."
+msgstr ""
+
+#: modprojects:rscomparedlisted
+msgid "%s (listed as a source)"
+msgstr ""
+
 #: modprojects:rsversesoutside
 msgid ""
 "Verse markers that are not in that chunk of the source (%s); BTT-Writer "

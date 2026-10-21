@@ -179,6 +179,8 @@ resourcestring
   rsChunkingListed = ' (listed as a source)';
   rsSourceChunksWithout = '%s chunks with no file here: %s';
   rsFollows = 'Follows %s chunking.';
+  rsComparedWith = 'Chunks and verse markers compared with: %s.';
+  rsComparedListed = '%s (listed as a source)';
   rsVersesOutside = 'Verse markers that are not in that chunk of the source ' +
     '(%s); BTT-Writer drops them when the chunk is opened: %s';
   rsVersesTwice = 'Verse markers given twice in one chunk: %s';
@@ -403,7 +405,7 @@ var
   Lang, Book, Kind, Res, Version, Expected, State, Container, TypeLabel,
     Progress, Fsck, ProjectDir: string;
   Lng: TLanguageInfo;
-  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, OutsideEn, Twice, Containers,
+  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, OutsideEn, Twice, Containers, Compared,
     UsedSources: TStringArray;
   Listed: TStringArray;
   Src, FollowSrc, EnUlb: TSourceChunking;
@@ -565,6 +567,16 @@ begin
     R.Info(rsNotChecked);
     Exit;
   end;
+  { say what is compared, so a clean report shows en_ulb was looked at }
+  Compared := nil;
+  for Container in Containers do
+    if Sources.Find(Container) <> nil then
+      if Contains(Listed, Container) then
+        Compared := Concat(Compared, [Format(rsComparedListed, [Container])])
+      else
+        Compared := Concat(Compared, [Container]);
+  if Length(Compared) > 0 then
+    R.Info(Format(rsComparedWith, [String.Join(', ', Compared)]));
   for Container in Containers do
   begin
     Src := Sources.Find(Container);

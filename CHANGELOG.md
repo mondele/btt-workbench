@@ -11,7 +11,8 @@ Each release's section below is also its release notes on GitHub.
 - projects: verse markers are always compared with en_ulb as well, not
   only with the source the project follows (a project following another
   source's chunking was never compared with English); reported on a line
-  of its own.
+  of its own. Each text project's report names the sources it was
+  compared with, so a clean one shows en_ulb was looked at.
 - projects: a `.git` folder that has lost `HEAD`, `config` or its index
   while its history is intact (as an incomplete copy leaves it; git then
   does not see a repository at all) is reported, and rebuilt on Run: HEAD

@@ -376,7 +376,9 @@ begin
   Check(Pos('en_tit_ulb chunks with no file here: front-title, 01-title, 01-04', B) > 0,
     '... and the en_ulb chunks it lacks');
   Check(Pos('Follows ru_tit_ulb chunking', B) > 0, '... and which chunking it follows');
-  Check(Pos('ru_tit_ulb (listed', B) = 0, 'no deviation from its own source');
+  Check(Pos('do not match ru_tit_ulb', B) = 0, 'no deviation from its own source');
+  Check(Pos('Chunks and verse markers compared with: ru_tit_ulb (listed as a source), en_tit_ulb.',
+    B) > 0, 'the report says what it compared with, en_ulb included');
 
   B := Block(Output, 'ccc_tit_text_reg');
   Check(Pos('not in that chunk of the source (en_tit_ulb)', B) > 0, 'misplaced verse marker found');
