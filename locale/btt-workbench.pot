@@ -1069,6 +1069,12 @@ msgstr ""
 msgid "Verse markers given twice in one chunk: %s"
 msgstr ""
 
+#: modprojects:rsversesoutsideen
+msgid ""
+"Verse markers that are not in that chunk of %s (always compared); BTT-Writer "
+"drops them when the chunk is opened with that source: %s"
+msgstr ""
+
 #: modprojects:rsmore
 msgid "%s and %d more"
 msgstr ""

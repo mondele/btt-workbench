@@ -347,7 +347,7 @@ begin
   Output := List([]);
   Check(Pos('Language database: ' + Data + 'library' + PathDelim + 'index.sqlite (621 languages)',
     Output) > 0, 'language database from the data folder''s library');
-  Check(Pos('info: 26 project(s) listed, 21 with problems.', Output) > 0,
+  Check(Pos('info: 26 project(s) listed, 22 with problems.', Output) > 0,
     'every folder and file listed, problems counted');
 
   B := Block(Output, 'aaa_tit_tq');
@@ -384,8 +384,10 @@ begin
   Check(Pos('given twice in one chunk: 01-04 \v 5', B) > 0, 'repeated verse marker found');
 
   B := Block(Output, 'ddd_tit_text_reg');
-  Check((Pos('not installed', B) = 0) and (Pos('warning', B) = 0),
+  Check((Pos('not installed', B) = 0) and (Pos('(fr_tit_f10)', B) = 0),
     'bundled source used: verses checked against its larger chunk');
+  Check((Pos('not in that chunk of en_tit_ulb (always compared)', B) > 0) and (Pos('01-04 \v 7', B) > 0),
+    '... and against en_ulb as well, which ends that chunk at verse 5');
   Check(Pos('Follows fr_tit_f10 chunking', B) = 0, 'no "follows" note when en_ulb matches too');
 
   Check(Pos('should be named eee_tit_text_reg', Block(Output, 'wrongname')) > 0,

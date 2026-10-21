@@ -8,6 +8,10 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- projects: verse markers are always compared with en_ulb as well, not
+  only with the source the project follows (a project following another
+  source's chunking was never compared with English); reported on a line
+  of its own.
 - projects: a `.git` folder that has lost `HEAD`, `config` or its index
   while its history is intact (as an incomplete copy leaves it; git then
   does not see a repository at all) is reported, and rebuilt on Run: HEAD

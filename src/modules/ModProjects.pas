@@ -41,7 +41,9 @@ unit ModProjects;
      twice. BTT-Writer's validateVerseMarkers drops such markers and adds
      the missing ones at the end of the chunk, so they move when the chunk
      is opened. Checked against the first listed source whose chunking the
-     project follows, else en_ulb if it follows that.
+     project follows, else en_ulb if it follows that; and always against
+     en_ulb too, for the chunks en_ulb has (a project that follows another
+     source is still compared with English).
 
    Sources come from the library next to the projects folder, or from
    BTT-Writer's bundled .tsrc files (WBSources). *)
@@ -171,6 +173,8 @@ resourcestring
   rsVersesOutside = 'Verse markers that are not in that chunk of the source ' +
     '(%s); BTT-Writer drops them when the chunk is opened: %s';
   rsVersesTwice = 'Verse markers given twice in one chunk: %s';
+  rsVersesOutsideEn = 'Verse markers that are not in that chunk of %s (always compared); ' +
+    'BTT-Writer drops them when the chunk is opened with that source: %s';
   rsMore = '%s and %d more';
 
 const
@@ -390,7 +394,7 @@ var
   Lang, Book, Kind, Res, Version, Expected, State, Container, TypeLabel,
     Progress, Fsck, ProjectDir: string;
   Lng: TLanguageInfo;
-  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, Twice, Containers,
+  Conflicted, Unreadable, Finished, NoFile, Extra, Missing, Outside, OutsideEn, Twice, Containers,
     UsedSources: TStringArray;
   Listed: TStringArray;
   Src, FollowSrc, EnUlb: TSourceChunking;
@@ -620,6 +624,28 @@ begin
     R.Warn(Format(rsVersesOutside, [String.Join(', ', UsedSources), ShortList(Outside)]));
   if Length(Twice) > 0 then
     R.Warn(Format(rsVersesTwice, [ShortList(Twice)]));
+
+  { And always against en_ulb, unless that was the source above: every
+    chunk en_ulb has (a chunk it lacks was reported with the chunking). }
+  if (EnUlb = nil) or (FollowSrc = EnUlb) then
+    Exit;
+  OutsideEn := nil;
+  for C in Chunks do
+  begin
+    if Contains(Conflicted, ChunkLabel(C)) or Contains(Unreadable, ChunkLabel(C)) then
+      Continue;
+    Idx := EnUlb.IndexOf(C.Chapter, C.Chunk);
+    if (Idx < 0) or (Length(EnUlb.Chunks[Idx].Verses) = 0) then
+      Continue;
+    for V in UsfmVerseMarkers(ReadText(C.Path)) do
+      if not IntIn(EnUlb.Chunks[Idx].Verses, V) and
+         not (Contains(UsedSources, EnUlb.Container) and
+              Contains(Outside, ChunkLabel(C) + ' \v ' + IntToStr(V))) and
+         not Contains(OutsideEn, ChunkLabel(C) + ' \v ' + IntToStr(V)) then
+        OutsideEn := Concat(OutsideEn, [ChunkLabel(C) + ' \v ' + IntToStr(V)]);
+  end;
+  if Length(OutsideEn) > 0 then
+    R.Warn(Format(rsVersesOutsideEn, [EnUlb.Container, ShortList(OutsideEn)]));
 end;
 
 { --- module --- }
