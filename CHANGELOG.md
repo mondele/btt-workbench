@@ -36,6 +36,15 @@ Each release's section below is also its release notes on GitHub.
   its own). The projects modules offer what the projects folder holds;
   Download from WACS offers every language in BTT-Writer's language
   database, every book and the usual types, and after Find what WACS has.
+- New module **language-change** ("Change project language"): gives the
+  checked projects another language code, name or text direction, so a
+  language's projects agree (Udmurt projects under two names, Chimanika
+  under two codes). It changes and commits each manifest and renames the
+  folder for a new code; WACS is not changed.
+- projects: warns about language codes that are not well-formed BCP 47
+  (Scripture Burrito needs them; mxc-MZ-chimanika and udm-x-norudmurt are
+  not), and notes a language's projects under several names or codes.
+  `--language` also takes a first part such as `mxc`.
 - cross-check: book titles that another book has (or had first) and
   chapter titles with another chapter's number are reported. Titles were
   too short for the copied-text check, and the Chimanika damage had

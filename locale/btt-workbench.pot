@@ -804,7 +804,9 @@ msgid "Report what the repairs would do without doing them"
 msgstr ""
 
 #: modprojects:rsoptlanguagehelp
-msgid "Only these target language codes, comma-separated (e.g. sah,udm)"
+msgid ""
+"Only these target language codes, comma-separated (e.g. sah,udm; a first "
+"part such as mxc takes every code that starts with it)"
 msgstr ""
 
 #: modprojects:rsoptbookhelp
@@ -896,13 +898,32 @@ msgstr ""
 #: modprojects:rslangname
 msgid ""
 "Language name is out of date: the project says \"%s\", the language database "
-"says \"%s\"."
+"says \"%s\". Change project language sets it."
 msgstr ""
 
 #: modprojects:rslangdirection
 msgid ""
 "Text direction is out of date: the project says %s, the language database "
-"says %s."
+"says %s. Change project language sets it."
+msgstr ""
+
+#: modprojects:rslangnotbcp47
+msgid ""
+"Language code %s is not a well-formed BCP 47 tag, which tools such as "
+"Scripture Burrito need. Change project language can give the project another "
+"code."
+msgstr ""
+
+#: modprojects:rsmixednames
+msgid ""
+"The projects of %s use %d language names: %s. Change project language can "
+"make them one."
+msgstr ""
+
+#: modprojects:rsmixedcodes
+msgid ""
+"Language %s has projects under %d codes: %s. Change project language can "
+"give them one code."
 msgstr ""
 
 #: modprojects:rsnodirection

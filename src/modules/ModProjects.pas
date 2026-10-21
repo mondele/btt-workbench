@@ -67,7 +67,8 @@ type
 implementation
 
 uses
-  WBSuggest,  fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages, WBImport;
+  WBSuggest, fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages, WBImport,
+  WBLangTag, WBCrossScan;
 
 resourcestring
   rsTitle = 'Project list and problems';
@@ -81,7 +82,8 @@ resourcestring
   rsOptDryRun = 'Dry run';
   rsOptDryRunHelp = 'Report what the repairs would do without doing them';
   rsOptLanguage = 'Languages';
-  rsOptLanguageHelp = 'Only these target language codes, comma-separated (e.g. sah,udm)';
+  rsOptLanguageHelp = 'Only these target language codes, comma-separated (e.g. sah,udm; ' +
+    'a first part such as mxc takes every code that starts with it)';
   rsOptBook = 'Books';
   rsOptBookHelp = 'Only these book codes, comma-separated (e.g. tit,jon)';
   rsOptType = 'Project types';
@@ -120,9 +122,16 @@ resourcestring
   rsLangApproved = 'Temporary language %s has been approved as %s; the ' +
     'project still uses the temporary code.';
   rsLangName = 'Language name is out of date: the project says "%s", the ' +
-    'language database says "%s".';
+    'language database says "%s". Change project language sets it.';
   rsLangDirection = 'Text direction is out of date: the project says %s, the ' +
-    'language database says %s.';
+    'language database says %s. Change project language sets it.';
+  rsLangNotBcp47 = 'Language code %s is not a well-formed BCP 47 tag, which ' +
+    'tools such as Scripture Burrito need. Change project language can give ' +
+    'the project another code.';
+  rsMixedNames = 'The projects of %s use %d language names: %s. Change project ' +
+    'language can make them one.';
+  rsMixedCodes = 'Language %s has projects under %d codes: %s. Change project ' +
+    'language can give them one code.';
   rsNoDirection = '(none)';
   rsSummary = '%d project(s) listed, %d with problems.';
   rsSummaryHidden = '%d project(s) without problems not shown.';
@@ -466,6 +475,8 @@ begin
   if Length(Extra) > 0 then
     R.Warn(Format(rsManifestTypes, [ShortList(Extra)]));
 
+  if (Lang <> '') and not IsWellFormedTag(Lang) then
+    R.Warn(Format(rsLangNotBcp47, [Lang]));
   { Language against BTT-Writer's language database }
   if (Languages <> nil) and (Lang <> '') then
   begin
@@ -693,6 +704,66 @@ var
   Manifest: TJSONObject;
   ManifestText: string;
   Listed, WithProblems, Hidden, I, J: Integer;
+  LangNames: TStringList;   // code#9name, sorted, once each
+
+  { Several names for one code, several codes for one language. }
+  procedure ReportMixed;
+  var
+    K, N: Integer;
+    Key, Code, List: string;
+    Groups: TStringList;    // group#9code
+  begin
+    K := 0;
+    while K < LangNames.Count do
+    begin
+      Code := Copy(LangNames[K], 1, Pos(#9, LangNames[K]) - 1);
+      List := '';
+      N := 0;
+      while (K < LangNames.Count) and
+            (Copy(LangNames[K], 1, Pos(#9, LangNames[K]) - 1) = Code) do
+      begin
+        if List <> '' then
+          List := List + ', ';
+        List := List + '"' + Copy(LangNames[K], Pos(#9, LangNames[K]) + 1, MaxInt) + '"';
+        Inc(N);
+        Inc(K);
+      end;
+      if N > 1 then
+        Reporter.Warn(Format(rsMixedNames, [Code, N, List]));
+    end;
+    Groups := TStringList.Create;
+    try
+      Groups.UseLocale := False;
+      Groups.CaseSensitive := True;
+      Groups.Sorted := True;
+      Groups.Duplicates := dupIgnore;
+      for K := 0 to LangNames.Count - 1 do
+      begin
+        Code := Copy(LangNames[K], 1, Pos(#9, LangNames[K]) - 1);
+        Groups.Add(LanguageGroup(Code) + #9 + Code);
+      end;
+      K := 0;
+      while K < Groups.Count do
+      begin
+        Key := Copy(Groups[K], 1, Pos(#9, Groups[K]) - 1);
+        List := '';
+        N := 0;
+        while (K < Groups.Count) and (Copy(Groups[K], 1, Pos(#9, Groups[K]) - 1) = Key) do
+        begin
+          if List <> '' then
+            List := List + ', ';
+          List := List + Copy(Groups[K], Pos(#9, Groups[K]) + 1, MaxInt);
+          Inc(N);
+          Inc(K);
+        end;
+        if N > 1 then
+          Reporter.Warn(Format(rsMixedCodes, [Key, N, List]));
+      end;
+    finally
+      Groups.Free;
+    end;
+  end;
+
 begin
   Result := 1;
   if Options.Values['target-dir'] <> '' then
@@ -756,6 +827,11 @@ begin
     end;
 
   Names := TStringList.Create;
+  LangNames := TStringList.Create;
+  LangNames.UseLocale := False;     // ordinal: locale order ignores tab and '-'
+  LangNames.CaseSensitive := True;
+  LangNames.Sorted := True;
+  LangNames.Duplicates := dupIgnore;
   Sources := TSourceLibrary.Create(LibrarySourcesPath(TargetDir), Bundled);
   try
     if FindFirst(TargetDir + AllFilesMask, faAnyFile or faDirectory, SR) = 0 then
@@ -816,7 +892,8 @@ begin
           end;
           if Manifest <> nil then
           begin
-            if not (Matches(Langs, [StrField(Manifest, 'target_language.id')]) and
+            if not (Matches(Langs, [StrField(Manifest, 'target_language.id'),
+                      LanguageGroup(StrField(Manifest, 'target_language.id'))]) and
                     Matches(Books, [StrField(Manifest, 'project.id')]) and
                     Matches(Types, [StrField(Manifest, 'type.id'),
                       StrField(Manifest, 'resource.id'),
@@ -824,6 +901,9 @@ begin
               Continue;
             CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, DryRun,
               Renamed, Rebuilt, Buffer);
+            if StrField(Manifest, 'target_language.id') <> '' then
+              LangNames.Add(StrField(Manifest, 'target_language.id') + #9 +
+                StrField(Manifest, 'target_language.name'));
           end;
         end;
 
@@ -849,6 +929,7 @@ begin
     end;
 
     Reporter.Info('');
+    ReportMixed;
     Reporter.Info(Format(rsSummary, [Listed, WithProblems]));
     if Hidden > 0 then
       Reporter.Info(Format(rsSummaryHidden, [Hidden]));
@@ -866,6 +947,7 @@ begin
   finally
     Languages.Free;
     Sources.Free;
+    LangNames.Free;
     Names.Free;
   end;
 end;

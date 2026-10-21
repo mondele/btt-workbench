@@ -12,7 +12,7 @@ uses
   Classes, SysUtils, fpjson, jsonparser,
   WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules,
   WBSettings, TestUtil, TestTStudioImport, TestProjects, TestSettings, TestWacs, TestTextCheck, TestCrossCheck,
-  TestSuggest, TestLibraryUpdate, TestGitRepair;
+  TestSuggest, TestLibraryUpdate, TestGitRepair, TestLanguageChange;
 
 const
   { Real BTT-Writer layout: tabs, non-ASCII names, empty object and array,
@@ -330,6 +330,7 @@ begin
     TestSuggestions(TempRoot);
     TestLibraryUpdates(TempRoot);
     TestGitRepairs(TempRoot);
+    TestLanguageChanges(TempRoot);
   finally
     if GetEnvironmentVariable('BTW_KEEP_TEST') = '' then   // set it to inspect fixtures
       DeleteTree(TempRoot)

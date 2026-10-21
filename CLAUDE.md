@@ -275,6 +275,18 @@ linker warnings are harmless.
   cwstring (every other Thai/CJK character became U+FFFD); keep-alive
   connections are per thread and per server (fphttpclient would send a
   request for one host down a connection to another).
+- `language-change` (`ModLanguageChange`) sets target_language id, name
+  and direction, commits as `RepairIdentity`, then renames the folder;
+  local only (the user decided WACS repos are handled separately) and the
+  target code and name are chosen per run. `WBLangTag.IsWellFormedTag`
+  checks RFC 5646 form: BTT-Writer's own mxc-MZ-chimanika and
+  udm-x-norudmurt are not well formed (a variant or private-use part of
+  nine letters). `projects` warns about such codes and, at the end, about
+  one code under several names or one language (`LanguageGroup`) under
+  several codes.
+- Sorted `TStringList`s holding codes or tab-joined keys need
+  `UseLocale := False`: locale order ignores tabs and hyphens, so
+  "aaa<tab>x" and "aaa-x-old<tab>y" interleave.
 - A standalone FPC program using these units needs `cwstring` (lazbuild
   programs here do without), or string conversion is very slow or fails.
 - Sources are downloaded from WACS, not Door43.
