@@ -202,6 +202,17 @@ var
       Result := Result + Format(rsAlsoChanged, [N - 1]);
   end;
 
+  { Same and chunk matches: the version that brought it in, or that
+    which came first is unknown }
+  function ForeignSince(const FF: TForeignFinding): string;
+  begin
+    Result := '';
+    if FF.Since >= 0 then
+      Result := SinceText(FF.Since);
+    if FF.Unordered then
+      Result := Result + rsUnordered;
+  end;
+
 begin
   Result := 1;
   if Options.Values['target-dir'] <> '' then
@@ -358,12 +369,12 @@ begin
             S := ChunkName(Scan.Docs[FF.Doc]);
             case FF.Kind of
               fkSame: Line := Format(rsForeignSame, [S, FF.Verse, TextName(Texts[FF.Text]),
-                Percent(FF.Now)]);
+                Percent(FF.Now)]) + ForeignSince(FF);
               fkReworded: Line := Format(rsForeignReworded, [S, FF.Verse,
                 TextName(Texts[FF.Text]), Percent(FF.Now), Percent(FF.Before)]) +
                 SinceText(FF.Since);
               fkChunk: Line := Format(rsForeignChunk, [S, Percent(FF.Now),
-                TextName(Texts[FF.Text]), FF.Chunk]);
+                TextName(Texts[FF.Text]), FF.Chunk]) + ForeignSince(FF);
             end;
             Lines.Add('W' + Line);
           end;

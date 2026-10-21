@@ -15,7 +15,7 @@ procedure TestGitRepairs(const TempRoot: string);
 implementation
 
 uses
-  Classes, SysUtils, WBReporter, WBGit, TestUtil;
+  Classes, SysUtils, WBReporter, WBGit, WBDataPaths, TestUtil;
 
 var
   Target: string;
@@ -55,6 +55,72 @@ function Clean(const Dir: string): Boolean;
 begin
   Result := (RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']).ExitCode = 0) and
     (Trim(RunGit(Dir, ['status', '--porcelain']).Output) = '');
+end;
+
+{ Extra chunks: files no compared source has. A source with chunks 01, 04
+  and 06; a project with those plus 01-02 (verse 2 again: removable) and
+  01-10 (verse 10, in no other chunk: kept). }
+procedure TestExtraChunks(const TempRoot: string);
+var
+  Data, Lib, Dir, Output, OldBundled: string;
+  Code: Integer;
+
+  procedure PutFile(const Path, Text: string);
+  begin
+    ForceDirectories(ExtractFileDir(Path));
+    WriteFileText(Path, Text);
+  end;
+
+begin
+  Section('projects: extra chunks');
+  Data := TempRoot + 'extrachunks' + PathDelim;
+  Target := Data + 'targetTranslations' + PathDelim;
+  Lib := Data + 'library' + PathDelim + 'resource_containers' + PathDelim + 'en_tit_ulb' +
+    PathDelim + 'content' + PathDelim + '01' + PathDelim;
+  PutFile(Lib + '01.usx', '<verse number="1" style="v" />a <verse number="2" style="v" />b ' +
+    '<verse number="3" style="v" />c');
+  PutFile(Lib + '04.usx', '<verse number="4" style="v" />d <verse number="5" style="v" />e');
+  PutFile(Lib + '06.usx', '<verse number="6" style="v" />f');
+  OldBundled := BundledSourcesOverride;
+  BundledSourcesOverride := TempRoot + 'no-bundled-sources';
+  try
+    Dir := Target + 'aa_tit_text_reg' + PathDelim;
+    PutFile(Dir + 'manifest.json', '{"package_version": 8, "target_language": {"id": "aa", ' +
+      '"name": "A", "direction": "ltr"}, "project": {"id": "tit", "name": "Titus"}, ' +
+      '"type": {"id": "text"}, "resource": {"id": "reg"}, "source_translations": ' +
+      '[{"language_id": "en", "resource_id": "ulb"}], "finished_chunks": ["01-01", "01-02", "01-04"]}');
+    PutFile(Dir + '01' + PathDelim + '01.txt', '\v 1 a \v 2 b \v 3 c');
+    PutFile(Dir + '01' + PathDelim + '02.txt', '\v 2 pasted');
+    PutFile(Dir + '01' + PathDelim + '04.txt', '\v 4 d \v 5 e');
+    PutFile(Dir + '01' + PathDelim + '06.txt', '\v 6 f');
+    PutFile(Dir + '01' + PathDelim + '10.txt', '\v 10 only here');
+    RunGit(Dir, ['-c', 'init.defaultBranch=master', 'init', '-q']);
+    RunGit(Dir, ['add', '--all']);
+    RunGit(Dir, ['-c', 'user.name=Paster', '-c', 'user.email=p@example.com', '-c',
+      'commit.gpgsign=false', 'commit', '-q', '-m', 'start']);
+
+    Output := Run(['--target-dir', Target, '--dry-run'], Code);
+    Check((Pos('Chunks no compared source has: 01-02, 01-10.', Output) > 0) and
+      (Pos('--remove-extra-chunks', Output) > 0) and
+      (Pos('01-02: added by ', Output) > 0) and (Pos('Paster', Output) > 0) and
+      FileExists(Dir + '01' + PathDelim + '02.txt'),
+      'extra chunks reported, with who added them and how they begin; removal offered');
+    Output := Run(['--target-dir', Target, '--dry-run', '--remove-extra-chunks'], Code);
+    Check((Pos('Would remove: 01-02 (dry run)', Output) > 0) and
+      (Pos('01-10 holds verses no other chunk has (10); kept', Output) > 0) and
+      FileExists(Dir + '01' + PathDelim + '02.txt'),
+      'a check with the option says what would go, and keeps a chunk with a verse found nowhere else');
+    Output := Run(['--target-dir', Target, '--remove-extra-chunks'], Code);
+    Check((Pos('Removed 01-02, and committed', Output) > 0) and
+      not FileExists(Dir + '01' + PathDelim + '02.txt') and
+      FileExists(Dir + '01' + PathDelim + '10.txt') and
+      (Pos('"01-02"', ReadFileText(Dir + 'manifest.json')) = 0) and
+      (Pos('Remove chunks no source has', RunGit(Dir, ['log', '-1', '--format=%B']).Output) > 0) and
+      (Trim(RunGit(Dir, ['status', '--porcelain']).Output) = ''),
+      'Run removes it, takes it out of finished_chunks and commits');
+  finally
+    BundledSourcesOverride := OldBundled;
+  end;
 end;
 
 procedure TestGitRepairs(const TempRoot: string);
@@ -104,6 +170,7 @@ begin
   DeleteFile(NoBranch + '.git' + PathDelim + 'refs' + PathDelim + 'heads' + PathDelim + 'master');
   Output := Run(['--target-dir', Target], Code);
   Check(Pos('no HEAD and no branch', Output) > 0, 'with no branch to point at it is only reported');
+  TestExtraChunks(TempRoot);
 end;
 
 end.

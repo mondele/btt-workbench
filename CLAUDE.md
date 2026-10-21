@@ -229,7 +229,15 @@ linker warnings are harmless.
   gained >= 0.15 over the verse's last wording seen (edit sessions leave
   versions without the verse), still >= 0.80 now. Chunk: >= 70% of the
   word runs in one other-language chunk. Texts of the language's own
-  group are never compared. Calibration (October 2026): WACS
+  group are never compared. Direction (all three kinds): both projects'
+  git histories (the other one read once, on the first match:
+  `ReadChunkHistory`) give the first version holding the shared runs, or
+  the verse; the later project is the copy and only it is reported, with
+  `Since`; unknown or equal times (or `--no-history`) report both with
+  `Unordered`; sources count as the original. A rewording counts only if
+  the other text had a wording `RewordRatio` alike before the edit (the
+  Bemba repos compared with Bwile used to show 10 false 2022
+  "rewordings"). Calibration (October 2026): WACS
   bwile_refinement bwc 1pe/1jn/2jn against the Bemba repos
   (bemba_refinament, Moffat_chola, felix_sichies) must give exactly the 8
   verses of the Bwile report (1jn 2:2, 2:3, 2:20, 2:21; 1pe 1:6, 1:11,
@@ -275,6 +283,10 @@ linker warnings are harmless.
   cwstring (every other Thai/CJK character became U+FFFD); keep-alive
   connections are per thread and per server (fphttpclient would send a
   request for one host down a connection to another).
+- `projects --remove-extra-chunks` (`HandleExtraChunks`): chunk files no
+  found source container has; removed through `WBCrossRepair.ApplyRepairs`
+  (raRemove, finished marks too) after committing loose work, only when
+  every verse marker they hold is in a chunk that stays.
 - `language-change` (`ModLanguageChange`) sets target_language id, name
   and direction, commits as `RepairIdentity`, then renames the folder;
   local only (the user decided WACS repos are handled separately) and the

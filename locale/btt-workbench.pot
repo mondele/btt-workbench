@@ -1032,6 +1032,65 @@ msgstr ""
 msgid "%d project(s) would have their .git folder rebuilt (dry run)."
 msgstr ""
 
+#: modprojects:rsoptremoveextra
+msgid "Remove extra chunks"
+msgstr ""
+
+#: modprojects:rsoptremoveextrahelp
+msgid ""
+"On Run, delete chunk files that no compared source has (the listed sources "
+"and en_ulb), when every verse in them is also in another chunk"
+msgstr ""
+
+#: modprojects:rsextrachunks
+msgid "Chunks no compared source has: %s."
+msgstr ""
+
+#: modprojects:rsextraline
+msgid "  %s: added by %s; \"%s\""
+msgstr ""
+
+#: modprojects:rsextranohistory
+msgid "not in git history"
+msgstr ""
+
+#: modprojects:rsextrahint
+msgid " Remove extra chunks (--remove-extra-chunks) deletes them on Run."
+msgstr ""
+
+#: modprojects:rsextrakept
+msgid ""
+"%s holds verses no other chunk has (%s); kept, to be sorted out by hand."
+msgstr ""
+
+#: modprojects:rsextrawouldremove
+msgid "Would remove: %s (dry run)."
+msgstr ""
+
+#: modprojects:rsextraremoved
+msgid "Removed %s, and committed."
+msgstr ""
+
+#: modprojects:rsextrafailed
+msgid "Could not remove the extra chunks: %s"
+msgstr ""
+
+#: modprojects:rsextramessage
+msgid "Remove chunks no source has (BTT Workbench)"
+msgstr ""
+
+#: modprojects:rsextraloose
+msgid "Uncommitted work, before removing extra chunks"
+msgstr ""
+
+#: modprojects:rssummaryremovedextra
+msgid "%d extra chunk(s) removed."
+msgstr ""
+
+#: modprojects:rssummarywouldremoveextra
+msgid "%d extra chunk(s) would be removed (dry run)."
+msgstr ""
+
 #: modprojects:rssummarywouldrename
 msgid "%d project(s) would be moved from git branch main to master."
 msgstr ""

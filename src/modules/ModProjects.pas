@@ -68,7 +68,7 @@ implementation
 
 uses
   WBSuggest, fpjson, WBJson, WBGit, WBDataPaths, WBProject, WBSources, WBLanguages, WBImport,
-  WBLangTag, WBCrossScan;
+  WBLangTag, WBCrossScan, WBCrossRepair, WBCrossCheck;
 
 resourcestring
   rsTitle = 'Project list and problems';
@@ -164,6 +164,21 @@ resourcestring
   rsSummaryRenamed = '%d project(s) moved from git branch main to master.';
   rsSummaryRebuilt = '%d project(s) had their .git folder rebuilt.';
   rsSummaryWouldRebuild = '%d project(s) would have their .git folder rebuilt (dry run).';
+  rsOptRemoveExtra = 'Remove extra chunks';
+  rsOptRemoveExtraHelp = 'On Run, delete chunk files that no compared source has (the listed ' +
+    'sources and en_ulb), when every verse in them is also in another chunk';
+  rsExtraChunks = 'Chunks no compared source has: %s.';
+  rsExtraLine = '  %s: added by %s; "%s"';
+  rsExtraNoHistory = 'not in git history';
+  rsExtraHint = ' Remove extra chunks (--remove-extra-chunks) deletes them on Run.';
+  rsExtraKept = '%s holds verses no other chunk has (%s); kept, to be sorted out by hand.';
+  rsExtraWouldRemove = 'Would remove: %s (dry run).';
+  rsExtraRemoved = 'Removed %s, and committed.';
+  rsExtraFailed = 'Could not remove the extra chunks: %s';
+  rsExtraMessage = 'Remove chunks no source has (BTT Workbench)';
+  rsExtraLoose = 'Uncommitted work, before removing extra chunks';
+  rsSummaryRemovedExtra = '%d extra chunk(s) removed.';
+  rsSummaryWouldRemoveExtra = '%d extra chunk(s) would be removed (dry run).';
   rsSummaryWouldRename = '%d project(s) would be moved from git branch main ' +
     'to master.';
   rsConflicts = '%d chunk(s) have unresolved conflicts: %s';
@@ -396,9 +411,127 @@ begin
 end;
 
 { Messages for one project. Problems are warnings; the rest is info. }
+{ Chunk files no compared source has. Each is removable when every verse
+  marker in it is also in a chunk that stays (none would be lost); with
+  RemoveExtra they are deleted, taken out of finished_chunks and committed
+  (dry run: only said). Removed counts them. }
+procedure HandleExtraChunks(const Dir: string; const Chunks: TProjectChunks;
+  const Containers, Conflicted: TStringArray; Sources: TSourceLibrary;
+  RemoveExtra, DryRun: Boolean; var Removed: Integer; R: TWBReporter);
+var
+  C: TProjectChunk;
+  Extra, Removable, Labels: TStringArray;
+  Items: TRepairItems;
+  Item: TRepairItem;
+  Others: TVerseList;
+  Own, Lost, Added: string;
+  Container, Failure, CommitName, CommitEmail: string;
+  Found, InSome: Boolean;
+  V: Integer;
+begin
+  Found := False;
+  for Container in Containers do
+    if Sources.Find(Container) <> nil then
+      Found := True;
+  if not Found then
+    Exit;   // nothing to judge by
+  Extra := nil;
+  for C in Chunks do
+  begin
+    if (C.Chunk = 'title') or Contains(Conflicted, ChunkLabel(C)) then
+      Continue;
+    InSome := False;
+    for Container in Containers do
+      if (Sources.Find(Container) <> nil) and
+         (Sources.Find(Container).IndexOf(C.Chapter, C.Chunk) >= 0) then
+        InSome := True;
+    if not InSome then
+      Extra := Concat(Extra, [ChunkLabel(C)]);
+  end;
+  if Length(Extra) = 0 then
+    Exit;
+  { the verses of the chunks that stay }
+  Others := nil;
+  for C in Chunks do
+    if not Contains(Extra, ChunkLabel(C)) then
+      Others := Concat(Others, UsfmVerseMarkers(ReadText(C.Path)));
+  Removable := nil;
+  Items := nil;
+  for C in Chunks do
+  begin
+    if not Contains(Extra, ChunkLabel(C)) then
+      Continue;
+    Lost := '';
+    for V in UsfmVerseMarkers(ReadText(C.Path)) do
+      if not IntIn(Others, V) then
+      begin
+        if Lost <> '' then
+          Lost := Lost + ', ';
+        Lost := Lost + IntToStr(V);
+      end;
+    if Lost <> '' then
+    begin
+      R.Warn(Format(rsExtraKept, [ChunkLabel(C), Lost]));
+      Continue;
+    end;
+    Removable := Concat(Removable, [ChunkLabel(C)]);
+    Item := Default(TRepairItem);
+    Item.Chapter := C.Chapter;
+    Item.Chunk := C.Chunk;
+    Item.Action := raRemove;
+    Items := Concat(Items, [Item]);
+  end;
+  Own := String.Join(', ', Extra);
+  if not RemoveExtra or (Length(Removable) = 0) then
+  begin
+    if Length(Removable) > 0 then
+      R.Warn(Format(rsExtraChunks, [Own]) + rsExtraHint)
+    else
+      R.Warn(Format(rsExtraChunks, [Own]));
+  end
+  else
+    R.Warn(Format(rsExtraChunks, [Own]));
+  { what each holds and where it came from, to judge before removing }
+  for C in Chunks do
+    if Contains(Extra, ChunkLabel(C)) then
+    begin
+      Added := Trim(RunGit(ExcludeTrailingPathDelimiter(Dir), ['log', '--diff-filter=A',
+        '--format=%h (%ad, %an)', '--date=format:%Y-%m-%d', '-1', '--',
+        C.Chapter + '/' + C.Chunk + '.txt']).Output);
+      if Added = '' then
+        Added := rsExtraNoHistory;
+      R.Info(Format(rsExtraLine, [ChunkLabel(C), Added,
+        Copy(NormalText(ReadText(C.Path)), 1, 70) + '...']));
+    end;
+  if not RemoveExtra or (Length(Removable) = 0) then
+    Exit;
+  Labels := Removable;
+  if DryRun then
+  begin
+    R.Warn(Format(rsExtraWouldRemove, [String.Join(', ', Labels)]));
+    Inc(Removed, Length(Removable));
+    Exit;
+  end;
+  if IsDirty(ExcludeTrailingPathDelimiter(Dir)) and
+     not CommitAll(ExcludeTrailingPathDelimiter(Dir), rsExtraLoose) then
+  begin
+    R.Error(Format(rsExtraFailed, ['git commit']));
+    Exit;
+  end;
+  RepairIdentity(CommitName, CommitEmail);
+  if not ApplyRepairs(Dir, Items, rsExtraMessage + #10#10 + String.Join(#10, Labels),
+     CommitName, CommitEmail, Failure) then
+  begin
+    R.Error(Format(rsExtraFailed, [Failure]));
+    Exit;
+  end;
+  R.Warn(Format(rsExtraRemoved, [String.Join(', ', Labels)]));
+  Inc(Removed, Length(Removable));
+end;
+
 procedure CheckProject(const Dir, Name: string; Manifest: TJSONObject;
-  Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit, DryRun: Boolean;
-  var Renamed, Rebuilt: Integer; R: TWBReporter);
+  Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit, DryRun, RemoveExtra: Boolean;
+  var Renamed, Rebuilt, RemovedExtra: Integer; R: TWBReporter);
 var
   Chunks: TProjectChunks;
   C: TProjectChunk;
@@ -598,6 +731,11 @@ begin
       R.Info(Format(rsSourceChunksWithout, [Container, ShortList(Missing)]));
   end;
 
+  HandleExtraChunks(Dir, Chunks, Containers, Conflicted, Sources, RemoveExtra, DryRun,
+    RemovedExtra, R);
+  if RemoveExtra and not DryRun then
+    Chunks := ProjectChunks(Dir);   // removed files are gone
+
   { Verse markers. Each chunk is checked against the chunking the project
     follows, or, for a project that mixes chunkings, the first source that
     has that chunk. }
@@ -697,6 +835,7 @@ begin
     OptionDef('problems-only', okFlag, False, False, rsOptProblemsOnly, rsOptProblemsOnlyHelp),
     OptionDef('dry-run', okFlag, False, False, rsOptDryRun, rsOptDryRunHelp),
     OptionDef('deep-git', okFlag, False, False, rsOptDeepGit, rsOptDeepGitHelp),
+    OptionDef('remove-extra-chunks', okFlag, False, False, rsOptRemoveExtra, rsOptRemoveExtraHelp),
     OptionDef('language-db', okFile, False, False, rsOptLanguageDb, rsOptLanguageDbHelp),
     OptionDef('target-dir', okDirectory, False, False, rsOptTargetDir, rsOptTargetDirHelp)];
 end;
@@ -706,7 +845,8 @@ var
   TargetDir, Name, Dir, Bundled, FilterText: string;
   Langs, Books, Types: TStringArray;
   ProblemsOnly, HasProblem, Filtered, DeepGit, DryRun: Boolean;
-  Renamed, Rebuilt: Integer;
+  Renamed, Rebuilt, RemovedExtra: Integer;
+  RemoveExtra: Boolean;
   Names: TStringList;
   SR: TSearchRec;
   Sources: TSourceLibrary;
@@ -792,6 +932,8 @@ begin
   Types := SplitList(Options.Values['type']);
   ProblemsOnly := OptionIsSet(Options, 'problems-only');
   DeepGit := OptionIsSet(Options, 'deep-git');
+  RemoveExtra := OptionIsSet(Options, 'remove-extra-chunks');
+  RemovedExtra := 0;
   DryRun := OptionIsSet(Options, 'dry-run');
   Renamed := 0;
   Rebuilt := 0;
@@ -911,8 +1053,8 @@ begin
                       StrField(Manifest, 'resource.id'),
                       StrField(Manifest, 'type.id') + '_' + StrField(Manifest, 'resource.id')])) then
               Continue;
-            CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, DryRun,
-              Renamed, Rebuilt, Buffer);
+            CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, DryRun, RemoveExtra,
+              Renamed, Rebuilt, RemovedExtra, Buffer);
             if StrField(Manifest, 'target_language.id') <> '' then
               LangNames.Add(StrField(Manifest, 'target_language.id') + #9 +
                 StrField(Manifest, 'target_language.name'));
@@ -945,6 +1087,11 @@ begin
     Reporter.Info(Format(rsSummary, [Listed, WithProblems]));
     if Hidden > 0 then
       Reporter.Info(Format(rsSummaryHidden, [Hidden]));
+    if RemovedExtra > 0 then
+      if DryRun then
+        Reporter.Warn(Format(rsSummaryWouldRemoveExtra, [RemovedExtra]))
+      else
+        Reporter.Warn(Format(rsSummaryRemovedExtra, [RemovedExtra]));
     if Rebuilt > 0 then
       if DryRun then
         Reporter.Warn(Format(rsSummaryWouldRebuild, [Rebuilt]))

@@ -8,6 +8,20 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- cross-check, other languages: a verse or chunk two projects share is
+  reported only on the project that had it later, by both projects' git
+  history, with the commit that brought it in; a rewording only if the
+  other text read that way first. Chimanika Mark 01-13 (Chibangwe 3 John
+  13-15, pasted in October 2026) is reported on Mark alone. Compared the
+  other way, the Bemba repos no longer show 10 verses "reworded to read
+  like Bwile" in 2022, before Bwile had that wording. Without history on
+  either side both are reported, marked as unknown order.
+- projects: chunk files that no compared source has are listed with the
+  commit that added each and how it begins. `--remove-extra-chunks`
+  ("Remove extra chunks") deletes them on Run, with their finished marks,
+  in one commit (loose work is committed first); a chunk holding verses
+  no other chunk has is kept and named.
+
 - projects: verse markers are always compared with en_ulb as well, not
   only with the source the project follows (a project following another
   source's chunking was never compared with English); reported on a line

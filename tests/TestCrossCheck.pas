@@ -612,7 +612,7 @@ end;
 
 procedure TestTitlesAndOtherLanguages(const TempRoot: string);
 var
-  Data, Other, Lib, Tit, Phm, Jud, Jas, Ref1, Output, S, OldBundled: string;
+  Data, Other, Lib, Tit, Phm, Jud, Jas, YyJas, YyJud, Ref1, Output, S, OldBundled: string;
   Code: Integer;
 begin
   Section('cross-check: titles and other languages');
@@ -630,6 +630,13 @@ begin
       '01/01.txt=\v 1 ' + Ref1 + '.',
       '01/05.txt=\v 5 ' + Gib('yy-tit-1-5', 16) + ' \v 6 ' + Gib('yy-tit-1-6', 14) + '.'], 'yy');
     MakeProject('tit', ['02/01.txt=\v 1 ' + Gib('xx-tit-2-1', 14) + '.'], 'xx-x-old');
+    { yy James, later, takes xx James 1:1 as its 01/02 }
+    YyJas := MakeProject('jas', ['01/01.txt=\v 1 ' + Gib('yy-jas-1-1', 14) + '.'], 'yy');
+    Put(YyJas + '01/02.txt', '\v 2 ' + Gib('xx-jas-1-1', 14) + '.');
+    Git(YyJas, '2026-03-05T10:00:00+0200', 'Borrower', ['add', '--all']);
+    Git(YyJas, '2026-03-05T10:00:00+0200', 'Borrower', ['commit', '-q', '-m', 'borrow']);
+    { yy Jude gets xx Jude 1:1's new wording (made below) a day later }
+    YyJud := MakeProject('jud', ['01/01.txt=\v 1 ' + Gib('yy-jud-1-1', 14) + '.'], 'yy');
     { a source text in a third language, zz }
     Put(Lib + 'zz_tit_ulb/content/02/03.usx',
       '<verse number="3" style="v" />' + Gib('zz-tit-2-3', 14) + '.');
@@ -653,6 +660,11 @@ begin
     Git(Jas, '2026-03-01T10:05:00+0200', 'Paster', ['commit', '-q', '-a', '-m', 'session']);
     Put(Jas + 'front/title.txt', 'Yakobo');
     Git(Jas, '2026-03-02T10:00:00+0200', 'Fixer', ['commit', '-q', '-a', '-m', 'fix']);
+    Put(Jud + '01/01.txt', '\v 1 ' + Gib('jud-new', 14) + '.');
+    Git(Jud, '2026-03-03T10:00:00+0200', 'Editor', ['commit', '-q', '-a', '-m', 'edit']);
+    Put(YyJud + '01/01.txt', '\v 1 ' + Copy(Gib('jud-new', 14), 1,
+      LastDelimiter(' ', Gib('jud-new', 14))) + 'mbaka.');
+    Git(YyJud, '2026-03-04T10:00:00+0200', 'Borrower', ['commit', '-q', '-a', '-m', 'reword']);
     Phm := MakeProject('phm', [
       'front/title.txt=Pilimona',
       '01/01.txt=\v 1 ' + Gib('xx-phm-1-1', 30) + '.']);
@@ -687,21 +699,36 @@ begin
       'other languages only on request');
 
     Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Other, '--sources'], Code);
-    Check((Code = 0) and (LineWith(Output, 'Also compared with 2 text(s) in other languages') <> ''),
+    Check((Code = 0) and (LineWith(Output, 'Also compared with 4 text(s) in other languages') <> ''),
       'compares with the other folder and the source texts, not the language''s own code');
     S := LineWith(Output, '01/01: verse 1 was reworded to read like Lang xx (yy), yy_tit_text_reg');
     Check((S <> '') and (Pos('Paster', S) > 0), 'a verse reworded to read like another language');
     Check(LineWith(Output, '02/03: verse 3 is the same as in the source text zz_tit_ulb') <> '',
       'a verse pasted from a source text');
-    Check(LineWith(Output, '03/01: 100% of its text is in Lang xx (yy), yy_tit_text_reg 01/05') <> '',
-      'a chunk taken from another language');
+    S := LineWith(Output, '03/01: 100% of its text is in Lang xx (yy), yy_tit_text_reg 01/05');
+    Check((S <> '') and (Pos('since', S) > 0) and (Pos('Paster', S) > 0),
+      'a chunk taken from another language, with the commit that brought it in');
+    Check(LineWith(Output, 'yy_jas_text_reg') = '',
+      'a chunk the other language took later is not reported on the original');
+    Check(LineWith(Output, 'yy_jud_text_reg') = '',
+      'nor a verse reworded before the other language had that wording');
     Check(LineWith(Output, '02/01: verse') = '', 'the language under another code is not foreign');
     Check(LineWith(Output, '01/05: verse') = '', 'nor is another book of the language');
 
+    Output := Run('cross-check', ['--target-dir', Other, '--compare-dir', Target], Code);
+    S := LineWith(Output, '01/02: 100% of its text is in Lang xx (xx), xx_jas_text_reg 01/01');
+    Check((Code = 0) and (S <> '') and (Pos('Borrower', S) > 0),
+      'seen from the other side: the later one is the copy');
+    S := LineWith(Output, '01/01: verse 1 was reworded to read like Lang xx (xx), xx_jud_text_reg');
+    Check((S <> '') and (Pos('Borrower', S) > 0), 'and the later rewording');
+    Check(LineWith(Output, 'yy_tit_text_reg 01/05') + LineWith(Output, '01/05: ') = '',
+      'and the original is not reported there');
+
     Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Other, '--no-history'], Code);
     Check((Code = 0) and (LineWith(Output, 'reworded') = '') and
-      (LineWith(Output, '03/01: 100% of its text') <> ''),
-      'without history: no rewording, the rest still');
+      (LineWith(Output, '03/01: 100% of its text', 'which came first is unknown') <> '') and
+      (LineWith(Output, '01/01: 100% of its text is in Lang xx (yy), yy_jas_text_reg 01/02') <> ''),
+      'without history: no rewording, the rest still, both sides, order unknown');
 
     Output := Run('cross-check', ['--target-dir', Target, '--compare-dir', Data + 'nowhere'], Code);
     Check(Code = 1, 'a missing folder to compare with is an error');

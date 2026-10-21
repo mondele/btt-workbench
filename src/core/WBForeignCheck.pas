@@ -24,6 +24,12 @@ unit WBForeignCheck;
 
    Related languages share words: Bwile verses are up to 0.98 alike to
    Bemba by chance (spacing differs), which is why the thresholds are high.
+
+   A same or chunk match between two projects is reported on the one that
+   had the text later, by both projects' git history (the first version
+   holding it), with the commit that brought it in; the earlier one is not
+   reported. Without history on either side, or at the same moment, both
+   are, marked unordered. A source text counts as the original.
    Texts in the language's own group (WBCrossScan.LanguageGroup) are never
    compared. *)
 
@@ -31,7 +37,7 @@ interface
 
 uses
   Classes, SysUtils, Generics.Collections, WBCrossCheck, WBCrossScan, WBCrossTitles,
-  WBSources, WBSimilarity;
+  WBSources, WBSimilarity, WBChunkHistory;
 
 const
   SameRatio = 0.97;
@@ -57,6 +63,9 @@ type
     Group: string;
     Book: string;
     IsSource: Boolean;
+    Dir: string;          // a project's folder (for its history); '' for a source
+    HistoryRead, HasHistory: Boolean;
+    Versions: TChunkVersions;
     Keys: TStringArray;
     Words: array of UnicodeString;
     Trigrams: array of TTrigrams;
@@ -79,7 +88,8 @@ type
     Text: Integer;       // position in the TForeignTexts
     Chunk: string;       // fkChunk: the chunk of Text
     Now, Before: Double; // likeness (fkChunk: share of word runs)
-    Since: Integer;      // fkReworded: the version with the edit
+    Since: Integer;      // the version that brought it in (-1 unknown)
+    Unordered: Boolean;  // fkSame, fkChunk: which had it first is unknown
   end;
   TForeignFindings = array of TForeignFinding;
 
@@ -201,6 +211,7 @@ begin
           Continue;
         T := TForeignText.Create;
         T.Name := List[I];
+        T.Dir := PDir;
         T.Lang := Lang;
         T.LangName := StrField(Manifest, 'target_language.name');
         T.Group := LanguageGroup(Lang);
@@ -324,6 +335,31 @@ begin
   Result := SequenceRatio(A, B);
 end;
 
+{ The chunk (05/08) of a project text that holds Chapter:Verse, '' if
+  none or a source text. }
+function ChunkOfVerse(T: TForeignText; Chapter, Verse: Integer): string;
+var
+  J: Integer;
+  Best, Ch, Start: Integer;
+  Parts: TStringArray;
+begin
+  Result := '';
+  Best := -1;
+  for J := 0 to High(T.ChunkNames) do
+  begin
+    Parts := T.ChunkNames[J].Split(['/']);
+    if Length(Parts) <> 2 then
+      Continue;
+    Ch := StrToIntDef(Parts[0], -1);
+    Start := StrToIntDef(Parts[1], -1);
+    if (Ch = Chapter) and (Start <= Verse) and (Start > Best) then
+    begin
+      Best := Start;
+      Result := T.ChunkNames[J];
+    end;
+  end;
+end;
+
 function VerseIn(const VT: TVerseTexts; Verse: Integer): Integer;
 var
   I: Integer;
@@ -358,11 +394,140 @@ var
   Pair: specialize TPair<Integer, Integer>;
   H: QWord;
   Reported: specialize THashSet<Integer>;            // texts with verse findings
+  Shared: specialize THashSet<QWord>;
+  BestW: UnicodeString;
+  BestChunk: string;
+  Theirs: Int64;
+  Unknown: Boolean;
 
   function SameFile(A, B: Integer): Boolean;
   begin
     Result := (Docs[A].Project = Docs[B].Project) and (Docs[A].Chapter = Docs[B].Chapter) and
       (Docs[A].Chunk = Docs[B].Chunk);
+  end;
+
+
+  { Runs of Text, as a set }
+  procedure RunsInto(const Text: string; Into: specialize THashSet<QWord>);
+  var
+    Hh: QWord;
+  begin
+    Into.Clear;
+    for Hh in RunsOf(Text) do
+      Into.Add(Hh);
+  end;
+
+  { Whether Text holds ChunkShare of Want }
+  function Holds(const Text: string; Want: specialize THashSet<QWord>): Boolean;
+  var
+    Got: specialize THashSet<QWord>;
+    Hh: QWord;
+    N: Integer;
+  begin
+    if Want.Count = 0 then
+      Exit(False);
+    Got := specialize THashSet<QWord>.Create;
+    try
+      RunsInto(Text, Got);
+      N := 0;
+      for Hh in Want do
+        if Got.Contains(Hh) then
+          Inc(N);
+      Result := N >= ChunkShare * Want.Count;
+    finally
+      Got.Free;
+    end;
+  end;
+
+  { Whether verse Verse of Text is Ratio alike to W }
+  function HoldsVerse(const Text: string; Verse: Integer; const W: UnicodeString;
+    Ratio: Double): Boolean;
+  var
+    VT: TVerseTexts;
+    J: Integer;
+  begin
+    VT := VerseWordTexts(Text);
+    J := VerseIn(VT, Verse);
+    Result := (J >= 0) and (SequenceRatio(VT[J].Text, W) >= Ratio);
+  end;
+
+  { This file's first version (current included) that Test accepts: its
+    position in Docs, or -1 }
+  function OurFirst(D0: Integer; Want: specialize THashSet<QWord>; Verse: Integer;
+    const W: UnicodeString): Integer;
+  var
+    X: Integer;
+    Ok: Boolean;
+  begin
+    Result := -1;
+    for X := 0 to High(Docs) do
+      if (Docs[X].Project = Docs[D0].Project) and (Docs[X].Chapter = Docs[D0].Chapter) and
+         (Docs[X].Chunk = Docs[D0].Chunk) then
+      begin
+        if Verse > 0 then
+          Ok := HoldsVerse(Docs[X].Text, Verse, W, SameRatio)
+        else
+          Ok := Holds(Docs[X].Text, Want);
+        if Ok and ((Result < 0) or (Docs[X].Time < Docs[Result].Time)) then
+          Result := X;
+      end;
+  end;
+
+  { When the other project first had it: the runs Want in Chunk, or verse
+    Verse of chapter Chapter Ratio alike to W in any chunk of it. Its time,
+    NotCommitted if only on disk, -1 if it has no history }
+  function TheirFirst(T: TForeignText; const Chunk: string; Chapter: Integer;
+    Want: specialize THashSet<QWord>; Verse: Integer; const W: UnicodeString;
+    Ratio: Double): Int64;
+  var
+    Commits: TCommitFilesList;
+    J: Integer;
+    Ok: Boolean;
+  begin
+    if not T.HistoryRead then
+    begin
+      T.HistoryRead := True;
+      T.HasHistory := (T.Dir <> '') and ReadChunkHistory(T.Dir, T.Versions, Commits);
+    end;
+    if not T.HasHistory then
+      Exit(-1);
+    Result := NotCommitted;
+    for J := 0 to High(T.Versions) do
+    begin
+      if Verse > 0 then
+        Ok := (StrToIntDef(Copy(T.Versions[J].Path, 1, Pos('/', T.Versions[J].Path) - 1),
+          -1) = Chapter) and HoldsVerse(T.Versions[J].Text, Verse, W, Ratio)
+      else
+        Ok := (T.Versions[J].Path = Chunk + '.txt') and Holds(T.Versions[J].Text, Want);
+      if Ok and (T.Versions[J].Time < Result) then
+        Result := T.Versions[J].Time;
+    end;
+  end;
+
+  { Sets F.Since and F.Unordered; False if the other project had it later
+    (it copied from here: not reported here) }
+  function Ordered(var F: TForeignFinding; Want: specialize THashSet<QWord>;
+    const W: UnicodeString; const Chunk: string): Boolean;
+  var
+    Ours: Integer;
+    Theirs: Int64;
+  begin
+    Result := True;
+    if NoHistory then
+    begin
+      F.Unordered := not Texts[F.Text].IsSource;
+      Exit;
+    end;
+    Ours := OurFirst(F.Doc, Want, F.Verse, W);
+    F.Since := Ours;
+    if Texts[F.Text].IsSource or (Ours < 0) then
+      Exit;
+    Theirs := TheirFirst(Texts[F.Text], Chunk, StrToIntDef(Docs[F.Doc].Chapter, -1), Want, F.Verse, W,
+      SameRatio);
+    if (Theirs < 0) or (Theirs = Docs[Ours].Time) then
+      F.Unordered := True
+    else if Theirs > Docs[Ours].Time then
+      Result := False;
   end;
 
 begin
@@ -374,6 +539,7 @@ begin
   Counts := specialize TDictionary<Integer, Integer>.Create;
   RunSet := specialize THashSet<QWord>.Create;
   Reported := specialize THashSet<Integer>.Create;
+  Shared := specialize THashSet<QWord>.Create;
   try
     ChunkOf := nil;
     for X := 0 to Texts.Count - 1 do
@@ -435,13 +601,18 @@ begin
               BestF.Text := X;
               BestF.Now := Sn;
               BestF.Since := -1;
+              BestW := Texts[X].Words[K];
+              BestChunk := ChunkOfVerse(Texts[X], Ch, Cur[I].Verse);
             end;
           end;
           if BestSn > 0 then
           begin
-            Result := Concat(Result, [BestF]);
-            Reported.Add(BestF.Text);
-            Found[I] := True;
+            Found[I] := True;   // either way, not one to look at again
+            if Ordered(BestF, RunSet, BestW, BestChunk) then
+            begin
+              Result := Concat(Result, [BestF]);
+              Reported.Add(BestF.Text);
+            end;
           end;
         end;
 
@@ -507,6 +678,17 @@ begin
                   Sc := Alike(Cur[I].Text, CurTri, Texts[X].Words[Best], Texts[X].Trigrams[Best]);
                 if Sc < RewordRatio then
                   Continue;   // since changed again
+                { the other text must have read like this before the edit }
+                Unknown := False;
+                if not Texts[X].IsSource then
+                begin
+                  Theirs := TheirFirst(Texts[X], '', Ch, nil, Cur[I].Verse, New[K].Text,
+                    RewordRatio);
+                  if Theirs < 0 then
+                    Unknown := True
+                  else if Theirs > Docs[Versions[J]].Time then
+                    Continue;
+                end;
                 BestSn := Sn;
                 BestF := Default(TForeignFinding);
                 BestF.Doc := D;
@@ -516,6 +698,7 @@ begin
                 BestF.Now := Sc;
                 BestF.Before := So;
                 BestF.Since := Versions[J];
+                BestF.Unordered := Unknown;
               end;
               if BestSn > 0 then
               begin
@@ -562,10 +745,17 @@ begin
         F.Chunk := Texts[F.Text].ChunkNames[ChunkOf[Best][1]];
         F.Now := Hits / RunSet.Count;
         F.Since := -1;
-        Result := Concat(Result, [F]);
+        { the runs both share decide who had the text first }
+        Shared.Clear;
+        for H in Texts[F.Text].ChunkRuns[ChunkOf[Best][1]] do
+          if RunSet.Contains(H) then
+            Shared.Add(H);
+        if Ordered(F, Shared, '', F.Chunk) then
+          Result := Concat(Result, [F]);
       end;
     end;
   finally
+    Shared.Free;
     Reported.Free;
     RunSet.Free;
     Counts.Free;
