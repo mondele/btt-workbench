@@ -164,7 +164,11 @@ linker warnings are harmless.
   with `Default(TImportContext)`.
 - BTT-Writer only uses git branch `master` (`gitnative.js`: `git init -b
   master`, pull and push `master` by name). `projects` moves `main` to
-  `master` while scanning.
+  `master` while scanning, and `WBImport.RepairGitFolder` rebuilds a
+  `.git` that lost HEAD/config/index but kept objects and a branch (seen
+  October 2026 on a copied icl_3jn project: git said "not a git
+  repository"); it writes only the missing files, checks with `git fsck
+  --connectivity-only`, and removes what it wrote if that fails.
 - `WBUsfmChecks` ports usfm-tools' `verifyUSFM.py` (WA code, open licence;
   credit Larry Versaw) from upstream Bible-Translation-Tools/usfm-tools
   (not the stale mondele fork). Keep verifyUSFM's check numbers, regexes

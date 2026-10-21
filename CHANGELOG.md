@@ -8,6 +8,12 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- projects: a `.git` folder that has lost `HEAD`, `config` or its index
+  while its history is intact (as an incomplete copy leaves it; git then
+  does not see a repository at all) is reported, and rebuilt on Run: HEAD
+  on master, git's default config, the index from the last commit. The
+  files are not touched, and nothing is kept unless `git fsck` finds the
+  history whole.
 - New modules **library-languages** ("Update target languages") and
   **library-sources** ("Update source list"): BTT-Writer's Update
   Languages and Update Sources, downloading catalogs several at once

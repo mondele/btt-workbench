@@ -788,9 +788,11 @@ msgstr ""
 msgid ""
 "Lists the projects in BTT-Writer's projects folder and any problems with "
 "them: damaged manifests or git history, unresolved conflicts, and chunks or "
-"verse markers that do not match en_ulb or the project's source chunking. "
-"Moves projects from git branch main to master, the only branch BTT-Writer "
-"uses; nothing else is changed."
+"verse markers that do not match en_ulb or the project's source chunking. Two "
+"repairs: projects on git branch main are moved to master, the only branch "
+"BTT-Writer uses, and a .git folder that has lost HEAD, config or its index "
+"while its history is intact (as a copy can leave it) is rebuilt. Nothing "
+"else is changed."
 msgstr ""
 
 #: modprojects:rsoptdryrun
@@ -798,7 +800,7 @@ msgid "Dry run"
 msgstr ""
 
 #: modprojects:rsoptdryrunhelp
-msgid "Report projects on branch main without moving them to master"
+msgid "Report what the repairs would do without doing them"
 msgstr ""
 
 #: modprojects:rsoptlanguagehelp
@@ -999,6 +1001,14 @@ msgstr ""
 
 #: modprojects:rssummaryrenamed
 msgid "%d project(s) moved from git branch main to master."
+msgstr ""
+
+#: modprojects:rssummaryrebuilt
+msgid "%d project(s) had their .git folder rebuilt."
+msgstr ""
+
+#: modprojects:rssummarywouldrebuild
+msgid "%d project(s) would have their .git folder rebuilt (dry run)."
 msgstr ""
 
 #: modprojects:rssummarywouldrename
@@ -2195,6 +2205,37 @@ msgstr ""
 
 #: wbimport:rsbranchfailed
 msgid "Could not move the git branch from main to master: %s"
+msgstr ""
+
+#: wbimport:rsgitlost
+msgid ""
+"The .git folder has lost %s, though its history is there (branch %s, last "
+"commit %s)."
+msgstr ""
+
+#: wbimport:rsgitwouldrepair
+msgid "Run rebuilds them; the history and the files are not changed."
+msgstr ""
+
+#: wbimport:rsgitrepaired
+msgid ""
+"Rebuilt them: git sees the project again, with its history; the files were "
+"not changed."
+msgstr ""
+
+#: wbimport:rsgitstilldirty
+msgid ""
+"Files that differ from the last commit (BTT-Writer will commit them): %d."
+msgstr ""
+
+#: wbimport:rsgitrepairfailed
+msgid "Could not rebuild them (%s); left as it was."
+msgstr ""
+
+#: wbimport:rsgitnobranch
+msgid ""
+"The .git folder has no HEAD and no branch to point it at, so it cannot be "
+"rebuilt here."
 msgstr ""
 
 #: wbimport:rsnoprojectmanifest

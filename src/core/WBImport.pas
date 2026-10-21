@@ -73,6 +73,14 @@ function ImportBackupRoot(const TargetDir: string): string;
   Refuses when both exist; reports other branches and a detached HEAD.
   True if it was moved, or would be with DryRun. }
 function FixBranch(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
+{ Rebuilds what a project's .git folder has lost when its history is still
+  there: HEAD, config and the index (a copy that left out the loose files
+  at the top of .git: git no longer sees a repository there, though every
+  commit is intact). HEAD is pointed at master (else main, else the only
+  branch), config gets git's defaults, the index is rebuilt from the last
+  commit (git reset; the files are not touched). Kept only if git fsck then
+  finds the history whole. True if repaired, or it would be with DryRun. }
+function RepairGitFolder(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
 
 implementation
 
@@ -90,6 +98,16 @@ resourcestring
   rsBranchOther = 'The git branch is %s, not master; BTT-Writer only uses master.';
   rsDetached = 'git is not on any branch (detached HEAD); BTT-Writer only uses master.';
   rsBranchFailed = 'Could not move the git branch from main to master: %s';
+  rsGitLost = 'The .git folder has lost %s, though its history is there (branch %s, ' +
+    'last commit %s).';
+  rsGitWouldRepair = 'Run rebuilds them; the history and the files are not changed.';
+  rsGitRepaired = 'Rebuilt them: git sees the project again, with its history; the ' +
+    'files were not changed.';
+  rsGitStillDirty = 'Files that differ from the last commit (BTT-Writer will commit ' +
+    'them): %d.';
+  rsGitRepairFailed = 'Could not rebuild them (%s); left as it was.';
+  rsGitNoBranch = 'The .git folder has no HEAD and no branch to point it at, so ' +
+    'it cannot be rebuilt here.';
   rsBadEntryPath = 'Project entry has an unsafe or missing path: "%s". Skipped.';
   rsNoProjectManifest = '%s has no manifest.json. Skipped.';
   rsBadProjectManifest = '%s: manifest.json could not be read (%s). Skipped.';
@@ -803,6 +821,195 @@ begin
     Exit;
   end;
   R.Warn(rsBranchRenamed);
+  Result := True;
+end;
+
+function SmallFileText(const FileName: string): string;
+var
+  S: TStringStream;
+begin
+  S := TStringStream.Create('');
+  try
+    S.LoadFromFile(FileName);
+    Result := S.DataString;
+  finally
+    S.Free;
+  end;
+end;
+
+procedure SaveSmallFile(const FileName, Text: string);
+var
+  S: TStringStream;
+begin
+  S := TStringStream.Create(Text);
+  try
+    S.SaveToFile(FileName);
+  finally
+    S.Free;
+  end;
+end;
+
+{ The branch HEAD should name, from .git/refs/heads or packed-refs:
+  master, else main, else the only one; '' if none or several. }
+function BranchToUse(const GitDir: string; out Commit: string): string;
+var
+  SR: TSearchRec;
+  Names, Commits: TStringList;
+  Line, PackedRefs: string;
+  I: Integer;
+begin
+  Result := '';
+  Commit := '';
+  Names := TStringList.Create;
+  Commits := TStringList.Create;
+  try
+    if FindFirst(GitDir + 'refs' + PathDelim + 'heads' + PathDelim + '*', faAnyFile, SR) = 0 then
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) = 0) then
+        begin
+          Names.Add(SR.Name);
+          Commits.Add(Trim(SmallFileText(GitDir + 'refs' + PathDelim + 'heads' + PathDelim + SR.Name)));
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+    if FileExists(GitDir + 'packed-refs') then
+    begin
+      PackedRefs := SmallFileText(GitDir + 'packed-refs');
+      for Line in PackedRefs.Split([#10]) do
+        if (Length(Line) > 52) and (Copy(Line, 42, 11) = 'refs/heads/') and
+           (Names.IndexOf(Copy(Line, 53, MaxInt)) < 0) then
+        begin
+          Names.Add(Trim(Copy(Line, 53, MaxInt)));
+          Commits.Add(Copy(Line, 1, 40));
+        end;
+    end;
+    I := Names.IndexOf('master');
+    if I < 0 then
+      I := Names.IndexOf('main');
+    if (I < 0) and (Names.Count = 1) then
+      I := 0;
+    if I >= 0 then
+    begin
+      Result := Names[I];
+      Commit := Commits[I];
+    end;
+  finally
+    Commits.Free;
+    Names.Free;
+  end;
+end;
+
+function RepairGitFolder(const Dir: string; DryRun: Boolean; R: TWBReporter): Boolean;
+var
+  GitDir, Branch, Commit, Lost, Problem: string;
+  Parts: TStringArray;
+  NeedHead, NeedConfig, NeedIndex, Recognised: Boolean;
+  G: TGitResult;
+  Dirty: Integer;
+
+  procedure Undo;
+  begin
+    if NeedHead then
+      DeleteFile(GitDir + 'HEAD');
+    if NeedConfig then
+      DeleteFile(GitDir + 'config');
+  end;
+
+begin
+  Result := False;
+  GitDir := IncludeTrailingPathDelimiter(Dir) + '.git' + PathDelim;
+  if not DirectoryExists(GitDir) or not DirectoryExists(GitDir + 'objects') then
+    Exit;
+  Recognised := RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']).ExitCode = 0;
+  NeedHead := not FileExists(GitDir + 'HEAD');
+  NeedConfig := not FileExists(GitDir + 'config');
+  NeedIndex := not FileExists(GitDir + 'index');
+  if Recognised and not NeedIndex then
+    Exit;                // whole (or damaged in a way this does not mend)
+  if not Recognised and not NeedHead and not NeedConfig then
+    Exit;                // HEAD is there but broken: not this kind of damage
+  Branch := BranchToUse(GitDir, Commit);
+  if NeedHead and (Branch = '') then
+  begin
+    R.Warn(rsGitNoBranch);
+    Exit;
+  end;
+  Parts := nil;
+  if NeedHead then
+    Parts := Concat(Parts, ['HEAD']);
+  if NeedConfig then
+    Parts := Concat(Parts, ['config']);
+  if NeedIndex then
+    Parts := Concat(Parts, ['its index']);
+  Lost := Parts[High(Parts)];
+  if Length(Parts) > 1 then
+    Lost := String.Join(', ', Copy(Parts, 0, High(Parts))) + ' and ' + Lost;
+  if Branch = '' then
+  begin
+    G := RunGit(Dir, ['symbolic-ref', '--short', '-q', 'HEAD']);
+    Branch := Trim(G.Output);
+    Commit := Trim(RunGit(Dir, ['rev-parse', '-q', 'HEAD']).Output);
+  end;
+  R.Warn(Format(rsGitLost, [Lost, Branch, Copy(Commit, 1, 7)]));
+  if DryRun then
+  begin
+    R.Warn(rsGitWouldRepair);
+    Exit(True);
+  end;
+
+  Problem := '';
+  try
+    if NeedHead then
+      SaveSmallFile(GitDir + 'HEAD', 'ref: refs/heads/' + Branch + #10);
+    if NeedConfig then
+      SaveSmallFile(GitDir + 'config', '[core]' + #10 + #9'repositoryformatversion = 0' + #10 +
+        {$IFDEF WINDOWS}#9'filemode = false' + #10 + #9'symlinks = false' + #10 +
+        #9'ignorecase = true' + #10 +{$ELSE}#9'filemode = true' + #10 +{$ENDIF}
+        #9'bare = false' + #10 + #9'logallrefupdates = true' + #10);
+    ForceDirectories(GitDir + 'refs' + PathDelim + 'tags');
+  except
+    on E: Exception do
+      Problem := E.Message;
+  end;
+  if Problem = '' then
+  begin
+    G := RunGit(Dir, ['rev-parse', '--verify', '-q', 'HEAD']);
+    if G.ExitCode <> 0 then
+      Problem := 'HEAD does not lead to a commit';
+  end;
+  if Problem = '' then
+  begin
+    G := RunGit(Dir, ['fsck', '--no-dangling', '--connectivity-only']);
+    if G.ExitCode <> 0 then
+      Problem := 'git fsck: ' + Trim(G.Output + ' ' + G.ErrorOutput);
+  end;
+  if Problem = '' then
+  begin
+    if NeedIndex then
+    begin
+      G := RunGit(Dir, ['reset', '-q']);   // the index from HEAD; files untouched
+      if G.ExitCode <> 0 then
+        Problem := 'git reset: ' + Trim(G.ErrorOutput);
+    end;
+  end;
+  if Problem <> '' then
+  begin
+    Undo;
+    if NeedIndex then
+      DeleteFile(GitDir + 'index');
+    R.Error(Format(rsGitRepairFailed, [Copy(Problem, 1, 300)]));
+    Exit;
+  end;
+  R.Warn(rsGitRepaired);
+  Dirty := 0;
+  G := RunGit(Dir, ['status', '--porcelain']);
+  if G.ExitCode = 0 then
+    Dirty := Length(Lines(G.Output));
+  if Dirty > 0 then
+    R.Warn(Format(rsGitStillDirty, [Dirty]));
   Result := True;
 end;
 

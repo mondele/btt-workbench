@@ -72,10 +72,12 @@ resourcestring
   rsDescription = 'Lists the projects in BTT-Writer''s projects folder and ' +
     'any problems with them: damaged manifests or git history, unresolved ' +
     'conflicts, and chunks or verse markers that do not match en_ulb or the ' +
-    'project''s source chunking. Moves projects from git branch main to ' +
-    'master, the only branch BTT-Writer uses; nothing else is changed.';
+    'project''s source chunking. Two repairs: projects on git branch main are ' +
+    'moved to master, the only branch BTT-Writer uses, and a .git folder that ' +
+    'has lost HEAD, config or its index while its history is intact (as a ' +
+    'copy can leave it) is rebuilt. Nothing else is changed.';
   rsOptDryRun = 'Dry run';
-  rsOptDryRunHelp = 'Report projects on branch main without moving them to master';
+  rsOptDryRunHelp = 'Report what the repairs would do without doing them';
   rsOptLanguage = 'Languages';
   rsOptLanguageHelp = 'Only these target language codes, comma-separated (e.g. sah,udm)';
   rsOptBook = 'Books';
@@ -149,6 +151,8 @@ resourcestring
   rsDirty = 'Has changes that are not committed yet.';
   rsFsck = 'git fsck found problems in the history: %s';
   rsSummaryRenamed = '%d project(s) moved from git branch main to master.';
+  rsSummaryRebuilt = '%d project(s) had their .git folder rebuilt.';
+  rsSummaryWouldRebuild = '%d project(s) would have their .git folder rebuilt (dry run).';
   rsSummaryWouldRename = '%d project(s) would be moved from git branch main ' +
     'to master.';
   rsConflicts = '%d chunk(s) have unresolved conflicts: %s';
@@ -379,7 +383,7 @@ end;
 { Messages for one project. Problems are warnings; the rest is info. }
 procedure CheckProject(const Dir, Name: string; Manifest: TJSONObject;
   Sources: TSourceLibrary; Languages: TLanguageIndex; DeepGit, DryRun: Boolean;
-  var Renamed: Integer; R: TWBReporter);
+  var Renamed, Rebuilt: Integer; R: TWBReporter);
 var
   Chunks: TProjectChunks;
   C: TProjectChunk;
@@ -489,6 +493,8 @@ begin
     R.Warn(Format(rsFolderName, [Expected]));
 
   { Git }
+  if RepairGitFolder(Dir, DryRun, R) then
+    Inc(Rebuilt);
   if FixBranch(Dir, DryRun, R) then
     Inc(Renamed);
   if not DirectoryExists(Dir + '.git') then
@@ -651,7 +657,7 @@ var
   TargetDir, Name, Dir, Bundled, FilterText: string;
   Langs, Books, Types: TStringArray;
   ProblemsOnly, HasProblem, Filtered, DeepGit, DryRun: Boolean;
-  Renamed: Integer;
+  Renamed, Rebuilt: Integer;
   Names: TStringList;
   SR: TSearchRec;
   Sources: TSourceLibrary;
@@ -679,6 +685,7 @@ begin
   DeepGit := OptionIsSet(Options, 'deep-git');
   DryRun := OptionIsSet(Options, 'dry-run');
   Renamed := 0;
+  Rebuilt := 0;
   Filtered := (Length(Langs) > 0) or (Length(Books) > 0) or (Length(Types) > 0);
 
   Reporter.Info(Format(rsFolder, [ExcludeTrailingPathDelimiter(TargetDir)]));
@@ -775,6 +782,8 @@ begin
                 Buffer.Warn(rsManifestConflict)
               else
                 Buffer.Warn(Format(rsManifestInvalid, [E.Message]));
+              if RepairGitFolder(Dir, DryRun, Buffer) then
+                Inc(Rebuilt);
               if FixBranch(Dir, DryRun, Buffer) then
                 Inc(Renamed);
             end;
@@ -788,7 +797,7 @@ begin
                       StrField(Manifest, 'type.id') + '_' + StrField(Manifest, 'resource.id')])) then
               Continue;
             CheckProject(Dir, Name, Manifest, Sources, Languages, DeepGit, DryRun,
-              Renamed, Buffer);
+              Renamed, Rebuilt, Buffer);
           end;
         end;
 
@@ -817,6 +826,11 @@ begin
     Reporter.Info(Format(rsSummary, [Listed, WithProblems]));
     if Hidden > 0 then
       Reporter.Info(Format(rsSummaryHidden, [Hidden]));
+    if Rebuilt > 0 then
+      if DryRun then
+        Reporter.Warn(Format(rsSummaryWouldRebuild, [Rebuilt]))
+      else
+        Reporter.Warn(Format(rsSummaryRebuilt, [Rebuilt]));
     if Renamed > 0 then
       if DryRun then
         Reporter.Warn(Format(rsSummaryWouldRename, [Renamed]))
