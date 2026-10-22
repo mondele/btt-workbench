@@ -8,6 +8,11 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- text-check: 3 John 1:15 and Revelation 12:18 are no longer reported
+  as "Verse numbers past the end of the chapter". Many Bibles number the
+  ends of those chapters one verse further than the table usfm-tools
+  uses, and verifyUSFM allows them too.
+
 - projects: chunking and verse markers are reported per source, each
   saying what is extra, missing (missing chunks whose verses are in
   other chunks apart) and outside its chunks, or that nothing is, then

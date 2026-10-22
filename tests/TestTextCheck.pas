@@ -517,7 +517,7 @@ end;
 
 procedure TestStructure;
 var
-  Hits: string;
+  Hits, Hits3jn: string;
 begin
   Check((ChapterCount('mat') = 28) and (VerseCount('MAT', 1) = 25) and (VerseCount('MAT', 29) = 0) and
     IsOptionalVerse('mrk', 7, 16) and IsShortVerse('JHN', 11, 35) and (EnglishBookName('3jn') = '3 John'),
@@ -535,6 +535,15 @@ begin
   Check(Has(Hits, '39 1:3 ') and Has(Hits, '40 1:3 '), 'verse out of order and given twice');
   Check(Has(Hits, '54 01-05 Loose text'), 'text before the first verse marker');
   Check(Has(Hits, '8 1:99 16'), 'verse past the end of the chapter');
+  Check((MaxVerseCount('3jn', 1) = 15) and (MaxVerseCount('REV', 12) = 18) and (MaxVerseCount('TIT', 1) = 16),
+    'chapter ends numbered differently');
+  Hits3jn := HitList('3JN', [
+    Chunk('01', '01', '\c 1 \v 1 One. \v 2 Two. \v 3 Three. \v 4 Four.'),
+    Chunk('01', '05', '\v 5 Five. \v 6 Six. \v 7 Seven. \v 8 Eight.'),
+    Chunk('01', '09', '\v 9 Nine. \v 10 Ten.'), Chunk('01', '11', '\v 11 Eleven. \v 12 Twelve.'),
+    Chunk('01', '13', '\v 13 Thirteen. \v 14 Fourteen. \v 15 Fifteen. \v 16 Sixteen.')], AllCheckGroups);
+  Check(not Has(Hits3jn, '8 1:15 ') and Has(Hits3jn, '8 1:16 14') and not Has(Hits3jn, '41 '),
+    '3 John 1:15 is not past the end of the chapter; 1:16 is');
   Check(Has(Hits, '53 1:6 \zz') and Has(Hits, '9  1/0') and Has(Hits, '78 1:6 \f'),
     'unsupported marker, unpaired footnote, space before a footnote');
   Check(Has(Hits, '73 01-07 \v7') and Has(Hits, '74 01-07 \v 8e') and

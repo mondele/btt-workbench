@@ -1940,7 +1940,7 @@ begin
     Seen := nil;
     SetLength(Seen, ChapterCount(Book) + 1);
     for I := 1 to High(Seen) do
-      SetLength(Seen[I], VerseCount(Book, I) + 1);
+      SetLength(Seen[I], MaxVerseCount(Book, I) + 1);
     for I := 0 to High(Texts) do
     begin
       if ChapterOf[I] <> C.Chapter then
@@ -2038,7 +2038,7 @@ begin
           I := 1;
       if I = 0 then
         Continue;
-      for V := 1 to High(Seen[Ch]) do
+      for V := 1 to VerseCount(Book, Ch) do
         if not Seen[Ch][V] and not IsOptionalVerse(Book, Ch, V) then
           Missing := Concat(Missing, [IntToStr(V)]);
       if Length(Missing) > 0 then

@@ -23,6 +23,9 @@ function BookIndex(const Code: string): Integer;
 function ChapterCount(const Code: string): Integer;
 { 0 for an unknown book or chapter. }
 function VerseCount(const Code: string; Chapter: Integer): Integer;
+{ VerseCount, or one more where Bibles number the chapter's end differently
+  (3 John 1:15, Revelation 12:18; usfm-tools' verifyVerseCount allows them). }
+function MaxVerseCount(const Code: string; Chapter: Integer): Integer;
 function EnglishBookName(const Code: string): string;
 { The 66 book codes in canonical order, lower case as in project ids. }
 function BookCodes: TBookCodes;
@@ -105,6 +108,7 @@ const
     (Code: 'JUD'; Name: 'Jude'; Chapters: 1; Verses: '25'),
     (Code: 'REV'; Name: 'Revelation'; Chapters: 22; Verses: '20,29,22,11,14,17,17,13,21,11,19,17,18,20,8,21,18,24,21,15,27,21'));
   OptionalVerses = '|MAT 17:21|MAT 18:11|MAT 23:14|MRK 7:16|MRK 9:44|MRK 9:46|MRK 16:9|MRK 16:10|MRK 16:11|MRK 16:12|MRK 16:13|MRK 16:14|MRK 16:15|MRK 16:16|MRK 16:17|MRK 16:18|MRK 16:19|MRK 16:20|MRK 11:26|MRK 15:28|LUK 17:36|LUK 23:17|JHN 5:4|JHN 7:53|JHN 8:1|ACT 8:37|ACT 15:34|ACT 24:7|ACT 28:29|ROM 16:24|REV 12:18|';
+  ExtraLastVerses = '|3JN 1:15|REV 12:18|';
   ShortVerses = '|LEV 11:15|EXO 20:13|EXO 20:14|EXO 20:15|DEU 5:17|DEU 5:18|DEU 5:19|JOB 3:2|JOB 9:1|JOB 12:1|JOB 16:1|JOB 19:1|JOB 21:1|JOB 27:1|JOB 29:1|LUK 20:30|JHN 11:35|';
 
 
@@ -156,6 +160,13 @@ end;
 function Ref(const Code: string; Chapter, Verse: Integer): string;
 begin
   Result := '|' + UpperCase(Code) + ' ' + IntToStr(Chapter) + ':' + IntToStr(Verse) + '|';
+end;
+
+function MaxVerseCount(const Code: string; Chapter: Integer): Integer;
+begin
+  Result := VerseCount(Code, Chapter);
+  if (Result > 0) and (Pos(Ref(Code, Chapter, Result + 1), ExtraLastVerses) > 0) then
+    Inc(Result);
 end;
 
 function IsOptionalVerse(const Code: string; Chapter, Verse: Integer): Boolean;
