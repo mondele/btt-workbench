@@ -1737,7 +1737,7 @@ var
   Text, Whole, Block, Marker, Value, Remainder, Heading, PrevLine: UnicodeString;
   Toks: TTokens;
   Tok: TToken;
-  I, J, Ch, V, NBlocks, NAscii, LocalChapter, LocalVerse, Embedded, Singles, Doubles: Integer;
+  I, J, Ch, V, PrevV, NBlocks, NAscii, LocalChapter, LocalVerse, Embedded, Singles, Doubles: Integer;
   Seen: array of array of Boolean;
   Missing: TStringArray;
   SeenVerseInChunk, SentenceEnded: Boolean;
@@ -1964,13 +1964,16 @@ begin
         else if Tok.Kind = 'v' then
         begin
           SeenVerseInChunk := True;
+          { the verse before this marker: after a bridge (23-25) LastVerse
+            is the bridge's last verse but one }
+          PrevV := C.Verse;
           C.TakeV(Tok.Value);
           { BTT-Writer structure }
           V := StrToIntDef(A(Copy(Tok.Value, 1, Pos('-', Tok.Value + '-') - 1)), 0);
           if V = 0 then
             Continue;
           Ch := C.Chapter;
-          if V < C.LastVerse then
+          if V < PrevV then
             C.Hit(ciVerseOrder, C.ShortRef, '');
           if (Ch <= High(Seen)) and (V <= High(Seen[Ch])) then
           begin

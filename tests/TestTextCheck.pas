@@ -517,7 +517,7 @@ end;
 
 procedure TestStructure;
 var
-  Hits, Hits3jn: string;
+  Hits, Hits3jn, HitsBridge: string;
 begin
   Check((ChapterCount('mat') = 28) and (VerseCount('MAT', 1) = 25) and (VerseCount('MAT', 29) = 0) and
     IsOptionalVerse('mrk', 7, 16) and IsShortVerse('JHN', 11, 35) and (EnglishBookName('3jn') = '3 John'),
@@ -544,6 +544,11 @@ begin
     Chunk('01', '13', '\v 13 Thirteen. \v 14 Fourteen. \v 15 Fifteen. \v 16 Sixteen.')], AllCheckGroups);
   Check(not Has(Hits3jn, '8 1:15 ') and Has(Hits3jn, '8 1:16 14') and not Has(Hits3jn, '41 '),
     '3 John 1:15 is not past the end of the chapter; 1:16 is');
+  HitsBridge := HitList('3JN', [
+    Chunk('01', '01', '\c 1 \v 1 One. \v 2-4 Two to four.'),
+    Chunk('01', '05', '\v 5-8 Five to eight. \v 7 Seven again.')], AllCheckGroups);
+  Check(not Has(HitsBridge, '39 1:2-4 ') and Has(HitsBridge, '39 1:5-8 '),
+    'a bridge of three or more verses is in order; a verse going back after one is not');
   Check(Has(Hits, '53 1:6 \zz') and Has(Hits, '9  1/0') and Has(Hits, '78 1:6 \f'),
     'unsupported marker, unpaired footnote, space before a footnote');
   Check(Has(Hits, '73 01-07 \v7') and Has(Hits, '74 01-07 \v 8e') and

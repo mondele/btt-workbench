@@ -8,6 +8,9 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- text-check: a verse bridge of three or more verses (`\v 23-25`) is no
+  longer reported as "Verses out of order".
+
 - text-check: 3 John 1:15 and Revelation 12:18 are no longer reported
   as "Verse numbers past the end of the chapter". Many Bibles number the
   ends of those chapters one verse further than the table usfm-tools
