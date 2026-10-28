@@ -4,6 +4,7 @@
 /dist/
 .*-build.lpi
 .*-build.lps
+.*-build.ico
 *.o
 *.ppu
 *.compiled

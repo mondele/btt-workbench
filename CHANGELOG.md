@@ -8,6 +8,9 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- The programs have an icon (the hammer in a blue hexagon): on Windows
+  for btt-workbench.exe and btw.exe, and as the GUI's window icon.
+
 - text-check: a verse bridge of three or more verses (`\v 23-25`) is no
   longer reported as "Verses out of order".
 

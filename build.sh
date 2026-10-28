@@ -76,7 +76,7 @@ TEMP_LPIS=()
 cleanup() {
   local f
   for f in "${TEMP_LPIS[@]}"; do
-    rm -f "$f" "${f%.lpi}.lps"
+    rm -f "$f" "${f%.lpi}.lps" "${f%.lpi}.ico"
   done
 }
 trap cleanup EXIT
@@ -90,6 +90,8 @@ versioned_lpi() {
       -e "s|<UseVersionInfo Value=\"True\"/>|<UseVersionInfo Value=\"True\"/><MajorVersionNr Value=\"$major\"/><MinorVersionNr Value=\"$minor\"/><RevisionNr Value=\"$rev\"/><BuildNr Value=\"$BTW_BUILD\"/>|" \
       -e "s|ProductVersion=\"[^\"]*\"|ProductVersion=\"$RELEASE+$BTW_BUILD\"|" \
       "$lpi" > "$copy"
+  # lazbuild takes the program icon from the .ico named like the .lpi
+  [[ -f "${lpi%.lpi}.ico" ]] && cp "${lpi%.lpi}.ico" "${copy%.lpi}.ico"
   TEMP_LPIS+=("$copy")
   echo "$copy"
 }
