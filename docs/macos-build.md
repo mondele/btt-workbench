@@ -24,6 +24,13 @@ Linux without Apple's SDK.
   short PATH (`/usr/bin:/bin:/usr/sbin:/sbin`), so Homebrew's git is not
   seen there; `/usr/bin/git` is.
 
+## Decisions (2026-10-28)
+
+- HTTPS: native backend (NSURLSession), not bundled OpenSSL.
+- Architecture: universal binary (Apple Silicon + Intel).
+- Signing: ad hoc for now. The user has a free Apple Developer account,
+  which cannot make Developer ID certificates or notarize (see 5).
+
 ## Work to do
 
 ### 1. HTTPS (`WBHttp`): needed for everything that talks to WACS
@@ -33,7 +40,7 @@ loaded at run time (`opensslsockets`). macOS has no usable OpenSSL: its
 `/usr/lib/libssl.dylib` is LibreSSL, and loading it can abort the
 program. Two ways out:
 
-- **Native backend (preferred, same choice as Windows):** a `WBMacHttp`
+- **Native backend (chosen, same choice as Windows):** a `WBMacHttp`
   unit over Apple's NSURLSession (FPC `{$modeswitch objectivec1}` with
   `CocoaAll`, or CFNetwork), shaped like `WBWinHttp.WinHttpRequest`
   (method, URL, user agent, headers, body, timeout → status, body) and
@@ -43,7 +50,7 @@ program. Two ways out:
   not needed. `HttpKeepConnections` / `HttpReleaseConnection` can be
   no-ops or keep one session per thread; the library updates
   (`FetchAll`) download in parallel threads.
-- **Bundle OpenSSL 3** in `Contents/Frameworks` and point `openssl`'s
+- *(Not chosen)* **Bundle OpenSSL 3** in `Contents/Frameworks` and point `openssl`'s
   `DLLVersions`/load path at it. Quicker, reuses the Linux code, but the
   libraries must be updated and signed with each release.
 
@@ -94,13 +101,13 @@ Written for Linux and GNU tools; on macOS:
   (`<release>`, e.g. 0.2.0) and `CFBundleVersion` (`<release>+<build>`,
   from `lib/version.stamp`), `NSHighResolutionCapable`,
   `LSMinimumSystemVersion`.
-- Icon: `.icns` from `btt-wb-icon.svg` (in the repo root on the desktop
-  machine; the Windows `.ico` in `src/gui/BttWorkbench.ico` holds the same
-  image at 16–256 px). On the Mac: make `btt-workbench.iconset/`
-  (`icon_16x16.png`, `icon_16x16@2x.png`, … `icon_512x512@2x.png`) and
-  run `iconutil -c icns`. A 1024 px PNG can be rendered from the SVG
-  with `rsvg-convert` (Homebrew librsvg) or extracted from the `.ico`'s
-  256 px image if nothing better is at hand.
+- Icon: `.icns` from `btt-wb-icon.svg` (repo root; the Windows `.ico`s
+  were rendered from it). On the Mac: render PNGs from the SVG
+  (`rsvg-convert` from Homebrew librsvg, or `qlmanage -t -s 1024 -o .`
+  then `sips -z`), make `btt-workbench.iconset/` (`icon_16x16.png`,
+  `icon_16x16@2x.png`, … `icon_512x512@2x.png`) and run `iconutil -c
+  icns`. Commit the `.icns` (or a script that makes it) so later builds
+  need no converter.
 - `btw` (the CLI) ships beside the app in the archive, or inside
   `Contents/MacOS/` with a note on how to put it on PATH.
 - `tools/release.sh`: add a macOS stage →
@@ -110,16 +117,34 @@ Written for Linux and GNU tools; on macOS:
 
 ### 5. Architecture and signing
 
-- Apple Silicon (`aarch64-darwin`) and/or Intel (`x86_64-darwin`); a
-  universal binary is `lipo -create` of both.
+- Universal: build twice, `lazbuild --cpu=aarch64` and `--cpu=x86_64`
+  (`--os=darwin`), into separate output folders, then `lipo -create -output
+  <exe> <arm64 exe> <x86_64 exe>` for `btt-workbench` and `btw`. Check with
+  `lipo -info` and run the tests natively plus under Rosetta (`arch -x86_64
+  ./bin/TestCore`, needs `softwareupdate --install-rosetta`). The official
+  FPC 3.2.2 macOS installer (`fpc-3.2.2.intelarm64-macosx.dmg`) has both
+  compilers; with fpcupdeluxe, add the other CPU as a cross-compiler. The
+  LCL and packages get compiled once per CPU. `LSMinimumSystemVersion`:
+  11.0 covers every Apple Silicon Mac; pass the same `-WM` (deployment
+  target) to both builds.
 - On Apple Silicon every program must be signed to run; Apple's linker
   signs ad hoc, which is enough on the build machine. After changing a
   bundle, re-sign: `codesign --force --deep -s - "BTT Workbench.app"`.
-- For other people's Macs, an unsigned download is blocked by
-  Gatekeeper: testers right-click → Open, or run
-  `xattr -dr com.apple.quarantine "BTT Workbench.app"`. Opening normally
-  needs a Developer ID certificate and notarization (paid Apple
-  Developer account): undecided.
+- For other people's Macs, a download that is not notarized is blocked
+  by Gatekeeper. On macOS 15 (Sequoia) and later, right-click → Open no
+  longer gets past it: testers open the app once, then System Settings →
+  Privacy & Security → "Open Anyway". Or, in Terminal:
+  `xattr -dr com.apple.quarantine "/Applications/BTT Workbench.app"`.
+  Put these steps in the archive's README.
+- A free Apple Developer account does not help here: its "Apple
+  Development" certificate (via Xcode) is for running on the developer's
+  own registered devices, and Developer ID certificates and notarization
+  need the paid Apple Developer Program (US$99/year, could be a WA
+  organization account). With that: sign with the Developer ID
+  Application certificate and hardened runtime (`codesign --options
+  runtime --timestamp`), `xcrun notarytool submit … --wait`, then `xcrun
+  stapler staple`. Leave room for this in the release script; ad hoc
+  until then.
 
 ### 6. Tests and checks on the Mac
 
