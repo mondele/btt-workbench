@@ -170,9 +170,10 @@ Written for Linux and GNU tools; on macOS:
 2. FPC 3.2.2 and Lazarus: Lazarus 4.x is recommended on macOS (much
    better Cocoa support than the 3.6 used on Linux); fpcupdeluxe for
    macOS or the official installers.
-3. `git clone https://github.com/mondele/btt-workbench.git`. To push,
-   the Mac needs an SSH key on the mondele GitHub account; otherwise
-   send patches (`git format-patch`).
+3. Clone over SSH, the same way the Mac reaches `mondele/claude-config`
+   (same host alias from `~/.ssh/config`), e.g. `git clone
+   git@github-WA:mondele/btt-workbench.git`. If it was cloned over HTTPS,
+   `git remote set-url origin` to the SSH form before pushing.
 4. Build, test, then work through the list above.
 
 ## Rules that still apply
