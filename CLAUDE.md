@@ -147,6 +147,9 @@ linker warnings are harmless.
   Windows after changing it.
 - Windows cross build on the laptop and the desktop: `./build.sh --win64`
   (win64 units installed in fpcupdeluxe).
+- macOS: not built yet. `docs/macos-build.md` has the plan (native HTTPS,
+  BTT-Writer process check, build.sh on BSD tools, app bundle, signing);
+  read it first when working on a Mac.
 - Version: `<release>+<build>` like BTT-Writer's `1.6.0+1073`. Bump
   `WorkbenchRelease` in `WBVersion` by hand for a release; `build.sh` sets
   `BTW_BUILD` (git commit count) and `BTW_COMMIT` (short hash,
