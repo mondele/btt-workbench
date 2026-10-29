@@ -15,7 +15,7 @@ procedure TestTStudioImportModule(const TempRoot: string);
 implementation
 
 uses
-  Classes, SysUtils, fpjson, Zipper, RegExpr,
+  Classes, SysUtils, fpjson, Zipper, WBRegExpr,
   WBReporter, WBGit, WBJson, WBModule, WBCommandLine, TestUtil;
 
 const
@@ -163,6 +163,28 @@ begin
   finally
     Zip.Free;
     Stream.Free;
+  end;
+end;
+
+{ Mark every entry of a zip as made on OS X (19), as TZipper does on
+  macOS: the high byte of "version made by" in each central directory
+  record. }
+procedure MarkMadeOnOSX(const ZipFile: string);
+var
+  F: TMemoryStream;
+  P: PByte;
+  I: Int64;
+begin
+  F := TMemoryStream.Create;
+  try
+    F.LoadFromFile(ZipFile);
+    P := F.Memory;
+    for I := 0 to F.Size - 6 do
+      if (P[I] = $50) and (P[I + 1] = $4B) and (P[I + 2] = 1) and (P[I + 3] = 2) then
+        P[I + 5] := 19;
+    F.SaveToFile(ZipFile);
+  finally
+    F.Free;
   end;
 end;
 
@@ -331,6 +353,17 @@ begin
   Check((Code = 0) and DirectoryExists(Target + 'xyz_tit_text_reg'), 'new project imported');
   Check(Head(Target + 'xyz_tit_text_reg') = Head(Work), '... with its git history');
   Check(NoWorkDirsLeft, '... and no temp folders left behind');
+
+  {$IFDEF UNIX}
+  { A package made on a Mac (FPC 3.2.2 unpacked those with mode 000) }
+  Root := Base; Fresh('osx');
+  Work := NewProject(Root + 'remote');
+  Pkg := Pack(Work);
+  MarkMadeOnOSX(Pkg);
+  Code := Import(Pkg, [], Log);
+  Check((Code = 0) and FileExists(Target + 'xyz_tit_text_reg' + PathDelim + 'manifest.json'),
+    'package made on a Mac imported');
+  {$ENDIF}
 
   { Same commit again: up to date }
   Code := Import(Pkg, ['--dry-run'], Log);

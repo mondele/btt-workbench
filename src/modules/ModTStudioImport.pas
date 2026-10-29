@@ -152,6 +152,24 @@ begin
     OptionDef('dry-run', okFlag, False, False, rsOptDryRun, rsOptDryRunHelp)];
 end;
 
+type
+  { FPC 3.2.2's TUnZipper moves the Unix mode out of the high word of the
+    external attributes only for entries made on Unix (3), not on OS X
+    (19), which is what its own TZipper writes on macOS. The unshifted value
+    is then chmod-ed as is, leaving files with mode 000 (on Windows, odd
+    attributes). Shift it here, unless a fixed FPC already did. }
+  TPackageUnZipper = class(TUnZipper)
+  protected
+    procedure UnZipOneFile(Item: TFullZipFileEntry); override;
+  end;
+
+procedure TPackageUnZipper.UnZipOneFile(Item: TFullZipFileEntry);
+begin
+  if (Item.OS = OS_OSX) and ((Item.Attributes and $FFFF) = 0) then
+    Item.Attributes := Item.Attributes shr 16;
+  inherited UnZipOneFile(Item);
+end;
+
 function ExtractPackage(const PackageFile, WorkRoot: string; Reporter: TWBReporter): Boolean;
 var
   Unzip: TUnZipper;
@@ -159,7 +177,7 @@ var
   Entry: string;
 begin
   Result := False;
-  Unzip := TUnZipper.Create;
+  Unzip := TPackageUnZipper.Create;
   try
     Unzip.FileName := PackageFile;
     Unzip.OutputPath := WorkRoot;

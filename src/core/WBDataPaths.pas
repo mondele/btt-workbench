@@ -45,6 +45,9 @@ function BundledSourcesIn(const Path: string): string;
   install folders, the btt-writer command on PATH, and (Linux) the program
   that BTT-Writer's desktop entries start. }
 function FindBttWriterInstalls: TStringArray;
+{ The path with every symbolic link in it followed, so the same install
+  reached through /lib and /usr/lib is recognised as one. }
+function ResolveLinks(const Path: string): string;
 
 var
   { Set by tests so results do not depend on an installed BTT-Writer. }
@@ -153,8 +156,6 @@ begin
   end;
 end;
 
-{ The path with every symbolic link in it followed, so the same install
-  reached through /lib and /usr/lib is recognised as one. }
 function ResolveLinks(const Path: string): string;
 {$IFDEF UNIX}
 var

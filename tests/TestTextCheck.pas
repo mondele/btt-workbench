@@ -15,7 +15,7 @@ implementation
 
 uses
   Classes, SysUtils, fpjson, jsonparser, WBReporter, WBUsfmChecks, WBVersification, WBSources,
-  WBSectionTitles, WBSentences, WBPyText, TestUtil;
+  WBSectionTitles, WBSentences, WBPyText, WBRegExpr, TestUtil;
 
 function Chunk(const Ch, Ck, Text: string): TChunkText;
 begin
@@ -646,9 +646,22 @@ begin
     'unknown --skip group refused');
 end;
 
+{ {m,n} after a single character or class: FPC 3.2.2's regexpr read the
+  counts from the wrong place on aarch64, so a{3} matched like a{0,...}. }
+procedure TestRegExprBraces;
+begin
+  Check(not ExecRegExpr('a{3}', 'xab') and not ExecRegExpr('[a]{3}', 'xab') and
+    not ExecRegExpr('\d{3}', '12x'), 'regex: x{3} needs three');
+  Check(ReplaceRegExpr('={7}\n', 'a'#10'======='#10'b', '<M>', False) = 'a'#10'<M>b',
+    'regex: ={7}\n replaces only the marker line');
+  Check(ExecRegExpr('^a{2,3}$', 'aaa') and not ExecRegExpr('^a{2,3}$', 'aaaa'),
+    'regex: x{2,3} keeps its bounds');
+end;
+
 procedure TestTextChecks(const TempRoot: string);
 begin
   Section('text checks (usfm-tools port)');
+  TestRegExprBraces;
   TestAgainstVerifyUsfm;
   TestSentencesAgainstVerifyUsfm;
   TestSectionTitlesAgainstPython;

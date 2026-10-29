@@ -157,12 +157,19 @@ Still to do here: make the app bundle (step 4), probably as
 
 ### 6. Tests and checks on the Mac
 
-First run (2026-10-28, arm64, commit 493850e + build.sh changes): 62
-checks pass, then from the first `tstudio-import` check on 25 fail, and
-TestCore stops with an unhandled `EFOpenError` (the v7 fixture's
-`manifest.json` is missing in the temp folder). Not looked into yet; one
-suspect is that `/var/folders/…` is a symlink to `/private/var/…` on
-macOS, which breaks path comparisons.
+First run (2026-10-28, arm64): 62 checks passed, then TestCore stopped.
+Three causes, all fixed on 2026-10-29; now 463/463 pass on arm64 and
+under Rosetta (`./build.sh --universal`):
+- FPC 3.2.2's TUnZipper chmods files of entries made on OS X (which its
+  TZipper writes on macOS) to 000: `TPackageUnZipper` in
+  ModTStudioImport. Also hit Linux and Windows with such packages.
+- FPC 3.2.2's regexpr reads `{m,n}` counts from the wrong offset on
+  aarch64 (writes with `AlignToInt`, reads with `AlignToPtr`), so `a{3}`
+  matched like `a{0,...}`: fixed in WBRegExpr, and the import tests moved
+  from FPC's RegExpr to WBRegExpr. Also affected the Android library.
+- `/var/folders` is a link to `/private/var/folders`; settings tests
+  compared a resolved path with an unresolved one: TestCore now resolves
+  its temp root (`ResolveLinks` is public in WBDataPaths).
 
 - `./build.sh` then `./bin/TestCore`; all checks must pass (459 on
   Linux at commit 3a9fa37). Tests use temp folders and `FakeWacs` (a

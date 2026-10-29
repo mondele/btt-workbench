@@ -147,9 +147,15 @@ linker warnings are harmless.
   Windows after changing it.
 - Windows cross build on the laptop and the desktop: `./build.sh --win64`
   (win64 units installed in fpcupdeluxe).
-- macOS: not built yet. `docs/macos-build.md` has the plan (native HTTPS,
-  BTT-Writer process check, build.sh on BSD tools, app bundle, signing);
-  read it first when working on a Mac.
+- macOS: `build.sh` and the tests work there (`--universal` for arm64 +
+  x86_64); the rest of the plan (native HTTPS, BTT-Writer process check,
+  app bundle, signing) is in `docs/macos-build.md`: read it first when
+  working on a Mac. Paths the code resolves (`WBDataPaths.ResolveLinks`)
+  differ there from what was given: `/var/folders` is a link to
+  `/private/var/folders`, so TestCore resolves its temp root.
+- Unzip with `ModTStudioImport.TPackageUnZipper`, not `TUnZipper`: FPC
+  3.2.2 leaves the Unix mode unshifted for entries made on OS X (19, as
+  its own TZipper writes on macOS) and chmods files to 000.
 - Version: `<release>+<build>` like BTT-Writer's `1.6.0+1073`. Bump
   `WorkbenchRelease` in `WBVersion` by hand for a release; `build.sh` sets
   `BTW_BUILD` (git commit count) and `BTW_COMMIT` (short hash,
@@ -185,6 +191,9 @@ linker warnings are harmless.
   such, as its licence requires) whose `\w` excludes combining marks and
   whose `\s`/`\d` are Unicode, like Python's; do not switch back to
   `uregexpr`. Units with curly quotes in patterns need `{$codepage utf8}`.
+  WBRegExpr also reads `{m,n}` counts with `AlignToInt`, as they are
+  written: FPC 3.2.2's regexpr reads some with `AlignToPtr`, which breaks
+  `x{3}` on aarch64 (Android, Apple Silicon). Tests use WBRegExpr too.
   Real constants compared for equality must be Doubles (FPC evaluates
   untyped ones in extended precision; see `D()` in WBSectionTitles).
   `TRegExpr.ExecPos` searches the last `InputString`: set it first.

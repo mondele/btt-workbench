@@ -11,6 +11,9 @@ unit WBRegExpr;
   - \d also matches Unicode decimal digits (Nd), as Python's \d;
   - the first-character optimisation knows the Latin-1 word characters,
     so a match may start on e.g. 'e acute' (the original skipped them).
+  - {m,n} arguments are read back with AlignToInt, as they are written
+    (the original read some with AlignToPtr: on CPUs that need aligned
+    access, such as aarch64, a{3} then matched like a{0,...}).
   The original licence and copyright follow unchanged. }
 
 {$DEFINE UniCode}
@@ -4014,7 +4017,7 @@ begin
           end;
           opnd := scan + PRENextOff(AlignToPtr(scan + REOpSz + RENextOffSz + 2 * REBracesArgSz))^;
           BracesMin := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz))^;
-          Bracesmax := PREBracesArg(AlignToPtr(scan + REOpSz + RENextOffSz + REBracesArgSz))^;
+          Bracesmax := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz + REBracesArgSz))^;
           save := reginput;
           if LoopStack[LoopStackIdx] >= BracesMin then
           begin // Min alredy matched - we can work
@@ -4087,8 +4090,8 @@ begin
             BracesMin := 1 // plus
           else
           begin // braces
-            BracesMin := PREBracesArg(AlignToPtr(scan + REOpSz + RENextOffSz))^;
-            Bracesmax := PREBracesArg(AlignToPtr(scan + REOpSz + RENextOffSz + REBracesArgSz))^;
+            BracesMin := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz))^;
+            Bracesmax := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz + REBracesArgSz))^;
           end;
           save := reginput;
           opnd := scan + REOpSz + RENextOffSz;
@@ -4933,7 +4936,7 @@ begin
       OP_LOOPNG:
         begin //###0.940
           opnd := scan + PRENextOff(AlignToPtr(scan + REOpSz + RENextOffSz + REBracesArgSz * 2))^;
-          min_cnt := PREBracesArg(AlignToPtr(scan + REOpSz + RENextOffSz))^;
+          min_cnt := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz))^;
           FillFirstCharSet(opnd);
           if min_cnt = 0 then
             FillFirstCharSet(Next);
@@ -4953,7 +4956,7 @@ begin
       OP_BRACESNG:
         begin //###0.940
           opnd := scan + REOpSz + RENextOffSz + REBracesArgSz * 2;
-          min_cnt := PREBracesArg(AlignToPtr(scan + REOpSz + RENextOffSz))^; // BRACES
+          min_cnt := PREBracesArg(AlignToInt(scan + REOpSz + RENextOffSz))^; // BRACES
           FillFirstCharSet(opnd);
           if min_cnt > 0 then
             Exit;

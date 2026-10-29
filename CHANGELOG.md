@@ -8,6 +8,14 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- tstudio-import: a package whose entries are marked as made on macOS
+  (as FPC's zip code writes them there) no longer unpacks with unreadable
+  files ("Permission denied" on manifest.json).
+
+- text-check on ARM (the Android app, Apple Silicon Macs): patterns with
+  a count such as `{0,11}` used the wrong count, because the regex engine
+  read it from the wrong place on CPUs that need aligned memory access.
+
 - The programs have an icon (the hammer in a blue hexagon): on Windows
   for btt-workbench.exe and btw.exe, and as the GUI's window icon.
 

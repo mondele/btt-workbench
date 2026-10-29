@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   Classes, SysUtils, fpjson, jsonparser,
   WBReporter, WBModule, WBCommandLine, WBI18n, WBAllModules,
-  WBSettings, TestUtil, TestTStudioImport, TestProjects, TestSettings, TestWacs, TestTextCheck, TestCrossCheck,
+  WBSettings, WBDataPaths, TestUtil, TestTStudioImport, TestProjects, TestSettings, TestWacs, TestTextCheck, TestCrossCheck,
   TestSuggest, TestLibraryUpdate, TestGitRepair, TestLanguageChange;
 
 const
@@ -311,7 +311,9 @@ begin
 end;
 
 begin
-  TempRoot := IncludeTrailingPathDelimiter(GetTempDir(False)) +
+  { Links resolved: macOS's temp folder /var/folders is a link to
+    /private/var/folders, and paths the code resolves must compare equal. }
+  TempRoot := IncludeTrailingPathDelimiter(ResolveLinks(GetTempDir(False))) +
     'btw-test-' + IntToStr(GetProcessID) + PathDelim;
   ForceDirectories(TempRoot);
   SettingsFileOverride := TempRoot + 'settings.ini';   // never the user's settings
