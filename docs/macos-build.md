@@ -107,29 +107,38 @@ real BTT-Writer open.
 Still to do here: make the app bundle (step 4), probably as
 `--universal`'s last stage or a separate `--bundle`.
 
-### 4. App bundle, icon and version
+### 4. App bundle, icon and version: bundle done (2026-10-29)
 
-- `BTT Workbench.app/Contents/{MacOS/btt-workbench, Info.plist,
-  Resources/btt-workbench.icns}`. Lazarus's IDE makes bundles; with
-  lazbuild, write the bundle by script. `Info.plist`: `CFBundleExecutable`,
-  `CFBundleIdentifier` (e.g. `org.wycliffeassociates.btt-workbench`),
-  `CFBundleName`, `CFBundleIconFile`, `CFBundleShortVersionString`
-  (`<release>`, e.g. 0.2.0) and `CFBundleVersion` (`<release>+<build>`,
-  from `lib/version.stamp`), `NSHighResolutionCapable`,
-  `LSMinimumSystemVersion`.
-- Icon: `.icns` from `btt-wb-icon.svg` (repo root; the Windows `.ico`s
-  were rendered from it). On the Mac: render PNGs from the SVG
-  (`rsvg-convert` from Homebrew librsvg, or `qlmanage -t -s 1024 -o .`
-  then `sips -z`), make `btt-workbench.iconset/` (`icon_16x16.png`,
-  `icon_16x16@2x.png`, … `icon_512x512@2x.png`) and run `iconutil -c
-  icns`. Commit the `.icns` (or a script that makes it) so later builds
-  need no converter.
-- `btw` (the CLI) ships beside the app in the archive, or inside
-  `Contents/MacOS/` with a note on how to put it on PATH.
-- `tools/release.sh`: add a macOS stage →
-  `dist/btt-workbench-<version>-macos-<arch>.zip` (or `.dmg`), with
-  README, CHANGELOG, LICENSE and `locale/`. `sha256sum` does not exist on
-  macOS: use `shasum -a 256`.
+`build.sh` makes `bin/BTT Workbench.app` on macOS whenever the GUI is
+built (native or `--universal`, which makes it universal), signed ad hoc:
+`Contents/MacOS/btt-workbench`, `Contents/Resources/BttWorkbench.icns`,
+`Contents/Resources/locale/` (WBI18n looks there), `PkgInfo`, and an
+`Info.plist` with the version (`CFBundleShortVersionString` = release,
+`CFBundleVersion` = build number, which must be numeric: Finder shows
+"0.2.0 (53)"), `LSMinimumSystemVersion` and `.tstudio` as a document type
+(`org.wycliffeassociates.tstudio`, imported, conforming to
+`public.zip-archive`; BTT-Writer.app declares none).
+
+- `NSPrincipalClass` must be `TCocoaApplication`, LCL's NSApplication
+  subclass: LCL makes NSApp from it. With plain `NSApplication` nothing
+  woke the main thread for `TThread.Synchronize` or queued calls, so the
+  GUI sat on "Working..." until the mouse moved.
+- Finder never passes files in argv: a double-clicked `.tstudio` arrives
+  as `Application.OnDropFiles`, both at launch and while the window is
+  open; `TWorkbenchForm.OpenFiles` turns it into a tstudio-import request
+  (`AddFromOtherInstance`).
+- Icon: `tools/make-icns.sh` renders `btt-wb-icon.svg` with `sips` (it
+  keeps transparency; Homebrew's librsvg did not load on macOS 15) and
+  packs `src/gui/BttWorkbench.icns` with `iconutil`. The `.icns` is
+  committed.
+- Checked on arm64 and under Rosetta: the window and Dock icon, a
+  `.tstudio` opened at launch and while open (added to the list, Check
+  run again), and the Check's report.
+
+Still to do here: `tools/release.sh` macOS stage →
+`dist/btt-workbench-<version>-macos.zip` with the app, `btw` beside it,
+README, CHANGELOG, LICENSE (and the Gatekeeper steps from 5). `sha256sum`
+does not exist on macOS: use `shasum -a 256`.
 
 ### 5. Architecture and signing
 

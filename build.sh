@@ -12,7 +12,10 @@
 #                         run the tests natively and under Rosetta; needs
 #                         the x86_64-darwin cross-compiler
 #
-# On macOS the shared library (src/lib, for Android) is not built, and
+# On macOS the GUI is also put in an app bundle, bin/BTT Workbench.app
+# (icon src/gui/BttWorkbench.icns, translations in Contents/Resources,
+# .tstudio as a document type), signed ad hoc. The shared library
+# (src/lib, for Android) is not built there, and
 # MACOSX_DEPLOYMENT_TARGET defaults to 11.0. fpcupdeluxe's fpc.cfg gives
 # native builds -WM10.15, which wins over it: so the arm64 slice says 10.15
 # (arm64 Macs all run 11 or later) and the x86_64 slice 11.0. Do not force
@@ -135,6 +138,73 @@ versioned_lpi() {
   echo "$copy"
 }
 
+# bin/BTT Workbench.app around the GUI program $1 (already built)
+make_app() {
+  local exe=$1 app="bin/BTT Workbench.app" po
+  rm -rf "$app"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+  cp "$exe" "$app/Contents/MacOS/btt-workbench"
+  cp src/gui/BttWorkbench.icns "$app/Contents/Resources/"
+  for po in locale/*/btt-workbench.po; do
+    [[ -e "$po" ]] || continue
+    mkdir -p "$app/Contents/Resources/$(dirname "$po")"
+    cp "$po" "$app/Contents/Resources/$po"
+  done
+  printf 'APPL????' > "$app/Contents/PkgInfo"
+  # CFBundleVersion must be numbers: the build; Finder shows "0.2.0 (51)"
+  # NSPrincipalClass must be LCL's TCocoaApplication: LCL makes NSApp from
+  # it, and a plain NSApplication never runs TThread.Synchronize or queued
+  # calls (the GUI hung on "Working..." until a mouse event)
+  cat > "$app/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleExecutable</key><string>btt-workbench</string>
+  <key>CFBundleIdentifier</key><string>org.wycliffeassociates.btt-workbench</string>
+  <key>CFBundleName</key><string>BTT Workbench</string>
+  <key>CFBundleDisplayName</key><string>BTT Workbench</string>
+  <key>CFBundleIconFile</key><string>BttWorkbench</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundleShortVersionString</key><string>$RELEASE</string>
+  <key>CFBundleVersion</key><string>$BTW_BUILD</string>
+  <key>LSMinimumSystemVersion</key><string>$MACOSX_DEPLOYMENT_TARGET</string>
+  <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSPrincipalClass</key><string>TCocoaApplication</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key><string>BTT-Writer project package</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Default</string>
+      <key>LSItemContentTypes</key>
+      <array><string>org.wycliffeassociates.tstudio</string></array>
+    </dict>
+  </array>
+  <key>UTImportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key><string>org.wycliffeassociates.tstudio</string>
+      <key>UTTypeDescription</key><string>BTT-Writer project package</string>
+      <key>UTTypeConformsTo</key>
+      <array><string>public.zip-archive</string><string>public.data</string></array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key><array><string>tstudio</string></array>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>
+PLIST
+  plutil -lint -s "$app/Contents/Info.plist"
+  codesign --force -s - "$app" 2> /dev/null
+  echo "$app"
+}
+
 # The program a project makes: <Target><Filename>, relative to the .lpi
 target_of() {
   local lpi=$1 target
@@ -169,6 +239,9 @@ for lpi in "$@"; do
     name=$(basename "$exe")
     lipo -create -output "$exe" "lib/aarch64-darwin/$name" "lib/x86_64-darwin/$name"
     lipo -info "$exe"
+  fi
+  if [[ $HOST_OS == darwin && $(basename "$lpi") == BttWorkbench.lpi ]]; then
+    make_app "$(target_of "$lpi")"
   fi
 done
 

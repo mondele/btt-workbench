@@ -150,9 +150,12 @@ linker warnings are harmless.
 - macOS: `build.sh` and the tests work there (`--universal` for arm64 +
   x86_64). `WBHttp` uses NSURLSession there (`WBMacHttp`, as WinHTTP on
   Windows; the delegate runs on Apple's threads, so no Pascal strings or
-  heap in it), and `WBProcesses` uses libproc. The rest of the plan (app
-  bundle, signing) is in `docs/macos-build.md`: read it first when
-  working on a Mac. Paths the code resolves (`WBDataPaths.ResolveLinks`)
+  heap in it), and `WBProcesses` uses libproc. `build.sh` makes `bin/BTT
+  Workbench.app` (its Info.plist's `NSPrincipalClass` must stay
+  `TCocoaApplication`, or Synchronize and queued calls never run); Finder
+  opens files through `Application.OnDropFiles`, not argv. The rest of
+  the plan (release archive, signing) is in `docs/macos-build.md`: read
+  it first when working on a Mac. Paths the code resolves (`WBDataPaths.ResolveLinks`)
   differ there from what was given: `/var/folders` is a link to
   `/private/var/folders`, so TestCore resolves its temp root.
 - Unzip with `ModTStudioImport.TPackageUnZipper`, not `TUnZipper`: FPC

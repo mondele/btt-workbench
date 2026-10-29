@@ -21,7 +21,8 @@ unit WBI18n;
     1. ExtraDir, if given (Android passes its unpacked assets dir)
     2. <exe-dir>/locale
     3. <exe-dir>/../locale                     (dev: binaries in bin/)
-    4. <exe-dir>/../share/btt-workbench/locale (installed layout) }
+    4. <exe-dir>/../share/btt-workbench/locale (installed layout)
+    5. <exe-dir>/../Resources/locale           (macOS app bundle) }
 
 interface
 
@@ -103,6 +104,11 @@ begin
     ExeDir + '..' + PathDelim + 'locale' + PathDelim,
     ExeDir + '..' + PathDelim + 'share' + PathDelim + LocaleDomain + PathDelim +
       'locale' + PathDelim]);
+  {$IFDEF DARWIN}
+  { Contents/MacOS/btt-workbench in BTT Workbench.app }
+  Result := Concat(Result, [ExeDir + '..' + PathDelim + 'Resources' + PathDelim +
+    'locale' + PathDelim]);
+  {$ENDIF}
 end;
 
 function LocateLanguageFile(const Lang, ExtraDir: string): string;

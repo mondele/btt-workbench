@@ -15,7 +15,11 @@ program BttWorkbench;
 
   If a window is already open, a module request is handed to it instead
   (WBSingleWindow), so files double-clicked one after another are added
-  to the same import list. }
+  to the same import list.
+
+  On macOS Finder never passes files in argv: it asks the running app to
+  open them, which arrives as Application.OnDropFiles (OpenFiles). The app
+  bundle's Info.plist declares .tstudio for that. }
 
 uses
   {$IFDEF UNIX}
@@ -72,6 +76,9 @@ begin
     Application.Initialize;
     Application.CreateForm(TWorkbenchForm, WorkbenchMain);
     StartInstanceServer(@WorkbenchMain.AddFromOtherInstance);
+    {$IFDEF DARWIN}
+    Application.OnDropFiles := @WorkbenchMain.OpenFiles;
+    {$ENDIF}
     if StartModule <> nil then
       WorkbenchMain.StartWith(StartModule, StartOptions);
     if ErrorMsg <> '' then

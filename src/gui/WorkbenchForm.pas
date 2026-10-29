@@ -126,6 +126,10 @@ type
       shown, add its values (list options are extended) and check again;
       otherwise like StartWith. }
     procedure AddFromOtherInstance(Module: TWBModule; Options: TStrings);
+    { Files macOS asks the app to open (a .tstudio double-clicked in Finder
+      or dropped on the Dock icon; they never come in argv there): like
+      btt-workbench tstudio-import <files>. Other files are ignored. }
+    procedure OpenFiles(Sender: TObject; const FileNames: array of string);
   end;
 
 var
@@ -929,6 +933,27 @@ begin
   end;
   FillFields(Options, True);
   AutoStart(Module, Options);
+end;
+
+procedure TWorkbenchForm.OpenFiles(Sender: TObject; const FileNames: array of string);
+var
+  Module: TWBModule;
+  Options: TStringList;
+  F: string;
+begin
+  Module := FindModule('tstudio-import');
+  if Module = nil then
+    Exit;
+  Options := TStringList.Create;
+  try
+    for F in FileNames do
+      if SameText(ExtractFileExt(F), '.tstudio') then
+        AddOptionValue(Options, 'file', F);
+    if Options.Count > 0 then
+      AddFromOtherInstance(Module, Options);
+  finally
+    Options.Free;
+  end;
 end;
 
 procedure TWorkbenchForm.ApplyPending(Data: PtrInt);
