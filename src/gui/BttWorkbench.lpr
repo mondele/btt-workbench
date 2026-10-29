@@ -34,7 +34,7 @@ begin
   Args := TStringList.Create;
   StartOptions := TStringList.Create;
   try
-    Lang := SystemLanguage;
+    Lang := StartupLanguage;
     I := 1;
     while I <= ParamCount do
     begin

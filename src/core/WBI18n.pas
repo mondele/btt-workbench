@@ -12,6 +12,11 @@ unit WBI18n;
   Language codes are lowercase with '-' (pt-br, es-419). A missing regional
   file falls back to the base language (pt-br -> pt).
 
+  The language to start in (StartupLanguage): the one the user chose last
+  (SaveLanguage, in WBSettings' [interface] language), else the one chosen
+  in the Windows installer (defaults.ini beside the program, same key),
+  else the system language.
+
   Locale directory search order:
     1. ExtraDir, if given (Android passes its unpacked assets dir)
     2. <exe-dir>/locale
@@ -37,11 +42,22 @@ function SystemLanguage: string;
 function IsRightToLeftLanguage(const Lang: string): Boolean;
 { 'en' plus every language with a .po in the first locale dir found. }
 function AvailableLanguages(const ExtraDir: string = ''): TStringArray;
+function StartupLanguage: string;
+{ Remembers Lang for StartupLanguage; '' forgets it. }
+procedure SaveLanguage(const Lang: string);
+
+var
+  { Set by tests in place of <exe-dir>/defaults.ini. }
+  InstallDefaultsOverride: string = '';
 
 implementation
 
 uses
-  Translations;
+  Translations, IniFiles, WBSettings;
+
+const
+  SetSection = 'interface';
+  SetLanguage = 'language';
 
 var
   FCurrent: string = 'en';
@@ -141,6 +157,40 @@ begin
   Result := (Base = 'ar') or (Base = 'fa') or (Base = 'he') or (Base = 'ur') or
             (Base = 'ps') or (Base = 'sd') or (Base = 'ug') or (Base = 'yi') or
             (Base = 'dv') or (Base = 'ckb') or (Base = 'syr');
+end;
+
+function InstallDefaultLanguage: string;
+var
+  F: string;
+  Ini: TIniFile;
+begin
+  Result := '';
+  F := InstallDefaultsOverride;
+  if F = '' then
+    F := ExtractFilePath(ParamStr(0)) + 'defaults.ini';
+  if not FileExists(F) then
+    Exit;
+  Ini := TIniFile.Create(F);
+  try
+    Result := Trim(Ini.ReadString(SetSection, SetLanguage, ''));
+  finally
+    Ini.Free;
+  end;
+end;
+
+function StartupLanguage: string;
+begin
+  Result := GetSettingIn(SetSection, SetLanguage);
+  if Result = '' then
+    Result := InstallDefaultLanguage;
+  if Result = '' then
+    Result := SystemLanguage;
+  Result := NormalizeLanguage(Result);
+end;
+
+procedure SaveLanguage(const Lang: string);
+begin
+  SetSettingIn(SetSection, SetLanguage, Lang);
 end;
 
 function AvailableLanguages(const ExtraDir: string): TStringArray;

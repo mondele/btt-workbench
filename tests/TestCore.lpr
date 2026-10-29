@@ -308,6 +308,16 @@ begin
   R.Free;
 
   Check(LoadLanguage('zz', LocaleDir) = '', 'unknown language loads nothing');
+
+  InstallDefaultsOverride := TempRoot + 'defaults.ini';
+  Check(StartupLanguage = SystemLanguage, 'starts in the system language');
+  WriteFileText(InstallDefaultsOverride, '[interface]'#10'language=ES'#10);
+  Check(StartupLanguage = 'es', 'then in the installer''s language');
+  SaveLanguage('pt_BR');
+  Check(StartupLanguage = 'pt-br', 'then in the language chosen last');
+  SaveLanguage('');
+  Check(StartupLanguage = 'es', 'forgotten again');
+  DeleteFile(InstallDefaultsOverride);
 end;
 
 begin

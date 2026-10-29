@@ -8,6 +8,10 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- The interface language chosen in the GUI is remembered for the next
+  start (and used by btw too); before that, the language chosen in the
+  Windows installer, then the system language. `--lang` still overrides.
+
 - Installers: a `.deb` for Linux (installs to `/opt/btt-workbench`, with
   a menu entry, icon and the `.tstudio` file type) and a setup `.exe` for
   Windows (for all users or just the current one, Start menu, optional

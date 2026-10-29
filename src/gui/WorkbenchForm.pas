@@ -966,6 +966,7 @@ begin
   if FLangCombo.ItemIndex < 0 then
     Exit;
   LoadLanguage(FLanguages[FLangCombo.ItemIndex]);
+  SaveLanguage(FLanguages[FLangCombo.ItemIndex]);
   { The combo is about to be destroyed; rebuild after this handler returns. }
   Application.QueueAsyncCall(@RebuildUI, 0);
 end;

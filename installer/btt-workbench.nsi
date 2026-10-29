@@ -8,9 +8,10 @@
 ; either for all users (Program Files; needs an administrator) or for the
 ; current user only (%LOCALAPPDATA%\Programs; no administrator). A user
 ; who is not an administrator is not asked and gets the second. Adds a
-; Start menu entry and, if chosen, a desktop shortcut, the .tstudio file
-; type (double-click opens the import check) and btw's folder on the PATH
-; (off by default). Warns when Git for Windows is missing: Workbench runs
+; Start menu entry, defaults.ini with the installer's language (the
+; program's until the user picks another) and, if chosen, a desktop
+; shortcut, the .tstudio file type (double-click opens the import check)
+; and btw's folder on the PATH (off by default). Warns when Git for Windows is missing: Workbench runs
 ; git for everything that touches a project.
 ;
 ; Unattended: setup.exe /S [/AllUsers | /CurrentUser]
@@ -55,6 +56,8 @@ VIAddVersionKey "LegalCopyright" "MIT licence"
 !define MUI_ICON "${SRC}\btt-workbench.ico"
 !define MUI_UNICON "${SRC}\btt-workbench.ico"
 !define MUI_ABORTWARNING
+; The welcome title holds the version; in Spanish it takes three lines.
+!define MUI_WELCOMEPAGE_TITLE_3LINES
 !define MUI_LANGDLL_ALLLANGUAGES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE}"
 
@@ -84,8 +87,8 @@ LangString TStudioType ${LANG_ENGLISH} "BTT-Writer project package"
 LangString TStudioType ${LANG_SPANISH} "Paquete de proyecto de BTT-Writer"
 LangString No64 ${LANG_ENGLISH} "${APP} needs 64-bit Windows."
 LangString No64 ${LANG_SPANISH} "${APP} necesita Windows de 64 bits."
-LangString NoGit ${LANG_ENGLISH} "Git for Windows was not found (the BTT-Writer installer sets it up). ${APP} needs it to read, repair, download and upload projects.$\r$\n$\r$\nOpen the Git for Windows download page now?"
-LangString NoGit ${LANG_SPANISH} "No se encontró Git for Windows (el instalador de BTT-Writer lo instala). ${APP} lo necesita para leer, reparar, descargar y subir proyectos.$\r$\n$\r$\n¿Abrir ahora la página de descarga de Git for Windows?"
+LangString NoGit ${LANG_ENGLISH} "Git for Windows was not found. ${APP} needs it to read, repair, download and upload projects.$\r$\n$\r$\nInstalling BTT-Writer also installs Git for Windows: if this computer is getting BTT-Writer, installing it is enough. Otherwise, install Git for Windows on its own.$\r$\n$\r$\nOpen the Git for Windows download page now?"
+LangString NoGit ${LANG_SPANISH} "No se encontró Git for Windows. ${APP} lo necesita para leer, reparar, descargar y subir proyectos.$\r$\n$\r$\nAl instalar BTT-Writer también se instala Git for Windows: si esta computadora va a tener BTT-Writer, basta con instalarlo. Si no, instale Git for Windows por separado.$\r$\n$\r$\n¿Abrir ahora la página de descarga de Git for Windows?"
 
 Function .onInit
   ${IfNot} ${RunningX64}
@@ -134,6 +137,13 @@ Section "$(SecMain)" SEC_MAIN
   ; A newer version may have dropped a translation: start the folder over.
   RMDir /r "$INSTDIR\locale"
   File /nonfatal /r "${SRC}\locale"
+  ; The installer's language is the program's until the user picks one
+  ; there (WBI18n.StartupLanguage).
+  ${If} $LANGUAGE == ${LANG_SPANISH}
+    WriteINIStr "$INSTDIR\defaults.ini" "interface" "language" "es"
+  ${Else}
+    WriteINIStr "$INSTDIR\defaults.ini" "interface" "language" "en"
+  ${EndIf}
 
   CreateShortcut "$SMPROGRAMS\${APP}.lnk" "$INSTDIR\${EXE}"
 
@@ -200,6 +210,7 @@ Section "Uninstall"
   Delete "$INSTDIR\README.md"
   Delete "$INSTDIR\CHANGELOG.md"
   Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\defaults.ini"
   RMDir /r "$INSTDIR\locale"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"

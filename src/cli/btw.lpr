@@ -301,7 +301,7 @@ begin
       Args.Add(ParamStr(I));
 
     { Global options come before the command. }
-    Lang := SystemLanguage;
+    Lang := StartupLanguage;
     while (Args.Count > 0) and (Copy(Args[0], 1, 2) = '--') do
     begin
       if Args[0] = '--version' then
