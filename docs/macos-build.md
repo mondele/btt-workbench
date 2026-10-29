@@ -61,8 +61,11 @@ and the BIEL POST), `library-languages --dry-run` (1.3 s),
 `library-sources --dry-run` (parallel, 31.6 s, no errors), and the
 messages for an unknown host, an expired and a wrong-host certificate
 (badssl.com), a 404 and a timeout. TestCore's FakeWacs (plain HTTP to
-127.0.0.1) passes too. Not yet checked: token auth (`wacs-account`, then a
-download and an upload with the saved login).
+127.0.0.1) passes too. Token auth (arm64, saved login of the test user
+Raphael): downloaded Raphael/icl_jol_text_reg into a scratch folder,
+committed a test change, `wacs-upload --dry-run` said it would push,
+the upload pushed (the token reached git through `GIT_CONFIG_*`; nothing
+was written to `.git/config`), and a fresh download had the commit.
 
 ### 2. "Is BTT-Writer running?" (`WBProcesses`): done (2026-10-29)
 
