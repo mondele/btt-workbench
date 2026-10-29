@@ -8,6 +8,13 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- macOS: BTT Workbench runs on Macs (Apple Silicon and Intel, macOS 11
+  or later), as a disk image with the app; the command-line `btw` is
+  inside it. Web access uses macOS's own networking, BTT-Writer is
+  recognised as running, and double-clicking a `.tstudio` file opens it
+  in the import. The app is not notarized yet: see "Read me first" in
+  the disk image.
+
 - The interface language chosen in the GUI is remembered for the next
   start (and used by btw too); before that, the language chosen in the
   Windows installer, then the system language. `--lang` still overrides.

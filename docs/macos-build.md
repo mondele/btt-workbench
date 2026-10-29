@@ -135,10 +135,16 @@ built (native or `--universal`, which makes it universal), signed ad hoc:
   `.tstudio` opened at launch and while open (added to the list, Check
   run again), and the Check's report.
 
-Still to do here: `tools/release.sh` macOS stage →
-`dist/btt-workbench-<version>-macos.zip` with the app, `btw` beside it,
-README, CHANGELOG, LICENSE (and the Gatekeeper steps from 5). `sha256sum`
-does not exist on macOS: use `shasum -a 256`.
+Release: on a Mac, `tools/release.sh` builds `--universal` and makes
+`dist/btt-workbench-<version>-macos.dmg` (a disk image rather than a zip,
+by choice): the app with `btw` inside it (`Contents/MacOS/btw`, so it
+finds the translations in `Contents/Resources`), stripped and signed ad
+hoc again, a link to Applications, README, CHANGELOG, LICENSE and "Read
+me first.txt" (the Gatekeeper steps from 5, and how to put `btw` on
+PATH); `hdiutil create -format UDZO`, checksum with `shasum -a 256`.
+Checked: mounted, signature valid, both programs universal, `btw` runs
+on both CPUs and loads Spanish; `spctl` rejects it, as expected without
+notarization.
 
 ### 5. Architecture and signing
 

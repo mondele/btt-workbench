@@ -75,7 +75,21 @@ unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
 
 In the GUI, the language, book and type filters (and the WACS owner) are pickers: editable drop-downs that complete what you type from what is likely (each part of a comma-separated list on its own; Backspace does not complete), list the matches, and still take anything typed. The projects modules suggest what the projects folder holds; Download from WACS suggests every language in BTT-Writer's language database, every book and the usual types, and after **Find** what WACS has (books, types, owners). A module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
 
-### Double-click `.tstudio` files
+### macOS
+
+The disk image (`btt-workbench-<version>-macos.dmg`) holds BTT Workbench.app
+for Apple Silicon and Intel Macs (macOS 11 or later): drag it onto
+Applications. The app is not notarized by Apple yet, so the first time
+macOS refuses to open it: open it once, then click **Open Anyway** in
+System Settings → Privacy & Security (or run `xattr -dr
+com.apple.quarantine "/Applications/BTT Workbench.app"`). Double-clicking
+a `.tstudio` file then opens it in the import, which checks it first.
+
+The command-line program is inside the app; to put it on PATH:
+`sudo ln -sf "/Applications/BTT Workbench.app/Contents/MacOS/btw"
+/usr/local/bin/btw`.
+
+### Double-click `.tstudio` files (Linux and Windows)
 
 The `.deb` and the Windows installer (if you tick it) make `.tstudio`
 files open with BTT Workbench. Double-clicking a package then opens BTT Workbench on the import module and
@@ -110,6 +124,7 @@ says `-modified`; one made outside `build.sh` says `+dev`.
 
 ```sh
 tools/release.sh            # dist/: .tar.gz, .zip, .deb and -win64-setup.exe
+                            # (on a Mac: dist/btt-workbench-<version>-macos.dmg)
 ```
 
 It refuses uncommitted changes, builds and tests everything, strips the
@@ -120,6 +135,11 @@ They need `dpkg-deb`, `rsvg-convert` (librsvg2-bin) and `makensis`
 there too.
 
 The library updates write SQLite through the system's library, loaded when needed: `libsqlite3.so.0` on Linux, `winsqlite3.dll` (part of Windows 10 and 11) on Windows.
+
+On a Mac, `./build.sh` also makes `bin/BTT Workbench.app`, and `./build.sh
+--universal` builds for Apple Silicon and Intel together (it needs FPC's
+x86_64 cross-compiler; see [docs/macos-build.md](docs/macos-build.md)).
+Web access goes through macOS's own NSURLSession, so no OpenSSL is needed.
 
 For Windows, cross-build from Linux once FPC has its win64 units:
 `./build.sh --win64` (the CLI and the GUI). The `.exe` files use only DLLs that come with
