@@ -1,8 +1,9 @@
 # macOS build
 
 Plan for the first macOS build of BTT Workbench. Written on Linux on
-2026-10-28; nothing here has been tried on a Mac yet. Update this file as
-steps are done, and move what turns out to be permanent into `CLAUDE.md`.
+2026-10-28; work on the Mac (Apple Silicon, macOS 15, fpcupdeluxe with
+FPC 3.2.2 and Lazarus 4.6) began the same day. Update this file as steps
+are done, and move what turns out to be permanent into `CLAUDE.md`.
 
 The build has to be made on a Mac: FPC cannot link macOS programs from
 Linux without Apple's SDK.
@@ -73,23 +74,31 @@ on the path. On macOS BTT-Writer's process is
 that Electron helper processes are not counted twice or missed).
 Keep `BttWriterRunningOverride` working; the tests use it.
 
-### 3. Build script (`build.sh`)
+### 3. Build script (`build.sh`): done (2026-10-28)
 
-Written for Linux and GNU tools; on macOS:
+`build.sh` runs under macOS's `/bin/bash` 3.2 and BSD sed:
 
-- `PATH` is set to `$LAZ_ROOT/fpc/bin/x86_64-linux:/usr/bin:/bin`: pick
-  the FPC bin folder by `uname -s`/`uname -m` (on macOS, wherever the
-  installed FPC puts `fpc`, e.g. `$LAZ_ROOT/fpc/bin/aarch64-darwin` with
-  fpcupdeluxe, or `/usr/local/bin` with the official installer).
-  `LAZ_ROOT` defaults to `~/fpcupdeluxe`.
-- `versioned_lpi` uses `sed` with `\|` alternation, which BSD sed does
-  not support: use `-E` with `|`, or separate `-e` expressions.
-- macOS's `/bin/bash` is 3.2: `"${TEMP_LPIS[@]}"` on an empty array
-  fails under `set -u`; avoid bash 4 features (`mapfile`, `${x,,}`).
-- Widgetset: Cocoa is Lazarus's default on macOS (`LCL_WS` can stay unset).
-- `src/lib/btw.lpi` (the `.so` for Android) is not needed on macOS; skip
-  it there.
-- Add `--macos` (or detect Darwin) to also make the app bundle (below).
+- `PATH` uses the FPC bin folder for the host, `$LAZ_ROOT/fpc/bin/<cpu>-<os>`
+  from `uname` (`x86_64-linux`, `aarch64-darwin`).
+- Empty arrays are expanded as `${a[@]+"${a[@]}"}` (bash 3.2 calls them
+  unset under `set -u`), and `versioned_lpi` uses separate `sed -e`
+  expressions instead of `\|`.
+- On macOS the default projects are TestCore, the CLI and the GUI (no
+  `src/lib`), with the Cocoa widgetset (Lazarus's default).
+- `./build.sh --universal [<x.lpi>...]` builds each project with
+  `--cpu=aarch64` and `--cpu=x86_64`, keeps the slices in
+  `lib/<cpu>-darwin/`, joins them with `lipo` into `bin/`, and runs
+  TestCore under `arch -arm64` and `arch -x86_64` (Rosetta).
+- `MACOSX_DEPLOYMENT_TARGET` defaults to 11.0. fpcupdeluxe's `fpc.cfg`
+  gives native (arm64) builds `-WM10.15`, which beats the variable, so the
+  arm64 slice says 10.15 and the x86_64 slice 11.0. That is harmless:
+  Apple Silicon Macs all run 11 or later. Do not force `-WM11.0` on arm64:
+  Apple's ld 1167.5 (Command Line Tools, 2025) crashes with a segfault
+  linking the GUI with it (the CLI links). `-ld_classic` avoids the crash
+  but Apple is removing it.
+
+Still to do here: make the app bundle (step 4), probably as
+`--universal`'s last stage or a separate `--bundle`.
 
 ### 4. App bundle, icon and version
 
@@ -148,6 +157,13 @@ Written for Linux and GNU tools; on macOS:
 
 ### 6. Tests and checks on the Mac
 
+First run (2026-10-28, arm64, commit 493850e + build.sh changes): 62
+checks pass, then from the first `tstudio-import` check on 25 fail, and
+TestCore stops with an unhandled `EFOpenError` (the v7 fixture's
+`manifest.json` is missing in the temp folder). Not looked into yet; one
+suspect is that `/var/folders/…` is a symlink to `/private/var/…` on
+macOS, which breaks path comparisons.
+
 - `./build.sh` then `./bin/TestCore`; all checks must pass (459 on
   Linux at commit 3a9fa37). Tests use temp folders and `FakeWacs` (a
   local fphttpserver with `file://` clone URLs), never real WACS or real
@@ -169,12 +185,70 @@ Written for Linux and GNU tools; on macOS:
 1. `xcode-select --install` (Apple's linker for FPC, and git).
 2. FPC 3.2.2 and Lazarus: Lazarus 4.x is recommended on macOS (much
    better Cocoa support than the 3.6 used on Linux); fpcupdeluxe for
-   macOS or the official installers.
-3. Clone over SSH, the same way the Mac reaches `mondele/claude-config`
+   macOS or the official installers. With fpcupdeluxe, install into
+   `~/fpcupdeluxe` (`build.sh`'s default `LAZ_ROOT`): the app suggests a
+   folder beside itself, e.g. on the Desktop. Use `fpc/bin/aarch64-darwin/
+   fpc.sh`, not `fpc`, when calling the compiler by hand: only `fpc.sh`
+   passes fpcupdeluxe's `fpc.cfg`.
+3. The x86_64 cross-compiler (for `--universal`), see below. Rosetta to
+   run the x86_64 tests: `softwareupdate --install-rosetta
+   --agree-to-license`.
+4. Clone over SSH, the same way the Mac reaches `mondele/claude-config`
    (same host alias from `~/.ssh/config`), e.g. `git clone
    git@github-WA:mondele/btt-workbench.git`. If it was cloned over HTTPS,
    `git remote set-url origin` to the SSH form before pushing.
-4. Build, test, then work through the list above.
+5. Build, test, then work through the list above.
+
+### The x86_64 cross-compiler on Apple Silicon
+
+fpcupdeluxe's Cross tab (x86_64 / darwin) fails with FPC 3.2.2 on an
+Apple Silicon host. Built by hand from `~/fpcupdeluxe/fpcsrc` it works,
+with three fixes. Redo them if fpcupdeluxe rebuilds FPC.
+
+1. The cross-compiler must emulate x86's 80-bit `Extended` (an arm64 host
+   has none), or it stops with `genmath.inc(919,7) Fatal: Internal error
+   2014051001`: build it with `-dFPC_SOFT_FPUX80`.
+2. That needs the unit `sfpux80` for the host, which the darwin RTL
+   Makefile in 3.2.2 does not build (the Linux one does). Compile it into
+   both host RTL folders:
+
+   ```sh
+   cd ~/fpcupdeluxe/fpcsrc
+   PP=~/fpcupdeluxe/fpc/bin/aarch64-darwin/ppca64
+   CFG=~/fpcupdeluxe/fpc/bin/aarch64-darwin/fpc.cfg
+   for d in rtl/units/aarch64-darwin ~/fpcupdeluxe/fpc/units/aarch64-darwin/rtl; do
+     $PP -n @$CFG -Fu$d -FU$d rtl/inc/sfpux80.pp
+   done
+   ```
+3. Apple's assembler rejects the x86_64 `RawThunk` in
+   `packages/rtl-objpas/src/inc/rtti.pp` (`non-private labels cannot
+   appear between .cfi_startproc / .cfi_endproc pairs`, for the global
+   `RawThunkEnd` label). Leave raw thunks out on x86_64-darwin: change
+   the `{$elseif defined(cpux86_64)}` before the x86_64 `RawThunk` to
+   `{$elseif defined(cpux86_64) and not defined(darwin)}`.
+   `AllocateRawThunk` then returns nil, as on platforms without thunks;
+   btt-workbench and the LCL do not use the `Rtti` unit. (The original
+   is kept as `rtti.pp.orig`.)
+
+Then build, and move the results to fpcupdeluxe's layout (`make
+crossinstall` uses FPC's standard `lib/fpc/3.2.2/` one):
+
+```sh
+cd ~/fpcupdeluxe/fpcsrc
+export PATH=~/fpcupdeluxe/fpc/bin/aarch64-darwin:/usr/bin:/bin:/usr/sbin:/sbin
+make crossall crossinstall CPU_TARGET=x86_64 OS_TARGET=darwin \
+  PP=~/fpcupdeluxe/fpc/bin/aarch64-darwin/ppca64 \
+  INSTALL_PREFIX=~/fpcupdeluxe/fpc \
+  OPT="-dFPC_SOFT_FPUX80 -XR/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Fu$HOME/fpcupdeluxe/fpc/units/aarch64-darwin/rtl"
+cd ~/fpcupdeluxe/fpc
+cp lib/fpc/3.2.2/ppcrossx64 bin/aarch64-darwin/ppcx64
+mv lib/fpc/3.2.2/units/x86_64-darwin units/
+```
+
+Check: `fpc.sh -Px86_64 -iTPTO` prints `x86_64 darwin`, and a program
+built with `fpc.sh -Px86_64` runs under `arch -x86_64`. Lazarus compiles
+the LCL for x86_64 the first time `build.sh --universal` runs. Note that
+`SizeOf(Extended)` is 10 in the x86_64 slice and 8 in the arm64 one.
 
 ## Rules that still apply
 

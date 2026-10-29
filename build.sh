@@ -6,6 +6,18 @@
 #   ./build.sh --win64 [<x.lpi>...]
 #                         Windows 64-bit .exe files (default: CLI and GUI);
 #                         needs FPC's win64 units
+#   ./build.sh --universal [<x.lpi>...]
+#                         macOS only: build for aarch64 and x86_64 and join
+#                         them with lipo (default: tests, CLI and GUI), then
+#                         run the tests natively and under Rosetta; needs
+#                         the x86_64-darwin cross-compiler
+#
+# On macOS the shared library (src/lib, for Android) is not built, and
+# MACOSX_DEPLOYMENT_TARGET defaults to 11.0. fpcupdeluxe's fpc.cfg gives
+# native builds -WM10.15, which wins over it: so the arm64 slice says 10.15
+# (arm64 Macs all run 11 or later) and the x86_64 slice 11.0. Do not force
+# -WM11.0 on arm64: Apple's ld 1167 crashes linking the GUI with it. The script runs under the
+# system bash 3.2 and BSD sed.
 #
 # The version is <release>+<build> (as BTT-Writer's 1.6.0+1073): the
 # release comes from src/core/WBVersion.pas, the build number is the git
@@ -19,15 +31,22 @@
 #   LAZBUILD   lazbuild binary     (default $LAZ_ROOT/lazarus/lazbuild)
 #   LCL_WS     widgetset for the GUI, e.g. qt6 (default: Lazarus default, gtk2)
 #
-# PATH is reset to the FPC bin dir + /usr/bin:/bin: a linuxbrew ld earlier
-# on PATH breaks FPC links.
+# PATH is reset to the FPC bin dir for this host (e.g. x86_64-linux,
+# aarch64-darwin) + /usr/bin:/bin: a linuxbrew ld earlier on PATH breaks FPC
+# links.
 
 set -euo pipefail
 cd "$(dirname "$0")"
 
 LAZ_ROOT="${LAZ_ROOT:-$HOME/fpcupdeluxe}"
 LAZBUILD="${LAZBUILD:-$LAZ_ROOT/lazarus/lazbuild}"
-export PATH="$LAZ_ROOT/fpc/bin/x86_64-linux:/usr/bin:/bin"
+HOST_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+HOST_CPU=$(uname -m)
+[[ $HOST_CPU == arm64 ]] && HOST_CPU=aarch64
+export PATH="$LAZ_ROOT/fpc/bin/$HOST_CPU-$HOST_OS:/usr/bin:/bin"
+if [[ $HOST_OS == darwin ]]; then
+  export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-11.0}"
+fi
 
 if [[ ! -x "$LAZBUILD" ]]; then
   echo "error: lazbuild not found at $LAZBUILD (set LAZ_ROOT or LAZBUILD)" >&2
@@ -35,8 +54,16 @@ if [[ ! -x "$LAZBUILD" ]]; then
 fi
 
 WIN64=0
+UNIVERSAL=0
 if [[ "${1:-}" == "--win64" ]]; then
   WIN64=1
+  shift
+elif [[ "${1:-}" == "--universal" ]]; then
+  if [[ $HOST_OS != darwin ]]; then
+    echo "error: --universal is for macOS" >&2
+    exit 2
+  fi
+  UNIVERSAL=1
   shift
 fi
 
@@ -44,10 +71,19 @@ RUN_TESTS=0
 if [[ $# -eq 0 ]]; then
   if [[ $WIN64 -eq 1 ]]; then
     set -- src/cli/btw.lpi src/gui/BttWorkbench.lpi
+  elif [[ $HOST_OS == darwin ]]; then
+    set -- tests/TestCore.lpi src/cli/btw.lpi src/gui/BttWorkbench.lpi
+    RUN_TESTS=1
   else
     set -- tests/TestCore.lpi src/cli/btw.lpi src/lib/btw.lpi src/gui/BttWorkbench.lpi
     RUN_TESTS=1
   fi
+fi
+
+# Each CPU to build for; empty means lazbuild's default (the host's)
+CPUS=("")
+if [[ $UNIVERSAL -eq 1 ]]; then
+  CPUS=(aarch64 x86_64)
 fi
 
 mkdir -p lib
@@ -57,6 +93,7 @@ if [[ $WIN64 -eq 1 ]]; then
 elif [[ -n "${LCL_WS:-}" ]]; then
   TARGET_ARGS=(--ws="$LCL_WS")
 fi
+
 
 # Version
 RELEASE=$(sed -n "s/^ *WorkbenchRelease = '\(.*\)';.*/\1/p" src/core/WBVersion.pas)
@@ -75,7 +112,8 @@ echo "== version $RELEASE+$BTW_BUILD ($BTW_COMMIT)"
 TEMP_LPIS=()
 cleanup() {
   local f
-  for f in "${TEMP_LPIS[@]}"; do
+  # ${a[@]+...}: bash 3.2 (macOS) treats an empty array as unset under set -u
+  for f in ${TEMP_LPIS[@]+"${TEMP_LPIS[@]}"}; do
     rm -f "$f" "${f%.lpi}.lps" "${f%.lpi}.ico"
   done
 }
@@ -86,7 +124,8 @@ versioned_lpi() {
   local lpi=$1 major minor rev copy
   IFS=. read -r major minor rev <<< "$RELEASE"
   copy="$(dirname "$lpi")/.$(basename "$lpi" .lpi)-build.lpi"
-  sed -e '/<MajorVersionNr\|<MinorVersionNr\|<RevisionNr\|<BuildNr/d' \
+  sed -e '/<MajorVersionNr/d' -e '/<MinorVersionNr/d' \
+      -e '/<RevisionNr/d' -e '/<BuildNr/d' \
       -e "s|<UseVersionInfo Value=\"True\"/>|<UseVersionInfo Value=\"True\"/><MajorVersionNr Value=\"$major\"/><MinorVersionNr Value=\"$minor\"/><RevisionNr Value=\"$rev\"/><BuildNr Value=\"$BTW_BUILD\"/>|" \
       -e "s|ProductVersion=\"[^\"]*\"|ProductVersion=\"$RELEASE+$BTW_BUILD\"|" \
       "$lpi" > "$copy"
@@ -96,19 +135,51 @@ versioned_lpi() {
   echo "$copy"
 }
 
+# The program a project makes: <Target><Filename>, relative to the .lpi
+target_of() {
+  local lpi=$1 target
+  target=$(sed -n '/<Target>/,/<\/Target>/s|.*<Filename Value="\([^"]*\)".*|\1|p' "$lpi")
+  echo "$(dirname "$lpi")/$target"
+}
+
 for lpi in "$@"; do
-  echo "== $lpi"
   build=$lpi
   if grep -q '<VersionInfo>' "$lpi"; then
     build=$(versioned_lpi "$lpi")
   fi
-  if ! "$LAZBUILD" -q "${TARGET_ARGS[@]}" "$build" > "lib/build.log" 2>&1; then
-    grep -E '(Error|Fatal):' lib/build.log >&2 || cat lib/build.log >&2
-    exit 1
+  for cpu in "${CPUS[@]}"; do
+    args=(${TARGET_ARGS[@]+"${TARGET_ARGS[@]}"})
+    if [[ -n $cpu ]]; then
+      echo "== $lpi ($cpu)"
+      args+=(--cpu="$cpu")
+    else
+      echo "== $lpi"
+    fi
+    if ! "$LAZBUILD" -q ${args[@]+"${args[@]}"} "$build" > "lib/build.log" 2>&1; then
+      grep -E '(Error|Fatal):' lib/build.log >&2 || cat lib/build.log >&2
+      exit 1
+    fi
+    if [[ $UNIVERSAL -eq 1 ]]; then
+      mkdir -p "lib/$cpu-darwin"
+      mv -f "$(target_of "$lpi")" "lib/$cpu-darwin/"
+    fi
+  done
+  if [[ $UNIVERSAL -eq 1 ]]; then
+    exe=$(target_of "$lpi")
+    name=$(basename "$exe")
+    lipo -create -output "$exe" "lib/aarch64-darwin/$name" "lib/x86_64-darwin/$name"
+    lipo -info "$exe"
   fi
 done
 
 if [[ $RUN_TESTS -eq 1 ]]; then
-  echo "== tests"
-  ./bin/TestCore | tail -1
+  if [[ $UNIVERSAL -eq 1 ]]; then
+    echo "== tests (aarch64)"
+    arch -arm64 ./bin/TestCore | tail -1
+    echo "== tests (x86_64, Rosetta)"
+    arch -x86_64 ./bin/TestCore | tail -1
+  else
+    echo "== tests"
+    ./bin/TestCore | tail -1
+  fi
 fi
