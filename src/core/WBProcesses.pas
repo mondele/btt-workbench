@@ -8,8 +8,11 @@ unit WBProcesses;
    the old data.
 
    A process counts when its program file is named BTT-Writer (any case,
-   with or without .exe): /usr/lib/btt-writer/BTT-Writer, BTT-Writer.exe.
-   Linux reads /proc; Windows lists processes with Toolhelp (kernel32). *)
+   with or without .exe): /usr/lib/btt-writer/BTT-Writer, BTT-Writer.exe,
+   BTT-Writer.app/Contents/MacOS/BTT-Writer (its Electron helpers, "BTT-Writer
+   Helper (Renderer)" and so on, do not count).
+   Linux reads /proc; Windows lists processes with Toolhelp (kernel32); macOS
+   with proc_listpids and proc_pidpath (libproc, part of libSystem). *)
 
 interface
 
@@ -25,7 +28,7 @@ var
 
 implementation
 
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
 uses
   Windows;
 
@@ -52,6 +55,15 @@ function Process32FirstW(Snapshot: THandle; var Entry: TProcessEntry32W): BOOL; 
   external 'kernel32' name 'Process32FirstW';
 function Process32NextW(Snapshot: THandle; var Entry: TProcessEntry32W): BOOL; stdcall;
   external 'kernel32' name 'Process32NextW';
+{$ELSEIF DEFINED(DARWIN)}
+const
+  PROC_ALL_PIDS = 1;
+  PROC_PIDPATHINFO_MAXSIZE = 4 * 1024;
+
+function proc_listpids(ProcType, TypeInfo: UInt32; Buffer: Pointer;
+  BufferSize: Int32): Int32; cdecl; external 'c' name 'proc_listpids';
+function proc_pidpath(Pid: Int32; Buffer: Pointer; BufferSize: UInt32): Int32; cdecl;
+  external 'c' name 'proc_pidpath';
 {$ELSE}
 uses
   BaseUnix;
@@ -66,7 +78,7 @@ begin
 end;
 
 function BttWriterRunning(out Detail: string): Boolean;
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
 var
   Snap: THandle;
   E: TProcessEntry32W;
@@ -98,6 +110,44 @@ begin
       until not Process32NextW(Snap, E);
   finally
     CloseHandle(Snap);
+  end;
+end;
+{$ELSEIF DEFINED(DARWIN)}
+var
+  Pids: array of Int32;
+  Bytes, I, Len: Int32;
+  Path: array[0..PROC_PIDPATHINFO_MAXSIZE - 1] of AnsiChar;
+  Exe: string;
+begin
+  Detail := '';
+  if BttWriterRunningOverride <> '' then
+  begin
+    Result := BttWriterRunningOverride = 'yes';
+    if Result then
+      Detail := 'BTT-Writer';
+    Exit;
+  end;
+  Result := False;
+  Bytes := proc_listpids(PROC_ALL_PIDS, 0, nil, 0);   // size needed now
+  if Bytes <= 0 then
+    Exit;
+  SetLength(Pids, Bytes div SizeOf(Int32) + 64);       // room for new processes
+  Bytes := proc_listpids(PROC_ALL_PIDS, 0, @Pids[0], Length(Pids) * SizeOf(Int32));
+  if Bytes <= 0 then
+    Exit;
+  for I := 0 to Bytes div SizeOf(Int32) - 1 do
+  begin
+    if Pids[I] <= 0 then
+      Continue;
+    Len := proc_pidpath(Pids[I], @Path[0], SizeOf(Path));   // others' processes: 0
+    if Len <= 0 then
+      Continue;
+    SetString(Exe, PAnsiChar(@Path[0]), Len);
+    if IsBttWriterName(Exe) then
+    begin
+      Detail := Format('%s (process %d)', [Exe, Pids[I]]);
+      Exit(True);
+    end;
   end;
 end;
 {$ELSE}

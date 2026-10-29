@@ -61,18 +61,19 @@ wacs-download --language <code> --list` (BIEL Public Data API, a POST);
 `btw wacs-account --username … ` then a download and an upload (token
 auth; git gets the token through `GIT_CONFIG_*`, see `WBWacs`).
 
-### 2. "Is BTT-Writer running?" (`WBProcesses`)
+### 2. "Is BTT-Writer running?" (`WBProcesses`): done (2026-10-29)
 
-`BttWriterRunning` reads `/proc` in its non-Windows branch. macOS has no
-`/proc`, so it would always answer "not running", and `library-languages`
-/ `library-sources` could replace `index.sqlite` while BTT-Writer holds
-it in memory (BTT-Writer would later write the old one back). Add a
-`{$IFDEF DARWIN}` branch: `proc_listpids` + `proc_pidpath` from libproc
-(`/usr/lib/libproc.dylib`, part of libSystem), matching `IsBttWriterName`
-on the path. On macOS BTT-Writer's process is
-`…/BTT-Writer.app/Contents/MacOS/BTT-Writer` (check the real name, and
-that Electron helper processes are not counted twice or missed).
-Keep `BttWriterRunningOverride` working; the tests use it.
+macOS has no `/proc`, so the non-Windows branch always answered "not
+running" there, and `library-languages` / `library-sources` could have
+replaced `index.sqlite` under a running BTT-Writer. A `{$ELSEIF
+DEFINED(DARWIN)}` branch lists processes with `proc_listpids` and names
+them with `proc_pidpath` (libproc, in libSystem: `external 'c'`). On macOS
+BTT-Writer's main process is `…/BTT-Writer.app/Contents/MacOS/BTT-Writer`;
+the Electron helpers (`BTT-Writer Helper (Renderer)` etc., in
+`Contents/Frameworks`) do not match `IsBttWriterName`, so it counts once.
+Checked on arm64 and x86_64 with a stand-in process named `BTT-Writer`
+(found) and one named like a helper (not found). Still to check with the
+real BTT-Writer open.
 
 ### 3. Build script (`build.sh`): done (2026-10-28)
 
