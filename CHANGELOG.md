@@ -17,6 +17,10 @@ Each release's section below is also its release notes on GitHub.
   Windows (for all users or just the current one, Start menu, optional
   desktop shortcut, `.tstudio` file type and btw on the PATH, uninstaller;
   warns when Git for Windows is missing). `tools/release.sh` makes both.
+  They replace `tools/install-desktop.sh`, which is gone: if you used it,
+  run `rm ~/.local/share/applications/btt-workbench.desktop
+  ~/.local/share/mime/packages/btt-workbench-tstudio.xml` before
+  installing the `.deb`, or its old menu entry hides the new one.
 
 - Spanish translation (`locale/es`), machine-made for testing the
   translation support; it needs review by a Spanish speaker before it is

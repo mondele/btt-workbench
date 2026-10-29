@@ -75,14 +75,10 @@ unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
 
 In the GUI, the language, book and type filters (and the WACS owner) are pickers: editable drop-downs that complete what you type from what is likely (each part of a comma-separated list on its own; Backspace does not complete), list the matches, and still take anything typed. The projects modules suggest what the projects folder holds; Download from WACS suggests every language in BTT-Writer's language database, every book and the usual types, and after **Find** what WACS has (books, types, owners). A module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
 
-### Double-click `.tstudio` files (Linux, without the .deb)
+### Double-click `.tstudio` files
 
-```sh
-tools/install-desktop.sh           # register .tstudio -> btt-workbench (per user, no sudo)
-tools/install-desktop.sh --remove  # undo
-```
-
-Double-clicking a package then opens BTT Workbench on the import module and
+The `.deb` and the Windows installer (if you tick it) make `.tstudio`
+files open with BTT Workbench. Double-clicking a package then opens BTT Workbench on the import module and
 runs the check. Nothing changes until you choose what to do and press **Run**.
 Opening several packages at once, or double-clicking another while the
 window is open, adds them to the same list and checks them all again.
