@@ -10,9 +10,9 @@ Each release's section below is also its release notes on GitHub.
 
 - Installers: a `.deb` for Linux (installs to `/opt/btt-workbench`, with
   a menu entry, icon and the `.tstudio` file type) and a setup `.exe` for
-  Windows (Program Files, Start menu, optional desktop shortcut and
-  `.tstudio` file type, uninstaller; warns when Git for Windows is
-  missing). `tools/release.sh` makes both.
+  Windows (for all users or just the current one, Start menu, optional
+  desktop shortcut, `.tstudio` file type and btw on the PATH, uninstaller;
+  warns when Git for Windows is missing). `tools/release.sh` makes both.
 
 - Spanish translation (`locale/es`), machine-made for testing the
   translation support; it needs review by a Spanish speaker before it is

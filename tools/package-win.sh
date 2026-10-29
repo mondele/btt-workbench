@@ -31,6 +31,8 @@ for f in btt-workbench.exe btw.exe; do
   strip "$SRC/$f"
 done
 cp README.md CHANGELOG.md LICENSE "$SRC/"
+cp installer/path.ps1 "$SRC/"
+cp src/gui/BttWorkbench.ico "$SRC/btt-workbench.ico"
 for po in locale/*/btt-workbench.po; do
   [[ -e "$po" ]] || continue
   install -D -m 644 "$po" "$SRC/$po"

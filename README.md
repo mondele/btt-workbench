@@ -22,10 +22,13 @@ From a release (dist/ when building):
   on the PATH, a menu entry, and `.tstudio` files opening on the import
   check. `sudo apt remove btt-workbench` takes it all away again.
 - **Windows (10 and 11, 64-bit):** run `btt-workbench-<version>-win64-setup.exe`.
-  It installs for all users in `Program Files\BTT Workbench`, with a Start
+  It installs for all users in `Program Files\BTT Workbench` (needs an
+  administrator) or just for you in `%LOCALAPPDATA%\Programs\BTT Workbench`
+  (no administrator; the only choice when you aren't one). It adds a Start
   menu entry, a desktop shortcut and the `.tstudio` file type if you
   choose them, and an uninstaller in Apps & features. `btw.exe` is in the
-  same folder (it is not added to the PATH).
+  same folder; tick "Add btw to the PATH" to use it from any command
+  prompt. Unattended: `setup.exe /S /AllUsers` or `/S /CurrentUser`.
 - Without installing: unpack the `.tar.gz` or `.zip` and run the programs
   from that folder.
 
