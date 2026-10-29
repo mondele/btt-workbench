@@ -148,8 +148,10 @@ linker warnings are harmless.
 - Windows cross build on the laptop and the desktop: `./build.sh --win64`
   (win64 units installed in fpcupdeluxe).
 - macOS: `build.sh` and the tests work there (`--universal` for arm64 +
-  x86_64); the rest of the plan (native HTTPS, BTT-Writer process check,
-  app bundle, signing) is in `docs/macos-build.md`: read it first when
+  x86_64). `WBHttp` uses NSURLSession there (`WBMacHttp`, as WinHTTP on
+  Windows; the delegate runs on Apple's threads, so no Pascal strings or
+  heap in it), and `WBProcesses` uses libproc. The rest of the plan (app
+  bundle, signing) is in `docs/macos-build.md`: read it first when
   working on a Mac. Paths the code resolves (`WBDataPaths.ResolveLinks`)
   differ there from what was given: `/var/folders` is a link to
   `/private/var/folders`, so TestCore resolves its temp root.

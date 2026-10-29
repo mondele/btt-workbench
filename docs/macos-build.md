@@ -34,32 +34,35 @@ Linux without Apple's SDK.
 
 ## Work to do
 
-### 1. HTTPS (`WBHttp`): needed for everything that talks to WACS
+### 1. HTTPS (`WBHttp`): done (2026-10-29)
 
-On every system but Windows, `WBHttp` uses fphttpclient with OpenSSL
-loaded at run time (`opensslsockets`). macOS has no usable OpenSSL: its
-`/usr/lib/libssl.dylib` is LibreSSL, and loading it can abort the
-program. Two ways out:
+macOS has no usable OpenSSL (its `/usr/lib/libssl.dylib` is LibreSSL, and
+loading it can abort the program), so on macOS `WBHttp` sends requests
+through NSURLSession, in `WBMacHttp`, the way it uses WinHTTP on Windows:
+TLS, certificates and proxies come from macOS, nothing extra ships, and
+the Cloudflare `post_handshake_auth` workaround is not needed.
 
-- **Native backend (chosen, same choice as Windows):** a `WBMacHttp`
-  unit over Apple's NSURLSession (FPC `{$modeswitch objectivec1}` with
-  `CocoaAll`, or CFNetwork), shaped like `WBWinHttp.WinHttpRequest`
-  (method, URL, user agent, headers, body, timeout → status, body) and
-  selected in `WBHttp` the way `{$IFDEF WINDOWS}` selects WinHTTP today.
-  TLS, certificates and proxies then come from macOS, nothing extra ships,
-  and the Cloudflare `post_handshake_auth` workaround (`TWBSSLHandler`) is
-  not needed. `HttpKeepConnections` / `HttpReleaseConnection` can be
-  no-ops or keep one session per thread; the library updates
-  (`FetchAll`) download in parallel threads.
-- *(Not chosen)* **Bundle OpenSSL 3** in `Contents/Frameworks` and point `openssl`'s
-  `DLLVersions`/load path at it. Quicker, reuses the Linux code, but the
-  libraries must be updated and signed with each release.
+- `WBMacHttp.MacHttpRequest` is shaped like `WinHttpRequest`. FPC 3.2.2
+  cannot pass closures as completion blocks, so an Objective-Pascal
+  delegate (`TMacHttpDelegate`) collects the reply in an `NSMutableData`
+  and signals a dispatch semaphore. Its methods run on NSURLSession's
+  threads, which FPC did not start: they use no Pascal strings or heap.
+- Ephemeral session (nothing kept on disk); the request timeout is the
+  idle timeout and always ends the task. `HttpKeepConnections` keeps one
+  session per thread (the library updates), so connections are reused.
+- Errors: NSURLErrorDomain codes map to the same messages as WinHTTP's
+  (`FailureText`); others use macOS's own description.
+- Uses `CocoaAll` (Foundation alone is not prebuilt in FPC 3.2.2) with
+  `{$modeswitch objectivec1}`. Its initialization starts one no-op
+  NSThread so Cocoa knows the program is multithreaded.
 
-Check with: `btw library-languages --dry-run` and `btw library-sources
---dry-run` (anonymous GETs to the catalog/CDN, parallel); `btw
-wacs-download --language <code> --list` (BIEL Public Data API, a POST);
-`btw wacs-account --username … ` then a download and an upload (token
-auth; git gets the token through `GIT_CONFIG_*`, see `WBWacs`).
+Checked on arm64 and x86_64 (Rosetta): `wacs-download --list` (WACS GETs
+and the BIEL POST), `library-languages --dry-run` (1.3 s),
+`library-sources --dry-run` (parallel, 31.6 s, no errors), and the
+messages for an unknown host, an expired and a wrong-host certificate
+(badssl.com), a 404 and a timeout. TestCore's FakeWacs (plain HTTP to
+127.0.0.1) passes too. Not yet checked: token auth (`wacs-account`, then a
+download and an upload with the saved login).
 
 ### 2. "Is BTT-Writer running?" (`WBProcesses`): done (2026-10-29)
 

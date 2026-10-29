@@ -10,7 +10,8 @@ unit WBHttp;
 
   On Windows requests go through WinHTTP (WBWinHttp), Windows' own client:
   TLS, certificates and proxies come from Windows, and no OpenSSL DLLs are
-  needed. Elsewhere fphttpclient is used, and HTTPS needs OpenSSL at run
+  needed. On macOS they go through NSURLSession (WBMacHttp) the same way.
+  Elsewhere fphttpclient is used, and HTTPS needs OpenSSL at run
   time (opensslsockets), which Linux has. FPC 3.2.2 only looks for OpenSSL
   up to 1.1 on Unix; current Linux has only 3, so the initialization adds
   '.3' to the library versions it tries.
@@ -75,8 +76,8 @@ var
 implementation
 
 uses
-  {$IFDEF WINDOWS}WBWinHttp,{$ELSE}dynlibs, ssockets, sslsockets, fphttpclient,
-  opensslsockets, openssl,{$ENDIF}
+  {$IF DEFINED(WINDOWS)}WBWinHttp,{$ELSEIF DEFINED(DARWIN)}WBMacHttp,{$ELSE}dynlibs,
+  ssockets, sslsockets, fphttpclient, opensslsockets, openssl,{$ENDIF}
   jsonparser, base64, WBVersion;
 
 resourcestring
@@ -86,7 +87,8 @@ resourcestring
   rsForbidden = 'Not allowed: %s';
   rsNotFound = 'Not found: %s';
   rsServerSaid = 'The server answered %d: %s';
-  { Windows only (WinHTTP); declared everywhere so the .pot has them. }
+  { Windows (WinHTTP) and macOS (NSURLSession) only; declared everywhere so
+    the .pot has them. }
   rsTimedOut = 'no answer in time';
   rsNameNotResolved = 'server name not found; check the internet connection';
   rsCannotConnect = 'could not connect';
@@ -167,7 +169,7 @@ begin
   end;
 end;
 
-{$IFDEF WINDOWS}
+{$IF DEFINED(WINDOWS)}
 function FailureText(Code: Cardinal): string;
 begin
   case Code of
@@ -200,6 +202,51 @@ begin
     Status, Code);
   if Status = 0 then
     Failure := FailureText(Code);
+end;
+{$ELSEIF DEFINED(DARWIN)}
+function FailureText(Code: Integer; const MacText: string): string;
+begin
+  case Code of
+    MacHttpErrTimedOut: Result := rsTimedOut;
+    MacHttpErrCannotFindHost, MacHttpErrDnsFailed, MacHttpErrNotConnected:
+      Result := rsNameNotResolved;
+    MacHttpErrCannotConnect: Result := rsCannotConnect;
+    MacHttpErrConnectionLost: Result := rsConnectionError;
+    MacHttpErrSecureFirst..MacHttpErrSecureLast: Result := rsSecureFailure;
+    MacHttpErrBadUrl, MacHttpErrUnsupportedUrl: Result := rsBadUrl;
+  else
+    Result := MacText;   // macOS's own description, in the user's language
+  end;
+end;
+
+{ One request; Status 0 means it never got an answer. }
+function Request(const Method, URL: string; const Auth: TWBHttpAuth;
+  const Body: string; TimeoutMs: Integer; out Status: Integer;
+  out Failure: string): string;
+var
+  Headers, MacText: string;
+  Code: Integer;
+begin
+  Failure := '';
+  Headers := 'Accept: application/json'#13#10;
+  if Auth.Kind <> haNone then
+    Headers := Headers + 'Authorization: ' + AuthHeader(Auth) + #13#10;
+  if Body <> '' then
+    Headers := Headers + 'Content-Type: application/json'#13#10;
+  Result := MacHttpRequest(Method, URL, AgentName, Headers, Body, 15000, TimeoutMs,
+    Status, Code, MacText);
+  if Status = 0 then
+    Failure := FailureText(Code, MacText);
+end;
+
+procedure HttpKeepConnections;
+begin
+  MacHttpKeepSession;
+end;
+
+procedure HttpReleaseConnection;
+begin
+  MacHttpReleaseSession;
 end;
 {$ELSE}
 type
@@ -517,7 +564,7 @@ begin
 end;
 
 initialization
-  {$IFNDEF WINDOWS}
+  {$IF not DEFINED(WINDOWS) and not DEFINED(DARWIN)}
   HandlerMaker := THandlerMaker.Create;
   {$ENDIF}
   {$IF DEFINED(UNIX) and not DEFINED(DARWIN)}
@@ -527,7 +574,7 @@ initialization
   {$ENDIF}
 
 finalization
-  {$IFNDEF WINDOWS}
+  {$IF not DEFINED(WINDOWS) and not DEFINED(DARWIN)}
   HandlerMaker.Free;
   {$ENDIF}
 
