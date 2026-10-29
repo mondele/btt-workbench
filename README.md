@@ -13,6 +13,26 @@ Each tool is a **module**, and every module runs three ways:
 The interface is translatable from the start. All text comes from gettext
 `.po` files, and right-to-left languages mirror the whole layout.
 
+## Installing
+
+From a release (dist/ when building):
+
+- **Linux (Debian, Ubuntu, Mint):** `sudo apt install ./btt-workbench_<version>_amd64.deb`.
+  The programs go in `/opt/btt-workbench`, with `btt-workbench` and `btw`
+  on the PATH, a menu entry, and `.tstudio` files opening on the import
+  check. `sudo apt remove btt-workbench` takes it all away again.
+- **Windows (10 and 11, 64-bit):** run `btt-workbench-<version>-win64-setup.exe`.
+  It installs for all users in `Program Files\BTT Workbench`, with a Start
+  menu entry, a desktop shortcut and the `.tstudio` file type if you
+  choose them, and an uninstaller in Apps & features. `btw.exe` is in the
+  same folder (it is not added to the PATH).
+- Without installing: unpack the `.tar.gz` or `.zip` and run the programs
+  from that folder.
+
+Either way, BTT Workbench needs git 2.38 or newer (on Windows, Git for
+Windows, which the BTT-Writer installer sets up). The Windows installer
+warns when it can't find it.
+
 ## Modules
 
 | Module    | What it does |
@@ -52,7 +72,7 @@ unpacked yet, from the `.tsrc` files bundled with BTT-Writer. Set
 
 In the GUI, the language, book and type filters (and the WACS owner) are pickers: editable drop-downs that complete what you type from what is likely (each part of a comma-separated list on its own; Backspace does not complete), list the matches, and still take anything typed. The projects modules suggest what the projects folder holds; Download from WACS suggests every language in BTT-Writer's language database, every book and the usual types, and after **Find** what WACS has (books, types, owners). A module with a check gets a **Check** button next to **Run**. **Save report…** writes what the module reported to a text file you choose, headed by the module, date and options used (passwords left out). On the command line, redirect the output instead: `btw projects > report.txt`.
 
-### Double-click `.tstudio` files (Linux)
+### Double-click `.tstudio` files (Linux, without the .deb)
 
 ```sh
 tools/install-desktop.sh           # register .tstudio -> btt-workbench (per user, no sudo)
@@ -90,11 +110,15 @@ reports, the Windows file properties). A build from uncommitted changes
 says `-modified`; one made outside `build.sh` says `+dev`.
 
 ```sh
-tools/release.sh            # dist/btt-workbench-<version>-linux-x86_64.tar.gz and -win64.zip
+tools/release.sh            # dist/: .tar.gz, .zip, .deb and -win64-setup.exe
 ```
 
 It refuses uncommitted changes, builds and tests everything, strips the
-programs and packs them with the README, licence and translations.
+programs and packs them with the README, licence and translations, then
+makes the installers (`tools/package-deb.sh`, `tools/package-win.sh`).
+They need `dpkg-deb`, `rsvg-convert` (librsvg2-bin) and `makensis`
+(nsis); `makensis` runs on Linux, so the Windows installer is built
+there too.
 
 The library updates write SQLite through the system's library, loaded when needed: `libsqlite3.so.0` on Linux, `winsqlite3.dll` (part of Windows 10 and 11) on Windows.
 

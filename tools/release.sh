@@ -6,7 +6,11 @@
 #   dist/btt-workbench-<version>-win64.zip             btt-workbench.exe, btw.exe
 #
 # each with README.md, CHANGELOG.md, LICENSE and the translations
-# (locale/*/*.po). The version is <release>+<build> (see build.sh). A
+# (locale/*/*.po), and the installers made from the same files:
+#
+#   dist/btt-workbench_<version>_amd64.deb             tools/package-deb.sh
+#   dist/btt-workbench-<version>-win64-setup.exe       tools/package-win.sh
+# The version is <release>+<build> (see build.sh). A
 # release is built from committed work only; --allow-modified overrides
 # that for a trial.
 #
@@ -58,8 +62,12 @@ tar -C dist -czf "dist/$LINUX.tar.gz" "$LINUX"
 (cd dist && zip -qr "$WINDOWS.zip" "$WINDOWS")
 rm -rf "dist/$LINUX" "dist/$WINDOWS"
 
+DEB=$(tools/package-deb.sh)
+SETUP=$(tools/package-win.sh)
+
 echo
 echo "Release $VERSION ($COMMIT):"
-(cd dist && sha256sum "$LINUX.tar.gz" "$WINDOWS.zip" | tee "$NAME.sha256")
+(cd dist && sha256sum "$LINUX.tar.gz" "$WINDOWS.zip" "$(basename "$DEB")" \
+  "$(basename "$SETUP")" | tee "$NAME.sha256")
 echo
 echo "To mark it in git:  git tag -a v${VERSION%%+*} -m \"BTT Workbench $VERSION\" && git push origin v${VERSION%%+*}"
