@@ -1,0 +1,2550 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: btt-workbench\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Comment: Machine translation for testing; needs review by a Spanish speaker.\n"
+
+#: btw:rsusage
+msgid ""
+"Usage:\n"
+"  btw [--lang <code>] list               List modules\n"
+"  btw [--lang <code>] help <module>      Show a module's options\n"
+"  btw [--lang <code>] <module> [options] Run a module\n"
+"  btw --version"
+msgstr ""
+"Uso:\n"
+"  btw [--lang <code>] list               Listar módulos\n"
+"  btw [--lang <code>] help <module>      Mostrar las opciones de un módulo\n"
+"  btw [--lang <code>] <module> [options] Ejecutar un módulo\n"
+"  btw --version"
+
+#: btw:rsmodules
+msgid "Modules:"
+msgstr "Módulos:"
+
+#: btw:rsoptions
+msgid "Options:"
+msgstr "Opciones:"
+
+#: btw:rsrequired
+msgid "(required)"
+msgstr "(obligatorio)"
+
+#: btw:rsdefault
+msgid "(default: %s)"
+msgstr "(predeterminado: %s)"
+
+#: btw:rsunknownmodule
+msgid "Unknown module: %s. Run \"btw list\" to see modules."
+msgstr "Módulo desconocido: %s. Ejecute \"btw list\" para ver los módulos."
+
+#: btw:rsunknownglobal
+msgid "Unknown option: %s"
+msgstr "Opción desconocida: %s"
+
+#: btw:rschecklisthelp
+msgid "  --%s takes items from \"btw %s --list\"; --all takes every item."
+msgstr "  --%s toma elementos de \"btw %s --list\"; --all toma todos los elementos."
+
+#: btw:rsnoitems
+msgid "Nothing found."
+msgstr "No se encontró nada."
+
+#: btw:rsitemcount
+msgid "%d item(s)."
+msgstr "%d elemento(s)."
+
+#: btw:rswarningprefix
+msgid "warning: "
+msgstr "advertencia: "
+
+#: btw:rserrorprefix
+msgid "error: "
+msgstr "error: "
+
+#: modcrosscheck:rstitle
+msgid "Text copied between books"
+msgstr "Texto copiado entre libros"
+
+#: modcrosscheck:rsdescription
+msgid "Finds chunks holding text from another book of the same language: chunks pasted over, blocks of verses, and the end of another book's chunk stuck onto a chunk. Earlier versions in each project's history show which book had the text first and the commit that brought it in (the version before that commit has the chunk's own text). Real parallels are left out by comparing the English ULB. Also reports book titles another book has and chapter titles with the wrong number. With the options below it also compares with other languages: verses pasted or reworded from another language's text, and chunks taken from it. Changes nothing."
+msgstr "Busca fragmentos que contienen texto de otro libro del mismo idioma: fragmentos sobrescritos, bloques de versículos y el final del fragmento de otro libro pegado a un fragmento. Las versiones anteriores en el historial de cada proyecto muestran qué libro tuvo el texto primero y la confirmación que lo introdujo (la versión anterior a esa confirmación tiene el texto propio del fragmento). Los paralelos reales se excluyen comparando con la ULB en inglés. También informa de los títulos de libro que tiene otro libro y de los títulos de capítulo con el número equivocado. Con las opciones siguientes también compara con otros idiomas: versículos pegados o reformulados a partir del texto de otro idioma, y fragmentos tomados de él. No cambia nada."
+
+#: modcrosscheck:rsoptlanguage
+msgid "Languages"
+msgstr "Idiomas"
+
+#: modcrosscheck:rsoptlanguagehelp
+msgid "Only report on these language codes, comma-separated (a first part such as mxc takes every code that starts with it; the language's projects under other codes are still compared)"
+msgstr "Informar solo sobre estos códigos de idioma, separados por comas (una primera parte como mxc incluye todos los códigos que empiezan con ella; los proyectos del idioma con otros códigos se siguen comparando)"
+
+#: modcrosscheck:rsoptbook
+msgid "Books"
+msgstr "Libros"
+
+#: modcrosscheck:rsoptbookhelp
+msgid "Only report on these book codes, comma-separated (all books of the language are still compared)"
+msgstr "Informar solo sobre estos códigos de libro, separados por comas (todos los libros del idioma se siguen comparando)"
+
+#: modcrosscheck:rsopttype
+msgid "Project types"
+msgstr "Tipos de proyecto"
+
+#: modcrosscheck:rsopttypehelp
+msgid "Only these resources, comma-separated (reg, ulb, ...)"
+msgstr "Solo estos recursos, separados por comas (reg, ulb, ...)"
+
+#: modcrosscheck:rsoptnohistory
+msgid "Current text only"
+msgstr "Solo el texto actual"
+
+#: modcrosscheck:rsoptnohistoryhelp
+msgid "Leave out earlier versions (faster, but which book had the text first is then unknown)"
+msgstr "Omitir las versiones anteriores (más rápido, pero entonces no se sabe qué libro tuvo el texto primero)"
+
+#: modcrosscheck:rsoptotherlanguages
+msgid "Compare with other languages here"
+msgstr "Comparar con otros idiomas de aquí"
+
+#: modcrosscheck:rsoptotherlanguageshelp
+msgid "Also compare with the projects of other languages in the projects folder"
+msgstr "Comparar también con los proyectos de otros idiomas en la carpeta de proyectos"
+
+#: modcrosscheck:rsoptsources
+msgid "Compare with source texts"
+msgstr "Comparar con textos fuente"
+
+#: modcrosscheck:rsoptsourceshelp
+msgid "Also compare with BTT-Writer's source texts of the same books, in every language (untranslated text pasted in)"
+msgstr "Comparar también con los textos fuente de BTT-Writer de los mismos libros, en todos los idiomas (texto sin traducir pegado)"
+
+#: modcrosscheck:rsoptcomparedir
+msgid "Compare with folders"
+msgstr "Comparar con carpetas"
+
+#: modcrosscheck:rsoptcomparedirhelp
+msgid "Also compare with the projects in these folders, for example a neighbouring language's repos downloaded with wacs-download --target-dir"
+msgstr "Comparar también con los proyectos de estas carpetas, por ejemplo los repositorios de un idioma vecino descargados con wacs-download --target-dir"
+
+#: modcrosscheck:rsopttargetdir
+msgid "Projects folder"
+msgstr "Carpeta de proyectos"
+
+#: modcrosscheck:rsopttargetdirhelp
+msgid "Where projects live (default: BTT-Writer's targetTranslations folder)"
+msgstr "Dónde están los proyectos (predeterminado: la carpeta targetTranslations de BTT-Writer)"
+
+#: modcrosscheck:rsnotargetdir
+msgid "Projects folder not found: %s"
+msgstr "No se encontró la carpeta de proyectos: %s"
+
+#: modcrosscheck:rsnocomparedir
+msgid "Folder to compare with not found: %s"
+msgstr "No se encontró la carpeta con la que comparar: %s"
+
+#: modcrosscheck:rscomparedother
+msgid "Also compared with %d text(s) in other languages."
+msgstr "También se comparó con %d texto(s) en otros idiomas."
+
+#: modcrosscheck:rstitleshared
+msgid "%s: the book title \"%s\" is also %s"
+msgstr "%s: el título de libro \"%s\" también es %s"
+
+#: modcrosscheck:rstitleof
+msgid "the title of %s"
+msgstr "el título de %s"
+
+#: modcrosscheck:rsearliertitleof
+msgid "an earlier title of %s"
+msgstr "un título anterior de %s"
+
+#: modcrosscheck:rsand
+msgid " and "
+msgstr " y "
+
+#: modcrosscheck:rschapternumber
+msgid "%s: the chapter title \"%s\" has another chapter's number"
+msgstr "%s: el título de capítulo \"%s\" tiene el número de otro capítulo"
+
+#: modcrosscheck:rsforeignsame
+msgid "%s: verse %d is the same as in %s (%d%% alike)"
+msgstr "%s: el versículo %d es igual al de %s (%d%% de similitud)"
+
+#: modcrosscheck:rsforeignreworded
+msgid "%s: verse %d was reworded to read like %s (%d%% alike, was %d%%)"
+msgstr "%s: el versículo %d fue reformulado para parecerse a %s (%d%% de similitud, antes %d%%)"
+
+#: modcrosscheck:rsforeignchunk
+msgid "%s: %d%% of its text is in %s %s"
+msgstr "%s: el %d%% de su texto está en %s %s"
+
+#: modcrosscheck:rssourcetext
+msgid "the source text %s"
+msgstr "el texto fuente %s"
+
+#: modcrosscheck:rsprojecttext
+msgid "%s (%s), %s"
+msgstr "%s (%s), %s"
+
+#: modcrosscheck:rsnohistoryknown
+msgid "; no history"
+msgstr "; sin historial"
+
+#: modcrosscheck:rsfolder
+msgid "Projects folder: %s"
+msgstr "Carpeta de proyectos: %s"
+
+#: modcrosscheck:rscompared
+msgid "%s: compared %d project(s), %d chunk file(s) and %d earlier version(s)."
+msgstr "%s: se compararon %d proyecto(s), %d archivo(s) de fragmentos y %d versión(es) anterior(es)."
+
+#: modcrosscheck:rsnogit
+msgid "%s: no git history; only its current text is compared."
+msgstr "%s: sin historial de git; solo se compara su texto actual."
+
+#: modcrosscheck:rsseveralcodes
+msgid "This language has projects under %d codes (%s); they are compared as one language."
+msgstr "Este idioma tiene proyectos con %d códigos (%s); se comparan como un solo idioma."
+
+#: modcrosscheck:rsheader
+msgid "%s: %s (%s), %s - %d file(s) to check"
+msgstr "%s: %s (%s), %s - %d archivo(s) por revisar"
+
+#: modcrosscheck:rsheadernotes
+msgid "%s: %s (%s), %s"
+msgstr "%s: %s (%s), %s"
+
+#: modcrosscheck:rswhole
+msgid "%s: replaced by text from %s"
+msgstr "%s: reemplazado por texto de %s"
+
+#: modcrosscheck:rspart
+msgid "%s: verses %s hold text from %s"
+msgstr "%s: los versículos %s contienen texto de %s"
+
+#: modcrosscheck:rspartnoverse
+msgid "%s: part holds text from %s"
+msgstr "%s: una parte contiene texto de %s"
+
+#: modcrosscheck:rstail
+msgid "%s: ends with text from %s"
+msgstr "%s: termina con texto de %s"
+
+#: modcrosscheck:rsglued
+msgid "%s: ends with text from %s, run onto the last word: \"%s\""
+msgstr "%s: termina con texto de %s, pegado a la última palabra: \"%s\""
+
+#: modcrosscheck:rsearlier
+msgid "%s (an earlier version of it)"
+msgstr "%s (una versión anterior)"
+
+#: modcrosscheck:rsunordered
+msgid "; both have it and which came first is unknown"
+msgstr "; ambos lo tienen y no se sabe cuál fue primero"
+
+#: modcrosscheck:rsuncommitted
+msgid "; not yet committed"
+msgstr "; aún sin confirmar"
+
+#: modcrosscheck:rssince
+msgid "; since %s (%s, %s)"
+msgstr "; desde %s (%s, %s)"
+
+#: modcrosscheck:rsalsochanged
+msgid "; that commit also changed %d other chunk file(s)"
+msgstr "; esa confirmación también cambió otros %d archivo(s) de fragmentos"
+
+#: modcrosscheck:rscopiedout
+msgid "The text of %s appears later in: %s"
+msgstr "El texto de %s aparece más adelante en: %s"
+
+#: modcrosscheck:rssummary
+msgid "%d project(s) checked, %d with files to check."
+msgstr "%d proyecto(s) revisado(s), %d con archivos por revisar."
+
+#: modcrossrepair:rstitle
+msgid "Repair copied text"
+msgstr "Reparar texto copiado"
+
+#: modcrossrepair:rsdescription
+msgid "Puts back chunks that hold text copied from another book (as Text copied between books finds them): a chunk that was there before gets its version from before the damaging commit back, a chunk the damage added is removed. Everything else those commits changed stays. Chunks edited since are left alone. Titles found wrong get an earlier title of their own back (a chapter title its right number). Find, check the chunks to repair, then Check to see what would happen. Upload afterwards with Upload to WACS."
+msgstr "Restituye los fragmentos que contienen texto copiado de otro libro (tal como los encuentra Texto copiado entre libros): un fragmento que ya existía recupera su versión anterior a la confirmación que lo dañó, y un fragmento que el daño agregó se elimina. Todo lo demás que esas confirmaciones cambiaron se conserva. Los fragmentos editados desde entonces no se tocan. Los títulos que resulten incorrectos recuperan un título anterior propio (un título de capítulo recupera su número correcto). Busque, marque los fragmentos por reparar y luego use Revisar para ver qué ocurriría. Después suba los cambios con Subir a WACS."
+
+#: modcrossrepair:rsoptlanguagehelp
+msgid "Only these language codes, comma-separated (a first part such as mxc takes every code that starts with it)"
+msgstr "Solo estos códigos de idioma, separados por comas (una primera parte como mxc incluye todos los códigos que empiezan con ella)"
+
+#: modcrossrepair:rsoptbookhelp
+msgid "Only these book codes, comma-separated"
+msgstr "Solo estos códigos de libro, separados por comas"
+
+#: modcrossrepair:rsoptchunk
+msgid "Chunks"
+msgstr "Fragmentos"
+
+#: modcrossrepair:rsoptchunkhelp
+msgid "The damaged chunks to repair (project/chapter/chunk)"
+msgstr "Los fragmentos dañados por reparar (proyecto/capítulo/fragmento)"
+
+#: modcrossrepair:rsoptincludemixed
+msgid "Also mixed chunks"
+msgstr "También fragmentos mixtos"
+
+#: modcrossrepair:rsoptincludemixedhelp
+msgid "Also repair chunks whose damaging commit changed their own words too (those changes are undone with it)"
+msgstr "Reparar también los fragmentos cuya confirmación dañina cambió además sus propias palabras (esos cambios se deshacen junto con ella)"
+
+#: modcrossrepair:rsoptdryrun
+msgid "Check only"
+msgstr "Solo revisar"
+
+#: modcrossrepair:rsoptdryrunhelp
+msgid "Report what repairing would do without changing anything"
+msgstr "Informar de lo que haría la reparación sin cambiar nada"
+
+#: modcrossrepair:rscolfrom
+msgid "Copied from"
+msgstr "Copiado de"
+
+#: modcrossrepair:rscolby
+msgid "Brought in by"
+msgstr "Introducido por"
+
+#: modcrossrepair:rscolrepair
+msgid "Repair"
+msgstr "Reparar"
+
+#: modcrossrepair:rsactrestore
+msgid "restore"
+msgstr "restaurar"
+
+#: modcrossrepair:rsactremove
+msgid "remove"
+msgstr "eliminar"
+
+#: modcrossrepair:rsactmixed
+msgid "%s (mixed)"
+msgstr "%s (mixto)"
+
+#: modcrossrepair:rsholdedited
+msgid "leave: edited since"
+msgstr "dejar: editado desde entonces"
+
+#: modcrossrepair:rsholduncommitted
+msgid "leave: uncommitted changes"
+msgstr "dejar: cambios sin confirmar"
+
+#: modcrossrepair:rsholdnohistory
+msgid "leave: not in history"
+msgstr "dejar: no está en el historial"
+
+#: modcrossrepair:rsholdbyhand
+msgid "leave: fix by hand"
+msgstr "dejar: corregir a mano"
+
+#: modcrossrepair:rsacttitle
+msgid "title \"%s\""
+msgstr "título \"%s\""
+
+#: modcrossrepair:rswrongnumber
+msgid "wrong chapter number"
+msgstr "número de capítulo incorrecto"
+
+#: modcrossrepair:rsbyhandhold
+msgid "%s: left alone: \"%s\" has no earlier title of its own to go back to. If it is wrong, correct it in BTT-Writer."
+msgstr "%s: se dejó sin cambios: \"%s\" no tiene un título anterior propio al que volver. Si es incorrecto, corríjalo en BTT-Writer."
+
+#: modcrossrepair:rstitleset
+msgid "%s: title set to \"%s\" (was \"%s\")."
+msgstr "%s: título establecido en \"%s\" (antes \"%s\")."
+
+#: modcrossrepair:rswouldtitle
+msgid "%s: title would be set to \"%s\" (now \"%s\")."
+msgstr "%s: el título se establecería en \"%s\" (ahora \"%s\")."
+
+#: modcrossrepair:rsmsgtitle
+msgid "%s: title \"%s\" (was \"%s\")"
+msgstr "%s: título \"%s\" (antes \"%s\")"
+
+#: modcrossrepair:rsnogit
+msgid "git was not found. BTT-Writer projects are git repositories; install git first."
+msgstr "No se encontró git. Los proyectos de BTT-Writer son repositorios git; instale git primero."
+
+#: modcrossrepair:rsnothingchecked
+msgid "No chunks checked."
+msgstr "No hay fragmentos marcados."
+
+#: modcrossrepair:rsnotfound
+msgid "%s: not damaged now (already repaired?). Skipped."
+msgstr "%s: ya no está dañado (¿ya se reparó?). Omitido."
+
+#: modcrossrepair:rsproject
+msgid "Project %s:"
+msgstr "Proyecto %s:"
+
+#: modcrossrepair:rsrestore
+msgid "%s: restored to its version from before %s (%s, %s); it held text from %s."
+msgstr "%s: restaurado a su versión anterior a %s (%s, %s); contenía texto de %s."
+
+#: modcrossrepair:rswouldrestore
+msgid "%s: would be restored to its version from before %s (%s, %s); it holds text from %s."
+msgstr "%s: se restauraría a su versión anterior a %s (%s, %s); contiene texto de %s."
+
+#: modcrossrepair:rsremove
+msgid "%s: removed; %s (%s, %s) added it with text from %s."
+msgstr "%s: eliminado; %s (%s, %s) lo agregó con texto de %s."
+
+#: modcrossrepair:rswouldremove
+msgid "%s: would be removed; %s (%s, %s) added it with text from %s."
+msgstr "%s: se eliminaría; %s (%s, %s) lo agregó con texto de %s."
+
+#: modcrossrepair:rsmixednote
+msgid "%s: that commit also changed this chunk's own words; repairing undoes them too."
+msgstr "%s: esa confirmación también cambió las palabras propias de este fragmento; al repararlo también se deshacen."
+
+#: modcrossrepair:rsmixedskipped
+msgid "%s: left alone: that commit also changed this chunk's own words, which repairing would undo. Check \"Also mixed chunks\" (--include-mixed) to repair it anyway."
+msgstr "%s: se dejó sin cambios: esa confirmación también cambió las palabras propias de este fragmento, que la reparación desharía. Marque \"También fragmentos mixtos\" (--include-mixed) para repararlo de todos modos."
+
+#: modcrossrepair:rseditedsince
+msgid "%s: left alone: changed since by %s (%s, %s). Repair it by hand."
+msgstr "%s: se dejó sin cambios: modificado desde entonces por %s (%s, %s). Repárelo a mano."
+
+#: modcrossrepair:rsuncommittedhold
+msgid "%s: left alone: it has changes not yet committed."
+msgstr "%s: se dejó sin cambios: tiene cambios aún sin confirmar."
+
+#: modcrossrepair:rsnohistoryhold
+msgid "%s: left alone: the copied text is not in its history."
+msgstr "%s: se dejó sin cambios: el texto copiado no está en su historial."
+
+#: modcrossrepair:rscommitfirst
+msgid "Uncommitted work was committed first."
+msgstr "Primero se confirmó el trabajo sin confirmar."
+
+#: modcrossrepair:rswouldcommitfirst
+msgid "Uncommitted work would be committed first."
+msgstr "Primero se confirmaría el trabajo sin confirmar."
+
+#: modcrossrepair:rscommitted
+msgid "Committed: %d chunk(s) repaired, as %s."
+msgstr "Confirmado: %d fragmento(s) reparado(s), como %s."
+
+#: modcrossrepair:rsfailed
+msgid "Repair failed (%s); the project may be partly changed: check it with git."
+msgstr "La reparación falló (%s); el proyecto puede haber quedado parcialmente modificado: revíselo con git."
+
+#: modcrossrepair:rsstillfound
+msgid "%s: still holds text from other books after the repair."
+msgstr "%s: aún contiene texto de otros libros después de la reparación."
+
+#: modcrossrepair:rsallclean
+msgid "Checked again: no text from other books is left in the repaired chunks."
+msgstr "Revisado de nuevo: no queda texto de otros libros en los fragmentos reparados."
+
+#: modcrossrepair:rssummary
+msgid "%d chunk(s) repaired, %d left alone."
+msgstr "%d fragmento(s) reparado(s), %d sin cambios."
+
+#: modcrossrepair:rswouldsummary
+msgid "%d chunk(s) would be repaired, %d left alone."
+msgstr "%d fragmento(s) se repararían, %d quedarían sin cambios."
+
+#: modcrossrepair:rsafter
+msgid "Next: upload the repaired projects (Upload to WACS). The devices that sent the damage must delete these projects and import them again, or their next upload brings the damage back."
+msgstr "Siguiente: suba los proyectos reparados (Subir a WACS). Los dispositivos que enviaron el daño deben eliminar estos proyectos e importarlos de nuevo, o su próxima subida traerá el daño de vuelta."
+
+#: modcrossrepair:rscommitmessage
+msgid "Repair text copied from other books (BTT Workbench)"
+msgstr "Reparar texto copiado de otros libros (BTT Workbench)"
+
+#: modcrossrepair:rsmsgrestore
+msgid "%s: restored from before %s"
+msgstr "%s: restaurado desde antes de %s"
+
+#: modcrossrepair:rsmsgremove
+msgid "%s: removed (added by %s)"
+msgstr "%s: eliminado (agregado por %s)"
+
+#: modlanguagechange:rstitle
+msgid "Cambiar el idioma del proyecto"
+msgstr "Cambiar el idioma del proyecto"
+
+#: modlanguagechange:rsdescription
+msgid "Gives the checked projects another language code, name or text direction, so that a language's projects agree: BTT-Writer copies these into each project when it is made and never updates them. The manifest is changed and committed, and the folder renamed to match a new code. WACS is not changed: a project with a new code uploads to a repo of its new name, and devices with the old project must import the new one. Find, check the projects, set what they should become, then Check to see what would happen."
+msgstr "Asigna a los proyectos marcados otro código, nombre o dirección de texto de idioma, para que los proyectos de un idioma coincidan: BTT-Writer copia estos datos en cada proyecto al crearlo y nunca los actualiza. Se modifica y confirma el manifiesto, y la carpeta se renombra para que coincida con un código nuevo. WACS no se modifica: un proyecto con un código nuevo se sube a un repositorio con su nombre nuevo, y los dispositivos con el proyecto anterior deben importar el nuevo. Busque, marque los proyectos, defina en qué deben convertirse y luego use Revisar para ver qué ocurriría."
+
+#: modlanguagechange:rsoptlanguagehelp
+msgid "Find projects of these language codes, comma-separated (a first part such as mxc takes every code that starts with it)"
+msgstr "Buscar proyectos de estos códigos de idioma, separados por comas (una primera parte como mxc incluye todos los códigos que empiezan con ella)"
+
+#: modlanguagechange:rsopttypehelp
+msgid "Only these types or resources, comma-separated (text, reg, tn, ...)"
+msgstr "Solo estos tipos o recursos, separados por comas (text, reg, tn, ...)"
+
+#: modlanguagechange:rsoptproject
+msgid "Projects"
+msgstr "Proyectos"
+
+#: modlanguagechange:rsoptprojecthelp
+msgid "The projects to change"
+msgstr "Los proyectos por cambiar"
+
+#: modlanguagechange:rsoptcode
+msgid "New language code"
+msgstr "Nuevo código de idioma"
+
+#: modlanguagechange:rsoptcodehelp
+msgid "The code the projects should have (empty: keep each one's code)"
+msgstr "El código que deben tener los proyectos (vacío: conservar el código de cada uno)"
+
+#: modlanguagechange:rsoptname
+msgid "New language name"
+msgstr "Nuevo nombre de idioma"
+
+#: modlanguagechange:rsoptnamehelp
+msgid "The name (empty: the language database's name for the code, or the project's own name if the database has none)"
+msgstr "El nombre (vacío: el nombre que la base de datos de idiomas da al código, o el nombre propio del proyecto si la base de datos no tiene ninguno)"
+
+#: modlanguagechange:rsoptdirection
+msgid "Text direction"
+msgstr "Dirección del texto"
+
+#: modlanguagechange:rsoptdirectionhelp
+msgid "database: the language database's direction for the code (the project's own if the database has none)"
+msgstr "database: la dirección que la base de datos de idiomas da al código (la propia del proyecto si la base de datos no tiene ninguna)"
+
+#: modlanguagechange:rsoptlanguagedb
+msgid "Language database"
+msgstr "Base de datos de idiomas"
+
+#: modlanguagechange:rsoptlanguagedbhelp
+msgid "BTT-Writer's index.sqlite to take names and directions from (default: the one in BTT-Writer's data folder)"
+msgstr "El index.sqlite de BTT-Writer del que tomar nombres y direcciones (predeterminado: el de la carpeta de datos de BTT-Writer)"
+
+#: modlanguagechange:rsoptdryrunhelp
+msgid "Report what would change without changing anything"
+msgstr "Informar de lo que cambiaría sin cambiar nada"
+
+#: modlanguagechange:rscollanguage
+msgid "Language now"
+msgstr "Idioma actual"
+
+#: modlanguagechange:rscolchange
+msgid "Change"
+msgstr "Cambio"
+
+#: modlanguagechange:rsnochange
+msgid "none"
+msgstr "ninguno"
+
+#: modlanguagechange:rschangecode
+msgid "code %s"
+msgstr "código %s"
+
+#: modlanguagechange:rschangename
+msgid "name \"%s\""
+msgstr "nombre \"%s\""
+
+#: modlanguagechange:rschangedirection
+msgid "direction %s"
+msgstr "dirección %s"
+
+#: modlanguagechange:rschangefolder
+msgid "folder %s"
+msgstr "carpeta %s"
+
+#: modlanguagechange:rsfoldertaken
+msgid "blocked: %s exists"
+msgstr "bloqueado: %s ya existe"
+
+#: modlanguagechange:rslanguagedb
+msgid "Language database: %s"
+msgstr "Base de datos de idiomas: %s"
+
+#: modlanguagechange:rsnolanguagedb
+msgid "No language database found: names and directions stay as the projects have them unless given."
+msgstr "No se encontró ninguna base de datos de idiomas: los nombres y direcciones se mantienen como los tienen los proyectos, salvo que se indiquen."
+
+#: modlanguagechange:rsbadlanguagedb
+msgid "Cannot read the language database %s (%s)."
+msgstr "No se puede leer la base de datos de idiomas %s (%s)."
+
+#: modlanguagechange:rsbadcode
+msgid "A language code cannot contain \"%s\": %s"
+msgstr "Un código de idioma no puede contener \"%s\": %s"
+
+#: modlanguagechange:rsnotbcp47
+msgid "%s is not a well-formed BCP 47 language tag, so tools that need one (Scripture Burrito) will not accept it."
+msgstr "%s no es una etiqueta de idioma BCP 47 bien formada, por lo que las herramientas que la requieren (Scripture Burrito) no la aceptarán."
+
+#: modlanguagechange:rsunknowncode
+msgid "%s is not in the language database."
+msgstr "%s no está en la base de datos de idiomas."
+
+#: modlanguagechange:rsnothingchecked
+msgid "No projects checked."
+msgstr "No hay proyectos marcados."
+
+#: modlanguagechange:rsnotfound
+msgid "%s: not found (or not shown by the filters). Skipped."
+msgstr "%s: no se encontró (o los filtros no lo muestran). Omitido."
+
+#: modlanguagechange:rssame
+msgid "%s: already %s, \"%s\", %s."
+msgstr "%s: ya es %s, \"%s\", %s."
+
+#: modlanguagechange:rstaken
+msgid "%s: cannot rename it to %s, which already exists. Left alone."
+msgstr "%s: no se puede renombrar a %s, que ya existe. Se dejó sin cambios."
+
+#: modlanguagechange:rswould
+msgid "%s: would become %s, \"%s\", %s%s."
+msgstr "%s: pasaría a ser %s, \"%s\", %s%s."
+
+#: modlanguagechange:rsdone
+msgid "%s: now %s, \"%s\", %s%s."
+msgstr "%s: ahora es %s, \"%s\", %s%s."
+
+#: modlanguagechange:rsrenamedto
+msgid "; folder %s"
+msgstr "; carpeta %s"
+
+#: modlanguagechange:rsloosework
+msgid "Uncommitted work, before a language change"
+msgstr "Trabajo sin confirmar, antes de un cambio de idioma"
+
+#: modlanguagechange:rscommit
+msgid "Language: %s \"%s\" %s -> %s \"%s\" %s (BTT Workbench)"
+msgstr "Idioma: %s \"%s\" %s -> %s \"%s\" %s (BTT Workbench)"
+
+#: modlanguagechange:rsfailed
+msgid "%s: could not change it (%s)."
+msgstr "%s: no se pudo cambiar (%s)."
+
+#: modlanguagechange:rsrenamefailed
+msgid "%s: changed and committed, but the folder could not be renamed to %s; rename it by hand."
+msgstr "%s: se cambió y confirmó, pero no se pudo renombrar la carpeta a %s; renómbrela a mano."
+
+#: modlanguagechange:rssummary
+msgid "%d project(s) changed, %d left alone."
+msgstr "%d proyecto(s) cambiado(s), %d sin cambios."
+
+#: modlanguagechange:rswouldsummary
+msgid "%d project(s) would be changed, %d left alone."
+msgstr "%d proyecto(s) se cambiarían, %d quedarían sin cambios."
+
+#: modlanguagechange:rsafter
+msgid "Projects with a new code upload to WACS under their new names; the repos under the old names stay. Devices with the old projects should delete them and import the changed ones."
+msgstr "Los proyectos con un código nuevo se suben a WACS con sus nombres nuevos; los repositorios con los nombres anteriores permanecen. Los dispositivos con los proyectos anteriores deben eliminarlos e importar los modificados."
+
+#: modlibrarylanguages:rstitle
+msgid "Update target languages"
+msgstr "Actualizar idiomas de destino"
+
+#: modlibrarylanguages:rsdescription
+msgid "Does what BTT-Writer's Update Languages does to its index.sqlite (the target languages, temporary languages and their approved codes, and the new-language questions), downloading the catalogs at once, and reports what changed. BTT-Writer must be closed; its old index.sqlite is kept beside the new one. Check first to see what would change, or write elsewhere with Write to."
+msgstr "Hace lo que Update Languages de BTT-Writer hace en su index.sqlite (los idiomas de destino, los idiomas temporales y sus códigos aprobados, y las preguntas de idioma nuevo), descargando los catálogos de inmediato, e informa de lo que cambió. BTT-Writer debe estar cerrado; su index.sqlite anterior se conserva junto al nuevo. Revise primero para ver qué cambiaría, o escriba en otra ubicación con Escribir en."
+
+#: modlibrarylanguages:rsoptlibrarydbhelp
+msgid "The index.sqlite to update (default: BTT-Writer's)"
+msgstr "El index.sqlite por actualizar (predeterminado: el de BTT-Writer)"
+
+#: modlibrarylanguages:rsoptoutput
+msgid "Write to"
+msgstr "Escribir en"
+
+#: modlibrarylanguages:rsoptoutputhelp
+msgid "Write the updated index.sqlite here instead (BTT-Writer's is then not changed)"
+msgstr "Escribir aquí el index.sqlite actualizado en lugar de modificar el de BTT-Writer"
+
+#: modlibrarylanguages:rsoptdryrunhelp
+msgid "Download and report what would change, writing nothing"
+msgstr "Descargar e informar de lo que cambiaría, sin escribir nada"
+
+#: modlibrarylanguages:rsoptlanguagesurl
+msgid "Languages catalog"
+msgstr "Catálogo de idiomas"
+
+#: modlibrarylanguages:rsoptlanguagesurlhelp
+msgid "Where the target languages come from (default: BTT-Writer's, langnames.json)"
+msgstr "De dónde provienen los idiomas de destino (predeterminado: el de BTT-Writer, langnames.json)"
+
+#: modlibrarylanguages:rsoptconnections
+msgid "Downloads at once"
+msgstr "Descargas simultáneas"
+
+#: modlibrarylanguages:rsoptconnectionshelp
+msgid "How many catalogs to download at the same time (default 8)"
+msgstr "Cuántos catálogos descargar al mismo tiempo (predeterminado 8)"
+
+#: modlibrarysources:rstitle
+msgid "Update source list"
+msgstr "Actualizar lista de fuentes"
+
+#: modlibrarysources:rsdescription
+msgid "Does what BTT-Writer's Update Sources does to its index.sqlite (the list of source texts, their languages and projects, and translationAcademy), downloading many catalogs at once: about half a minute instead of five. The source texts themselves are not downloaded. Reports what changed. BTT-Writer must be closed; its old index.sqlite is kept beside the new one. Check first to see what would change, or write elsewhere with Write to."
+msgstr "Hace lo que hace Update Sources de BTT-Writer con su index.sqlite (la lista de textos fuente, sus idiomas y proyectos, y translationAcademy), descargando muchos catálogos a la vez: unos treinta segundos en lugar de cinco minutos. Los textos fuente en sí no se descargan. Informa de lo que cambió. BTT-Writer debe estar cerrado; su index.sqlite anterior se conserva junto al nuevo. Use primero Revisar para ver qué cambiaría, o escriba en otra ubicación con Escribir en."
+
+#: modlibrarysources:rsoptserver
+msgid "Source server"
+msgstr "Servidor de fuentes"
+
+#: modlibrarysources:rsoptserverhelp
+msgid "Where the source catalog comes from (default: BTT-Writer's, https://api.bibletranslationtools.org)"
+msgstr "De dónde proviene el catálogo de fuentes (predeterminado: el de BTT-Writer, https://api.bibletranslationtools.org)"
+
+#: modprojects:rstitle
+msgid "Project list and problems"
+msgstr "Lista de proyectos y problemas"
+
+#: modprojects:rsdescription
+msgid "Lists the projects in BTT-Writer's projects folder and any problems with them: damaged manifests or git history, unresolved conflicts, and chunks or verse markers that do not match en_ulb or the project's source chunking. Two repairs: projects on git branch main are moved to master, the only branch BTT-Writer uses, and a .git folder that has lost HEAD, config or its index while its history is intact (as a copy can leave it) is rebuilt. Nothing else is changed."
+msgstr "Enumera los proyectos de la carpeta de proyectos de BTT-Writer y los problemas que tengan: manifiestos o historial de git dañados, conflictos sin resolver, y fragmentos o marcadores de versículo que no coinciden con en_ulb ni con la fragmentación de la fuente del proyecto. Dos reparaciones: los proyectos en la rama main de git se pasan a master, la única rama que usa BTT-Writer, y se reconstruye una carpeta .git que haya perdido HEAD, config o su índice mientras su historial sigue intacto (como puede dejarla una copia). No se cambia nada más."
+
+#: modprojects:rsoptdryrun
+msgid "Dry run"
+msgstr "Simulación"
+
+#: modprojects:rsoptdryrunhelp
+msgid "Report what the repairs would do without doing them"
+msgstr "Informar de lo que harían las reparaciones sin hacerlas"
+
+#: modprojects:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated (e.g. sah,udm; a first part such as mxc takes every code that starts with it)"
+msgstr "Solo estos códigos de idioma de destino, separados por comas (p. ej., sah,udm; una primera parte como mxc incluye todos los códigos que empiezan con ella)"
+
+#: modprojects:rsoptbookhelp
+msgid "Only these book codes, comma-separated (e.g. tit,jon)"
+msgstr "Solo estos códigos de libro, separados por comas (p. ej., tit,jon)"
+
+#: modprojects:rsopttypehelp
+msgid "Only these types or resources, comma-separated (text, tn, tq, tw, reg, ulb, or text_reg)"
+msgstr "Solo estos tipos o recursos, separados por comas (text, tn, tq, tw, reg, ulb o text_reg)"
+
+#: modprojects:rsoptproblemsonly
+msgid "Problems only"
+msgstr "Solo problemas"
+
+#: modprojects:rsoptproblemsonlyhelp
+msgid "List only projects that have problems"
+msgstr "Mostrar solo los proyectos que tienen problemas"
+
+#: modprojects:rsoptdeepgit
+msgid "Check git history in depth"
+msgstr "Revisar a fondo el historial de git"
+
+#: modprojects:rsoptdeepgithelp
+msgid "Also run git fsck on each project to find corrupt or missing history (slower)"
+msgstr "Ejecutar también git fsck en cada proyecto para encontrar historial dañado o faltante (más lento)"
+
+#: modprojects:rsoptlanguagedbhelp
+msgid "BTT-Writer's index.sqlite to compare project languages with (default: the one in BTT-Writer's library folder, else the one bundled with BTT-Writer)"
+msgstr "El index.sqlite de BTT-Writer con el que comparar los idiomas de los proyectos (predeterminado: el de la carpeta de biblioteca de BTT-Writer; si no, el incluido con BTT-Writer)"
+
+#: modprojects:rsfilter
+msgid "Showing: %s"
+msgstr "Mostrando: %s"
+
+#: modprojects:rsfilterlanguage
+msgid "language %s"
+msgstr "idioma %s"
+
+#: modprojects:rsfilterbook
+msgid "book %s"
+msgstr "libro %s"
+
+#: modprojects:rsfiltertype
+msgid "type %s"
+msgstr "tipo %s"
+
+#: modprojects:rsnobundled
+msgid "BTT-Writer's bundled source texts were not found, so chunking is only checked against sources BTT-Writer has downloaded. If BTT-Writer is installed, say where in Settings (btw settings --btt-writer <folder>)."
+msgstr "No se encontraron los textos fuente incluidos con BTT-Writer, por lo que la fragmentación solo se revisa con las fuentes que BTT-Writer ha descargado. Si BTT-Writer está instalado, indique dónde en Configuración (btw settings --btt-writer <folder>)."
+
+#: modprojects:rsbundled
+msgid "Bundled source texts: %s"
+msgstr "Textos fuente incluidos: %s"
+
+#: modprojects:rslanguagedb
+msgid "Language database: %s (%d languages)"
+msgstr "Base de datos de idiomas: %s (%d idiomas)"
+
+#: modprojects:rsnolanguagedb
+msgid "BTT-Writer's language database (index.sqlite) was not found, so project languages were not checked."
+msgstr "No se encontró la base de datos de idiomas de BTT-Writer (index.sqlite), por lo que no se revisaron los idiomas de los proyectos."
+
+#: modprojects:rsbadlanguagedb
+msgid "Cannot read the language database %s (%s), so project languages were not checked."
+msgstr "No se puede leer la base de datos de idiomas %s (%s), por lo que no se revisaron los idiomas de los proyectos."
+
+#: modprojects:rslangunknown
+msgid "Language %s is not in the language database."
+msgstr "El idioma %s no está en la base de datos de idiomas."
+
+#: modprojects:rslangapproved
+msgid "Temporary language %s has been approved as %s; the project still uses the temporary code."
+msgstr "El idioma temporal %s fue aprobado como %s; el proyecto aún usa el código temporal."
+
+#: modprojects:rslangname
+msgid "Language name is out of date: the project says \"%s\", the language database says \"%s\". Cambiar el idioma del proyecto sets it."
+msgstr "El nombre del idioma está desactualizado: el proyecto dice \"%s\", la base de datos de idiomas dice \"%s\". Cambiar el idioma del proyecto lo corrige."
+
+#: modprojects:rslangdirection
+msgid "Text direction is out of date: the project says %s, the language database says %s. Cambiar el idioma del proyecto sets it."
+msgstr "La dirección del texto está desactualizada: el proyecto dice %s, la base de datos de idiomas dice %s. Cambiar el idioma del proyecto lo corrige."
+
+#: modprojects:rslangnotbcp47
+msgid "Language code %s is not a well-formed BCP 47 tag, which tools such as Scripture Burrito need. Cambiar el idioma del proyecto can give the project another code."
+msgstr "El código de idioma %s no es una etiqueta BCP 47 bien formada, que herramientas como Scripture Burrito necesitan. Cambiar el idioma del proyecto puede asignar otro código al proyecto."
+
+#: modprojects:rsmixednames
+msgid "The projects of %s use %d language names: %s. Cambiar el idioma del proyecto can make them one."
+msgstr "Los proyectos de %s usan %d nombres de idioma: %s. Cambiar el idioma del proyecto puede unificarlos."
+
+#: modprojects:rsmixedcodes
+msgid "Language %s has projects under %d codes: %s. Cambiar el idioma del proyecto can give them one code."
+msgstr "El idioma %s tiene proyectos con %d códigos: %s. Cambiar el idioma del proyecto puede asignarles un solo código."
+
+#: modprojects:rsnodirection
+msgid "(none)"
+msgstr "(ninguna)"
+
+#: modprojects:rssummary
+msgid "%d project(s) listed, %d with problems."
+msgstr "%d proyecto(s) listado(s), %d con problemas."
+
+#: modprojects:rssummaryhidden
+msgid "%d project(s) without problems not shown."
+msgstr "%d proyecto(s) sin problemas no se muestran."
+
+#: modprojects:rsheader
+msgid "%s: %s (%s), %s (%s), %s - %s"
+msgstr "%s: %s (%s), %s (%s), %s - %s"
+
+#: modprojects:rsprogress
+msgid "%d of %d chunks finished"
+msgstr "%d de %d fragmentos terminados"
+
+#: modprojects:rsprogressfiles
+msgid "%d chunk files, %d finished"
+msgstr "%d archivos de fragmentos, %d terminados"
+
+#: modprojects:rsstrayfile
+msgid "%s: a file, not a project folder."
+msgstr "%s: es un archivo, no una carpeta de proyecto."
+
+#: modprojects:rsnomanifest
+msgid "%s: no manifest.json, so this is not a BTT-Writer project (or it is damaged)."
+msgstr "%s: no hay manifest.json, por lo que no es un proyecto de BTT-Writer (o está dañado)."
+
+#: modprojects:rsmanifestconflict
+msgid "manifest.json has unresolved merge conflict markers, so BTT-Writer cannot open the project."
+msgstr "manifest.json tiene marcadores de conflicto de fusión sin resolver, por lo que BTT-Writer no puede abrir el proyecto."
+
+#: modprojects:rsmanifestinvalid
+msgid "manifest.json cannot be read (%s)."
+msgstr "No se puede leer manifest.json (%s)."
+
+#: modprojects:rsmanifestids
+msgid "manifest.json is missing the language, book or type."
+msgstr "A manifest.json le falta el idioma, el libro o el tipo."
+
+#: modprojects:rsmanifesttypes
+msgid "manifest.json has fields that are missing or of the wrong type: %s"
+msgstr "manifest.json tiene campos que faltan o son de un tipo incorrecto: %s"
+
+#: modprojects:rsmatchedbyfolder
+msgid "Listed by its folder name, as the manifest cannot be read."
+msgstr "Listado por el nombre de su carpeta, ya que no se puede leer el manifiesto."
+
+#: modprojects:rsoldformat
+msgid "Older project format (version %s); BTT-Writer upgrades it when the project is opened."
+msgstr "Formato de proyecto anterior (versión %s); BTT-Writer lo actualiza al abrir el proyecto."
+
+#: modprojects:rsnewformat
+msgid "Project format version %s is newer than this tool knows; checks may be incomplete."
+msgstr "La versión %s del formato del proyecto es más reciente de lo que esta herramienta conoce; es posible que las revisiones estén incompletas."
+
+#: modprojects:rsfoldername
+msgid "The folder should be named %s. BTT-Writer matches projects by folder name, so imports of this project will not merge with it."
+msgstr "La carpeta debería llamarse %s. BTT-Writer asocia los proyectos por el nombre de la carpeta, por lo que las importaciones de este proyecto no se fusionarán con él."
+
+#: modprojects:rsnogit
+msgid "No git history. BTT-Writer cannot save versions of this project or merge it."
+msgstr "Sin historial de git. BTT-Writer no puede guardar versiones de este proyecto ni fusionarlo."
+
+#: modprojects:rsbadgit
+msgid "The git history is damaged or empty."
+msgstr "El historial de git está dañado o vacío."
+
+#: modprojects:rsmidmerge
+msgid "An unfinished merge is in progress."
+msgstr "Hay una fusión sin terminar en curso."
+
+#: modprojects:rsdirty
+msgid "Has changes that are not committed yet."
+msgstr "Tiene cambios que aún no se han confirmado."
+
+#: modprojects:rsfsck
+msgid "git fsck found problems in the history: %s"
+msgstr "git fsck encontró problemas en el historial: %s"
+
+#: modprojects:rssummaryrenamed
+msgid "%d project(s) moved from git branch main to master."
+msgstr "%d proyecto(s) pasaron de la rama main de git a master."
+
+#: modprojects:rssummaryrebuilt
+msgid "%d project(s) had their .git folder rebuilt."
+msgstr "A %d proyecto(s) se les reconstruyó la carpeta .git."
+
+#: modprojects:rssummarywouldrebuild
+msgid "%d project(s) would have their .git folder rebuilt (dry run)."
+msgstr "A %d proyecto(s) se les reconstruiría la carpeta .git (simulación)."
+
+#: modprojects:rsoptremoveextra
+msgid "Remove extra chunks"
+msgstr "Quitar fragmentos sobrantes"
+
+#: modprojects:rsoptremoveextrahelp
+msgid "On Run, delete chunk files that no compared source has (the listed sources and en_ulb), when every verse in them is also in another chunk"
+msgstr "Al ejecutar, eliminar los archivos de fragmentos que ninguna fuente comparada tiene (las fuentes listadas y en_ulb), cuando todos los versículos que contienen también están en otro fragmento"
+
+#: modprojects:rsextrachunks
+msgid "Chunks no compared source has: %s."
+msgstr "Fragmentos que ninguna fuente comparada tiene: %s."
+
+#: modprojects:rsextraline
+msgid "  %s: added by %s; \"%s\""
+msgstr "  %s: agregado por %s; \"%s\""
+
+#: modprojects:rsextranohistory
+msgid "not in git history"
+msgstr "no está en el historial de git"
+
+#: modprojects:rsextrahint
+msgid " Remove extra chunks (--remove-extra-chunks) deletes them on Run."
+msgstr " Quitar fragmentos sobrantes (--remove-extra-chunks) los elimina al ejecutar."
+
+#: modprojects:rsextrakept
+msgid "%s holds verses no other chunk has (%s); kept, to be sorted out by hand."
+msgstr "%s contiene versículos que ningún otro fragmento tiene (%s); se conservó, para resolverlo manualmente."
+
+#: modprojects:rsextrawouldremove
+msgid "Would remove: %s (dry run)."
+msgstr "Se quitaría: %s (simulación)."
+
+#: modprojects:rsextraremoved
+msgid "Removed %s, and committed."
+msgstr "Se quitó %s y se confirmó."
+
+#: modprojects:rsextrafailed
+msgid "Could not remove the extra chunks: %s"
+msgstr "No se pudieron quitar los fragmentos sobrantes: %s"
+
+#: modprojects:rsextramessage
+msgid "Remove chunks no source has (BTT Workbench)"
+msgstr "Quitar fragmentos que ninguna fuente tiene (BTT Workbench)"
+
+#: modprojects:rsextraloose
+msgid "Uncommitted work, before removing extra chunks"
+msgstr "Trabajo sin confirmar, antes de quitar fragmentos sobrantes"
+
+#: modprojects:rssummaryremovedextra
+msgid "%d extra chunk(s) removed."
+msgstr "%d fragmento(s) sobrante(s) quitado(s)."
+
+#: modprojects:rssummarywouldremoveextra
+msgid "%d extra chunk(s) would be removed (dry run)."
+msgstr "%d fragmento(s) sobrante(s) se quitarían (simulación)."
+
+#: modprojects:rssummarywouldrename
+msgid "%d project(s) would be moved from git branch main to master."
+msgstr "%d proyecto(s) pasarían de la rama main de git a master."
+
+#: modprojects:rsconflicts
+msgid "%d chunk(s) have unresolved conflicts: %s"
+msgstr "%d fragmento(s) tienen conflictos sin resolver: %s"
+
+#: modprojects:rsunreadableconflicts
+msgid "%d chunk(s) have conflict markers BTT-Writer cannot read: %s"
+msgstr "%d fragmento(s) tienen marcadores de conflicto que BTT-Writer no puede leer: %s"
+
+#: modprojects:rsfinishednofile
+msgid "Marked finished but have no file: %s"
+msgstr "Marcados como terminados pero sin archivo: %s"
+
+#: modprojects:rsnotchecked
+msgid "Chunking is only checked for text projects."
+msgstr "La fragmentación solo se revisa en proyectos de texto."
+
+#: modprojects:rssourcemissing
+msgid "Source %s is neither downloaded nor bundled with BTT-Writer, so its chunking was not checked."
+msgstr "La fuente %s no está descargada ni incluida con BTT-Writer, por lo que no se revisó su fragmentación."
+
+#: modprojects:rsunknownbook
+msgid "No en_ulb text for book \"%s\"; is the book code right?"
+msgstr "No hay texto en_ulb para el libro \"%s\"; ¿es correcto el código del libro?"
+
+#: modprojects:rssourcelisted
+msgid "%s (listed as a source)"
+msgstr "%s (listada como fuente)"
+
+#: modprojects:rssourcealways
+msgid "%s (always compared)"
+msgstr "%s (siempre se compara)"
+
+#: modprojects:rssourceline
+msgid "Compared with %s: %s."
+msgstr "Comparado con %s: %s."
+
+#: modprojects:rsnoextra
+msgid "no extra chunks"
+msgstr "sin fragmentos sobrantes"
+
+#: modprojects:rsextra
+msgid "extra chunks (not in it; BTT-Writer does not show them with it): %s"
+msgstr "fragmentos sobrantes (no están en ella; BTT-Writer no los muestra con ella): %s"
+
+#: modprojects:rsnomissing
+msgid "no chunks missing"
+msgstr "sin fragmentos faltantes"
+
+#: modprojects:rsmissing
+msgid "missing %s"
+msgstr "falta %s"
+
+#: modprojects:rsmissingcovered
+msgid "missing %s, whose verses are in other chunks here"
+msgstr "falta %s, cuyos versículos están en otros fragmentos de aquí"
+
+#: modprojects:rsnooutside
+msgid "verse markers all in its chunks"
+msgstr "todos los marcadores de versículo están en sus fragmentos"
+
+#: modprojects:rsoutside
+msgid "verse markers outside its chunks (BTT-Writer drops them when the chunk is opened with it): %s"
+msgstr "marcadores de versículo fuera de sus fragmentos (BTT-Writer los descarta cuando el fragmento se abre con ella): %s"
+
+#: modprojects:rsmatches
+msgid "Matches %s: nothing is lost when the project is opened with it."
+msgstr "Coincide con %s: no se pierde nada cuando el proyecto se abre con ella."
+
+#: modprojects:rsothersdiffer
+msgid " The differences from %s are only another chunking; they matter only if the project is opened with that source."
+msgstr " Las diferencias con %s son solo otra fragmentación; importan únicamente si el proyecto se abre con esa fuente."
+
+#: modprojects:rsnonematches
+msgid "No compared source matches this project's chunks and verse markers."
+msgstr "Ninguna fuente comparada coincide con los fragmentos y marcadores de versículo de este proyecto."
+
+#: modprojects:rsversestwice
+msgid "Verse markers given twice in one chunk: %s"
+msgstr "Marcadores de versículo repetidos en un mismo fragmento: %s"
+
+#: modprojects:rsmore
+msgid "%s and %d more"
+msgstr "%s y %d más"
+
+#: modsettings:rstitle
+msgid "Settings"
+msgstr "Configuración"
+
+#: modsettings:rsdescription
+msgid "Shows where BTT Workbench finds BTT-Writer and its data, and saves those locations when they are not found by themselves."
+msgstr "Muestra dónde encuentra BTT Workbench a BTT-Writer y sus datos, y guarda esas ubicaciones cuando no se encuentran por sí solas."
+
+#: modsettings:rsoptbttwriter
+msgid "BTT-Writer program"
+msgstr "Programa BTT-Writer"
+
+#: modsettings:rsoptbttwriterhelp
+msgid "Where BTT-Writer is installed (its folder or program file); its bundled source texts are used to check chunking"
+msgstr "Dónde está instalado BTT-Writer (su carpeta o archivo de programa); sus textos fuente incluidos se usan para revisar la fragmentación"
+
+#: modsettings:rsoptdatadir
+msgid "BTT-Writer data folder"
+msgstr "Carpeta de datos de BTT-Writer"
+
+#: modsettings:rsoptdatadirhelp
+msgid "The folder holding BTT-Writer's targetTranslations and library folders"
+msgstr "La carpeta que contiene las carpetas targetTranslations y library de BTT-Writer"
+
+#: modsettings:rsoptclear
+msgid "Forget saved settings"
+msgstr "Olvidar configuración guardada"
+
+#: modsettings:rsoptclearhelp
+msgid "Go back to finding BTT-Writer and its data by themselves"
+msgstr "Volver a encontrar BTT-Writer y sus datos automáticamente"
+
+#: modsettings:rscleared
+msgid "Saved settings forgotten."
+msgstr "Configuración guardada olvidada."
+
+#: modsettings:rsnosources
+msgid "No BTT-Writer source texts (.tsrc files) found in %s. Choose the folder BTT-Writer is installed in. Nothing saved."
+msgstr "No se encontraron textos fuente de BTT-Writer (archivos .tsrc) en %s. Elija la carpeta donde está instalado BTT-Writer. No se guardó nada."
+
+#: modsettings:rsnodatadir
+msgid "Not a folder: %s. Nothing saved."
+msgstr "No es una carpeta: %s. No se guardó nada."
+
+#: modsettings:rsnotargettranslations
+msgid "%s has no targetTranslations folder; is it BTT-Writer's data folder?"
+msgstr "%s no tiene una carpeta targetTranslations; ¿es la carpeta de datos de BTT-Writer?"
+
+#: modsettings:rssaved
+msgid "Saved."
+msgstr "Guardado."
+
+#: modsettings:rssettingsfile
+msgid "Settings file: %s"
+msgstr "Archivo de configuración: %s"
+
+#: modsettings:rsdata
+msgid "BTT-Writer data folder: %s (%s)"
+msgstr "Carpeta de datos de BTT-Writer: %s (%s)"
+
+#: modsettings:rsfromenv
+msgid "from %s"
+msgstr "de %s"
+
+#: modsettings:rsfromsetting
+msgid "saved setting"
+msgstr "configuración guardada"
+
+#: modsettings:rsfromdefault
+msgid "BTT-Writer's usual place"
+msgstr "ubicación habitual de BTT-Writer"
+
+#: modsettings:rssources
+msgid "BTT-Writer source texts: %s (%s, %d source texts)"
+msgstr "Textos fuente de BTT-Writer: %s (%s, %d textos fuente)"
+
+#: modsettings:rsfound
+msgid "found on this computer"
+msgstr "encontrado en este equipo"
+
+#: modsettings:rsnonefound
+msgid "BTT-Writer source texts: not found. Chunking can only be checked against sources BTT-Writer has downloaded. Use --btt-writer to say where BTT-Writer is installed."
+msgstr "Textos fuente de BTT-Writer: no encontrados. La fragmentación solo se puede revisar con las fuentes que BTT-Writer ha descargado. Use --btt-writer para indicar dónde está instalado BTT-Writer."
+
+#: modsettings:rsbadsetting
+msgid "The saved BTT-Writer location %s has no source texts any more."
+msgstr "La ubicación guardada de BTT-Writer %s ya no tiene textos fuente."
+
+#: modsettings:rsotherinstalls
+msgid "Other BTT-Writer installs found: %s"
+msgstr "Otras instalaciones de BTT-Writer encontradas: %s"
+
+#: modtextcheck:rstitle
+msgid "Translation text checks"
+msgstr "Revisiones del texto de traducción"
+
+#: modtextcheck:rsdescription
+msgid "Checks the text of translation projects for verse, marker, punctuation, quote and number problems, using the checks of usfm-tools' verifyUSFM. Changes nothing."
+msgstr "Revisa el texto de los proyectos de traducción en busca de problemas de versículos, marcadores, puntuación, comillas y números, usando las revisiones de verifyUSFM de usfm-tools. No cambia nada."
+
+#: modtextcheck:rsoptlanguagehelp
+msgid "Only these target language codes, comma-separated"
+msgstr "Solo estos códigos de idioma de destino, separados por comas"
+
+#: modtextcheck:rsoptskip
+msgid "Skip checks"
+msgstr "Omitir revisiones"
+
+#: modtextcheck:rsoptskiphelp
+msgid "Groups of checks to leave out, comma-separated: structure, markers, punctuation, quotes, numbers, ascii, caps, source, words, headings, footnotes, brackets"
+msgstr "Grupos de revisiones que se omiten, separados por comas: structure, markers, punctuation, quotes, numbers, ascii, caps, source, words, headings, footnotes, brackets"
+
+#: modtextcheck:rsoptproblemsonlyhelp
+msgid "List only projects with findings"
+msgstr "Mostrar solo los proyectos con hallazgos"
+
+#: modtextcheck:rsbadskip
+msgid "Unknown check group \"%s\". Use: %s"
+msgstr "Grupo de revisión desconocido \"%s\". Use: %s"
+
+#: modtextcheck:rsheader
+msgid "%s: %s (%s), %s - %d finding(s)"
+msgstr "%s: %s (%s), %s - %d hallazgo(s)"
+
+#: modtextcheck:rsunknownbook
+msgid "%s: book \"%s\" is not one of the 66 books; not checked."
+msgstr "%s: el libro \"%s\" no es uno de los 66 libros; no se revisó."
+
+#: modtextcheck:rssummary
+msgid "%d project(s) checked, %d with findings."
+msgstr "%d proyecto(s) revisado(s), %d con hallazgos."
+
+#: modtextcheck:rsmissingverses
+msgid "Verses missing from chapter %s: %s"
+msgstr "Versículos faltantes en el capítulo %s: %s"
+
+#: modtextcheck:rsversebeyond
+msgid "Verse numbers past the end of the chapter: %s"
+msgstr "Números de versículo posteriores al final del capítulo: %s"
+
+#: modtextcheck:rsversetwice
+msgid "Verses given more than once: %s"
+msgstr "Versículos dados más de una vez: %s"
+
+#: modtextcheck:rsverseorder
+msgid "Verses out of order: %s"
+msgstr "Versículos desordenados: %s"
+
+#: modtextcheck:rstextbeforeverse
+msgid "Text before the first verse marker of a chunk: %s"
+msgstr "Texto antes del primer marcador de versículo de un fragmento: %s"
+
+#: modtextcheck:rsslashverse
+msgid "\"/v\" typed instead of \"\\v\": %s"
+msgstr "\"/v\" escrito en lugar de \"\\v\": %s"
+
+#: modtextcheck:rsunsupportedmarker
+msgid "Unsupported USFM markers in the text: %s"
+msgstr "Marcadores USFM no admitidos en el texto: %s"
+
+#: modtextcheck:rsunmarkedtext
+msgid "Text before verse 1 of chapter: %s"
+msgstr "Texto antes del versículo 1 del capítulo: %s"
+
+#: modtextcheck:rsverserange
+msgid "Problem in a verse range: %s"
+msgstr "Problema en un rango de versículos: %s"
+
+#: modtextcheck:rsversenonumber
+msgid "Verse marker without a number: %s"
+msgstr "Marcador de versículo sin número: %s"
+
+#: modtextcheck:rsfootnotemismatch
+msgid "Footnote start and end markers do not pair up (started/ended): %s"
+msgstr "Los marcadores de inicio y fin de nota al pie no coinciden (iniciadas/terminadas): %s"
+
+#: modtextcheck:rsfootnotenested
+msgid "Footnote starts before the previous one ends: %s"
+msgstr "Una nota al pie empieza antes de que termine la anterior: %s"
+
+#: modtextcheck:rsfootnoteoutside
+msgid "Footnote markers outside \\f ... \\f*: %s"
+msgstr "Marcadores de nota al pie fuera de \\f ... \\f*: %s"
+
+#: modtextcheck:rsnospacechapter
+msgid "No space between \\c and the chapter number: %s"
+msgstr "Sin espacio entre \\c y el número de capítulo: %s"
+
+#: modtextcheck:rsnospacebeforenumber
+msgid "No space between \\v and the verse number: %s"
+msgstr "Sin espacio entre \\v y el número de versículo: %s"
+
+#: modtextcheck:rsnospaceafternumber
+msgid "No space after the verse number: %s"
+msgstr "Sin espacio después del número de versículo: %s"
+
+#: modtextcheck:rsconflictparsingerror
+msgid "BTT-Writer \"Conflict Parsing Error\" text: %s"
+msgstr "Texto \"Conflict Parsing Error\" de BTT-Writer: %s"
+
+#: modtextcheck:rsnullbytes
+msgid "Null bytes: %s"
+msgstr "Bytes nulos: %s"
+
+#: modtextcheck:rsfootnotespacing
+msgid "Space before a footnote marker: %s"
+msgstr "Espacio antes de un marcador de nota al pie: %s"
+
+#: modtextcheck:rsunmatchedparen
+msgid "Unmatched parentheses: %s"
+msgstr "Paréntesis sin pareja: %s"
+
+#: modtextcheck:rsunmatchedangle
+msgid "Unmatched angle brackets: %s"
+msgstr "Paréntesis angulares sin pareja: %s"
+
+#: modtextcheck:rsunmatchedsquare
+msgid "Unmatched square brackets: %s"
+msgstr "Corchetes sin pareja: %s"
+
+#: modtextcheck:rsunmatchedbrace
+msgid "Unmatched curly braces: %s"
+msgstr "Llaves sin pareja: %s"
+
+#: modtextcheck:rspunctuation
+msgid "Check the punctuation: %s"
+msgstr "Revise la puntuación: %s"
+
+#: modtextcheck:rsspacebeforepunct
+msgid "Space before phrase-ending punctuation: %s"
+msgstr "Espacio antes de la puntuación de fin de frase: %s"
+
+#: modtextcheck:rsfreefloating
+msgid "Free-floating quote or bracket: %s"
+msgstr "Comilla o corchete suelto: %s"
+
+#: modtextcheck:rspunctafterquote
+msgid "Punctuation after the closing quote: %s"
+msgstr "Puntuación después de las comillas de cierre: %s"
+
+#: modtextcheck:rswordmedialpunct
+msgid "Punctuation inside a word: %s"
+msgstr "Puntuación dentro de una palabra: %s"
+
+#: modtextcheck:rsbackslash
+msgid "Stray backslash in the text: %s"
+msgstr "Barra invertida suelta en el texto: %s"
+
+#: modtextcheck:rsunusualchar
+msgid "Unusual characters in the text: %s"
+msgstr "Caracteres inusuales en el texto: %s"
+
+#: modtextcheck:rsorphanpunct
+msgid "Punctuation standing alone: %s"
+msgstr "Puntuación aislada: %s"
+
+#: modtextcheck:rsstartswithpunct
+msgid "Text begins with phrase-ending punctuation: %s"
+msgstr "El texto comienza con puntuación de final de frase: %s"
+
+#: modtextcheck:rscurlybraces
+msgid "Curly braces in the book: %s"
+msgstr "Llaves en el libro: %s"
+
+#: modtextcheck:rsrepeatedquotes
+msgid "Repeated quote marks: %s"
+msgstr "Comillas repetidas: %s"
+
+#: modtextcheck:rsstraightquotes
+msgid "Straight quotes: %s double, %s single (not counting %s inside words)"
+msgstr "Comillas rectas: %s dobles, %s simples (sin contar %s dentro de palabras)"
+
+#: modtextcheck:rsversenumberintext
+msgid "Verse number in the text: %s"
+msgstr "Número de versículo en el texto: %s"
+
+#: modtextcheck:rspossibleversenumber
+msgid "Possible verse number in the text: %s"
+msgstr "Posible número de versículo en el texto: %s"
+
+#: modtextcheck:rsversereference
+msgid "Possible verse reference in the text: %s"
+msgstr "Posible referencia de versículo en el texto: %s"
+
+#: modtextcheck:rsembeddednumber
+msgid "Number inside a word: %s"
+msgstr "Número dentro de una palabra: %s"
+
+#: modtextcheck:rsfraction
+msgid "Possible fraction in the text: %s"
+msgstr "Posible fracción en el texto: %s"
+
+#: modtextcheck:rsnumbersuffix
+msgid "Invalid number suffix: %s"
+msgstr "Sufijo de número no válido: %s"
+
+#: modtextcheck:rsnumberprefix
+msgid "Invalid number prefix: %s"
+msgstr "Prefijo de número no válido: %s"
+
+#: modtextcheck:rsunsegmented
+msgid "Long number without separators: %s"
+msgstr "Número largo sin separadores: %s"
+
+#: modtextcheck:rsspaceinnumber
+msgid "Space between digits: %s"
+msgstr "Espacio entre dígitos: %s"
+
+#: modtextcheck:rsleadingzero
+msgid "Number with a leading zero: %s"
+msgstr "Número con cero inicial: %s"
+
+#: modtextcheck:rsemptyverse
+msgid "Empty verses: %s"
+msgstr "Versículos vacíos: %s"
+
+#: modtextcheck:rsshortverse
+msgid "Verses very short compared with the source: %s"
+msgstr "Versículos muy cortos en comparación con la fuente: %s"
+
+#: modtextcheck:rsasciiverse
+msgid "Verses entirely in ASCII (untranslated?): %s"
+msgstr "Versículos totalmente en ASCII (¿sin traducir?): %s"
+
+#: modtextcheck:rsuntranslated
+msgid "Verses that may be untranslated (many words shared with the source): %s"
+msgstr "Versículos que podrían estar sin traducir (muchas palabras en común con la fuente): %s"
+
+#: modtextcheck:rscapsparagraph
+msgid "First word of a paragraph not capitalised: %s"
+msgstr "Primera palabra de un párrafo sin mayúscula inicial: %s"
+
+#: modtextcheck:rscapssentence
+msgid "First word of a sentence not capitalised: %s"
+msgstr "Primera palabra de una oración sin mayúscula inicial: %s"
+
+#: modtextcheck:rsparagraphpunct
+msgid "No sentence-ending punctuation before a paragraph break: %s"
+msgstr "Sin puntuación de final de oración antes de un salto de párrafo: %s"
+
+#: modtextcheck:rschapterendpunct
+msgid "No sentence-ending punctuation at the end of the chapter before: %s"
+msgstr "Sin puntuación de final de oración al final del capítulo anterior: %s"
+
+#: modtextcheck:rsmixedcase
+msgid "Words in mixed case: %s"
+msgstr "Palabras con mayúsculas y minúsculas mezcladas: %s"
+
+#: modtextcheck:rsmixedcaserepeated
+msgid "Words in mixed case used more than once: %s"
+msgstr "Palabras con mayúsculas y minúsculas mezcladas usadas más de una vez: %s"
+
+#: modtextcheck:rsmixedcasetoomany
+msgid "Too many mixed-case words; not all are listed%s"
+msgstr "Demasiadas palabras con mayúsculas y minúsculas mezcladas; no se listan todas%s"
+
+#: modtextcheck:rssectiontitle
+msgid "Possible section titles on a line of their own (should they be \\s headings?): %s"
+msgstr "Posibles títulos de sección en una línea aparte (¿deberían ser encabezados \\s?): %s"
+
+#: modtextcheck:rssectiontitleatend
+msgid "Possible section titles at the end of a verse: %s"
+msgstr "Posibles títulos de sección al final de un versículo: %s"
+
+#: modtextcheck:rsemptysectiontitle
+msgid "Empty section titles: %s"
+msgstr "Títulos de sección vacíos: %s"
+
+#: modtextcheck:rslonesection
+msgid "Only one section heading is marked in the book%s"
+msgstr "Solo hay un encabezado de sección marcado en el libro%s"
+
+#: modtextcheck:rsfootnotereference
+msgid "Chapter:verse references in the text (footnotes?): %s"
+msgstr "Referencias de capítulo:versículo en el texto (¿notas al pie?): %s"
+
+#: modtextcheck:rsfootnotewheresource
+msgid "Brackets or parentheses where the source has a footnote: %s"
+msgstr "Corchetes o paréntesis donde la fuente tiene una nota al pie: %s"
+
+#: modtextcheck:rsoptionaltext
+msgid "Brackets or parentheses in optional verses (optional or alternative text?): %s"
+msgstr "Corchetes o paréntesis en versículos opcionales (¿texto opcional o alternativo?): %s"
+
+#: modtextcheck:rsfootnotecommonhere
+msgid "Brackets or parentheses where footnotes are common: %s"
+msgstr "Corchetes o paréntesis donde son comunes las notas al pie: %s"
+
+#: modtextcheck:rsuntaggedfootnote
+msgid "Optional text or untagged footnotes in brackets: %s"
+msgstr "Texto opcional o notas al pie sin etiquetar entre corchetes: %s"
+
+#: modtextcheck:rscomparedwith
+msgid "Compared with source %s."
+msgstr "Comparado con la fuente %s."
+
+#: modtextcheck:rsnosource
+msgid "No source text found to compare with; short verses are judged by length."
+msgstr "No se encontró texto fuente para comparar; los versículos cortos se juzgan por su longitud."
+
+#: modtstudioimport:rstitle
+msgid "Import .tstudio package"
+msgstr "Importar paquete .tstudio"
+
+#: modtstudioimport:rsdescription
+msgid "Imports a BTT-Writer project package (.tstudio) into the BTT-Writer projects folder. Check first: it tells you whether the project is new or already here, and which chunks a merge would leave in conflict."
+msgstr "Importa un paquete de proyecto de BTT-Writer (.tstudio) a la carpeta de proyectos de BTT-Writer. Revise primero: le indica si el proyecto es nuevo o ya existe aquí, y qué fragmentos quedarían en conflicto con una fusión."
+
+#: modtstudioimport:rsoptfile
+msgid "Package files"
+msgstr "Archivos de paquete"
+
+#: modtstudioimport:rsoptfilehelp
+msgid "The .tstudio file(s) to import, in order"
+msgstr "Los archivos .tstudio que se importarán, en orden"
+
+#: modtstudioimport:rsoptonexisting
+msgid "If the project exists"
+msgstr "Si el proyecto ya existe"
+
+#: modtstudioimport:rsoptonexistinghelp
+msgid "stop: change nothing; merge: combine with the existing project (as BTT-Writer does); overwrite: replace it (the old copy is kept in workbench-backups)"
+msgstr "stop: no cambiar nada; merge: combinar con el proyecto existente (como hace BTT-Writer); overwrite: reemplazarlo (la copia anterior se conserva en workbench-backups)"
+
+#: modtstudioimport:rsoptdryrunhelp
+msgid "Report what the import would do without changing anything"
+msgstr "Informar qué haría la importación sin cambiar nada"
+
+#: modtstudioimport:rsnofile
+msgid "File not found: %s"
+msgstr "Archivo no encontrado: %s"
+
+#: modtstudioimport:rsnotzip
+msgid "Not a readable .tstudio package (%s)"
+msgstr "No es un paquete .tstudio legible (%s)"
+
+#: modtstudioimport:rsunsafeentry
+msgid "The package contains an unsafe path (%s). Nothing was imported."
+msgstr "El paquete contiene una ruta insegura (%s). No se importó nada."
+
+#: modtstudioimport:rsnopackagemanifest
+msgid "The package has no manifest.json."
+msgstr "El paquete no tiene manifest.json."
+
+#: modtstudioimport:rsbadpackageversion
+msgid "Unsupported package version %s."
+msgstr "Versión de paquete no admitida: %s."
+
+#: modtstudioimport:rsemptypackage
+msgid "The package contains no projects."
+msgstr "El paquete no contiene proyectos."
+
+#: modtstudioimport:rspackageinfo
+msgid "Package: %s, made by %s on %s, %d project(s)."
+msgstr "Paquete: %s, creado por %s el %s, %d proyecto(s)."
+
+#: modtstudioimport:rstargetdirmissing
+msgid "The projects folder does not exist yet; it will be created."
+msgstr "La carpeta de proyectos aún no existe; se creará."
+
+#: modtstudioimport:rsbadentrypath
+msgid "Project entry has an unsafe or missing path: \"%s\". Skipped."
+msgstr "La entrada del proyecto tiene una ruta insegura o falta: \"%s\". Omitido."
+
+#: modtstudioimport:rsentrymissing
+msgid "Project folder %s is listed but not in the package. Skipped."
+msgstr "La carpeta de proyecto %s figura en la lista pero no está en el paquete. Omitido."
+
+#: modtstudioimport:rsmovefailed
+msgid "Could not move %s to %s. Nothing changed."
+msgstr "No se pudo mover %s a %s. No se cambió nada."
+
+#: modtstudioimport:rscheckinorder
+msgid "Checking %d packages in the order given, each as if the ones before it had been imported."
+msgstr "Revisando %d paquetes en el orden indicado, cada uno como si los anteriores ya se hubieran importado."
+
+#: modtstudioimport:rscheckassumesmerge
+msgid "Where a project already exists, the check assumes you will choose merge."
+msgstr "Donde ya exista un proyecto, la revisión supone que usted elegirá merge."
+
+#: modtstudioimport:rsduplicatefile
+msgid "%s is listed more than once; importing it once."
+msgstr "%s aparece más de una vez; se importará una sola vez."
+
+#: modulb2reg:rstitle
+msgid "Convert ULB project to REG"
+msgstr "Convertir proyecto ULB a REG"
+
+#: modulb2reg:rsdescription
+msgid "Changes a BTT-Writer target translation from ULB to REG: updates manifest.json and renames the project folder from *_ulb to *_reg."
+msgstr "Cambia una traducción de destino de BTT-Writer de ULB a REG: actualiza manifest.json y cambia el nombre de la carpeta del proyecto de *_ulb a *_reg."
+
+#: modulb2reg:rsoptproject
+msgid "Project folder"
+msgstr "Carpeta del proyecto"
+
+#: modulb2reg:rsoptprojecthelp
+msgid "The target translation folder, e.g. en_mat_text_ulb"
+msgstr "La carpeta de la traducción de destino, p. ej. en_mat_text_ulb"
+
+#: modulb2reg:rsoptdryrunhelp
+msgid "Show what would change without changing anything"
+msgstr "Mostrar qué cambiaría sin cambiar nada"
+
+#: modulb2reg:rsnotafolder
+msgid "Not a folder: %s"
+msgstr "No es una carpeta: %s"
+
+#: modulb2reg:rsnotulbname
+msgid "Folder name does not end in _ulb: %s"
+msgstr "El nombre de la carpeta no termina en _ulb: %s"
+
+#: modulb2reg:rsnomanifest
+msgid "No manifest.json in %s"
+msgstr "No hay manifest.json en %s"
+
+#: modulb2reg:rsbadmanifest
+msgid "Could not read manifest.json: %s"
+msgstr "No se pudo leer manifest.json: %s"
+
+#: modulb2reg:rsmanifestnotulb
+msgid "manifest.json says the resource is \"%s\", not \"ulb\". Nothing changed."
+msgstr "manifest.json indica que el recurso es \"%s\", no \"ulb\". No se cambió nada."
+
+#: modulb2reg:rstargetexists
+msgid "Cannot rename: %s already exists. Nothing changed."
+msgstr "No se puede cambiar el nombre: %s ya existe. No se cambió nada."
+
+#: modulb2reg:rswillconvert
+msgid "Converting %s -> %s"
+msgstr "Convirtiendo %s -> %s"
+
+#: modulb2reg:rsdryrun
+msgid "Dry run: no changes made."
+msgstr "Simulación: no se hicieron cambios."
+
+#: modulb2reg:rsrenamefailed
+msgid "Could not rename %s to %s. Nothing changed."
+msgstr "No se pudo cambiar el nombre de %s a %s. No se cambió nada."
+
+#: modulb2reg:rswritefailed
+msgid "Could not write manifest.json (%s). Folder name restored."
+msgstr "No se pudo escribir manifest.json (%s). Se restauró el nombre de la carpeta."
+
+#: modulb2reg:rsdone
+msgid "Done: %s is now a REG project."
+msgstr "Listo: %s ahora es un proyecto REG."
+
+#: modwacsaccount:rstitle
+msgid "WACS login"
+msgstr "Inicio de sesión en WACS"
+
+#: modwacsaccount:rsdescription
+msgid "Logs in to WACS so projects can be downloaded and uploaded. Only a login token is kept on this computer, never the password."
+msgstr "Inicia sesión en WACS para poder descargar y subir proyectos. En este equipo solo se guarda un token de inicio de sesión, nunca la contraseña."
+
+#: modwacsaccount:rsoptserver
+msgid "Server"
+msgstr "Servidor"
+
+#: modwacsaccount:rsoptserverhelp
+msgid "The WACS (Gitea) server address"
+msgstr "La dirección del servidor WACS (Gitea)"
+
+#: modwacsaccount:rsoptusername
+msgid "User name"
+msgstr "Nombre de usuario"
+
+#: modwacsaccount:rsoptusernamehelp
+msgid "Your WACS user name (log in)"
+msgstr "Su nombre de usuario de WACS (para iniciar sesión)"
+
+#: modwacsaccount:rsoptpassword
+msgid "Password"
+msgstr "Contraseña"
+
+#: modwacsaccount:rsoptpasswordhelp
+msgid "Your WACS password; it is not saved"
+msgstr "Su contraseña de WACS; no se guarda"
+
+#: modwacsaccount:rsoptlogout
+msgid "Log out"
+msgstr "Cerrar sesión"
+
+#: modwacsaccount:rsoptlogouthelp
+msgid "Forget the saved login (with the password, also delete the token on WACS)"
+msgstr "Olvidar el inicio de sesión guardado (con la contraseña, elimina también el token en WACS)"
+
+#: modwacsaccount:rsserver
+msgid "Server: %s"
+msgstr "Servidor: %s"
+
+#: modwacsaccount:rsnopassword
+msgid "A password is needed to log in."
+msgstr "Se necesita una contraseña para iniciar sesión."
+
+#: modwacsaccount:rsloggedin
+msgid "Logged in as %s%s. The login is saved as token \"%s\"."
+msgstr "Sesión iniciada como %s%s. El inicio de sesión se guardó como token \"%s\"."
+
+#: modwacsaccount:rsreplacedtoken
+msgid "Replaced the earlier token \"%s\"."
+msgstr "Se reemplazó el token anterior \"%s\"."
+
+#: modwacsaccount:rsloginfailed
+msgid "Login failed: %s"
+msgstr "Error al iniciar sesión: %s"
+
+#: modwacsaccount:rsloggedout
+msgid "Logged out."
+msgstr "Sesión cerrada."
+
+#: modwacsaccount:rstokendeleted
+msgid "The token was deleted on WACS."
+msgstr "El token se eliminó en WACS."
+
+#: modwacsaccount:rstokenleft
+msgid "The token stays on WACS until you log in again from this computer, or remove it there under Settings, Applications."
+msgstr "El token permanece en WACS hasta que usted vuelva a iniciar sesión desde este equipo, o lo elimine allí en Configuración, Aplicaciones."
+
+#: modwacsaccount:rstokendeletefailed
+msgid "Could not delete the token on WACS (%s); it was forgotten here anyway."
+msgstr "No se pudo eliminar el token en WACS (%s); de todos modos se olvidó aquí."
+
+#: modwacsaccount:rsnotloggedin
+msgid "Not logged in."
+msgstr "No se ha iniciado sesión."
+
+#: modwacsaccount:rsstatusok
+msgid "Logged in as %s%s."
+msgstr "Sesión iniciada como %s%s."
+
+#: modwacsaccount:rsstatusbad
+msgid "Saved login for %s no longer works (%s). Log in again."
+msgstr "El inicio de sesión guardado para %s ya no funciona (%s). Inicie sesión de nuevo."
+
+#: modwacsdownload:rstitle
+msgid "Download from WACS"
+msgstr "Descargar de WACS"
+
+#: modwacsdownload:rsdescription
+msgid "Finds BTT-Writer projects on WACS by language, book and type, shows their state (Primary, Active, Inactive), and downloads the ones you check into the projects folder, merging with projects already here if you choose. Check first to see what would happen."
+msgstr "Busca proyectos de BTT-Writer en WACS por idioma, libro y tipo, muestra su estado (Principal, Activo, Inactivo) y descarga los que usted marque en la carpeta de proyectos, combinándolos con los proyectos que ya existan aquí si así lo elige. Revise primero para ver qué ocurriría."
+
+#: modwacsdownload:rsoptlanguagehelp
+msgid "Language codes to look for, comma-separated (e.g. udm,sah)"
+msgstr "Códigos de idioma que se buscarán, separados por comas (p. ej. udm,sah)"
+
+#: modwacsdownload:rsoptbookhelp
+msgid "Only these book codes, comma-separated (e.g. mat,jhn)"
+msgstr "Solo estos códigos de libro, separados por comas (p. ej. mat,jhn)"
+
+#: modwacsdownload:rsopttypehelp
+msgid "Only these types or resources, comma-separated (text, tn, reg, ulb, or text_reg)"
+msgstr "Solo estos tipos o recursos, separados por comas (text, tn, reg, ulb o text_reg)"
+
+#: modwacsdownload:rsoptowner
+msgid "Owner"
+msgstr "Propietario"
+
+#: modwacsdownload:rsoptownerhelp
+msgid "Only repos of this WACS user or organisation"
+msgstr "Solo repositorios de este usuario u organización de WACS"
+
+#: modwacsdownload:rsoptrepo
+msgid "Repos"
+msgstr "Repositorios"
+
+#: modwacsdownload:rsoptrepohelp
+msgid "The repos to download (owner/name)"
+msgstr "Los repositorios que se descargarán (propietario/nombre)"
+
+#: modwacsdownload:rsoptonexistinghelp
+msgid "stop: leave it; merge: combine with the downloaded copy; overwrite: replace it (the old copy is kept in workbench-backups)"
+msgstr "stop: dejarlo; merge: combinar con la copia descargada; overwrite: reemplazarla (la copia anterior se conserva en workbench-backups)"
+
+#: modwacsdownload:rsoptonconflict
+msgid "If a merge would conflict"
+msgstr "Si una combinación genera conflicto"
+
+#: modwacsdownload:rsoptonconflicthelp
+msgid "skip: leave that project as it is; commit: merge and leave the conflicts for BTT-Writer to resolve"
+msgstr "skip: dejar ese proyecto como está; commit: combinar y dejar los conflictos para que BTT-Writer los resuelva"
+
+#: modwacsdownload:rsoptnostate
+msgid "Skip the state lookup"
+msgstr "Omitir la consulta de estado"
+
+#: modwacsdownload:rsoptnostatehelp
+msgid "Do not ask the BIEL Public Data API for Primary/Active state"
+msgstr "No consultar a la BIEL Public Data API el estado Principal/Activo"
+
+#: modwacsdownload:rsoptdryrunhelp
+msgid "Report what downloading would do without changing anything"
+msgstr "Informar qué haría la descarga sin cambiar nada"
+
+#: modwacsdownload:rscolstate
+msgid "State"
+msgstr "Estado"
+
+#: modwacsdownload:rscolupdated
+msgid "Updated"
+msgstr "Actualizado"
+
+#: modwacsdownload:rscolhere
+msgid "Here"
+msgstr "Aquí"
+
+#: modwacsdownload:rscolnotes
+msgid "Notes"
+msgstr "Notas"
+
+#: modwacsdownload:rsherenew
+msgid "new"
+msgstr "nuevo"
+
+#: modwacsdownload:rshereexists
+msgid "exists"
+msgstr "existe"
+
+#: modwacsdownload:rsnoteconsolidated
+msgid "consolidated"
+msgstr "consolidado"
+
+#: modwacsdownload:rsnoteprivate
+msgid "private"
+msgstr "privado"
+
+#: modwacsdownload:rsnoteempty
+msgid "empty"
+msgstr "vacío"
+
+#: modwacsdownload:rsneedfilter
+msgid "Give at least one language code, or an owner."
+msgstr "Indique al menos un código de idioma, o un propietario."
+
+#: modwacsdownload:rsnoowner
+msgid "There is no WACS user or organisation called %s."
+msgstr "No existe ningún usuario ni organización de WACS llamado %s."
+
+#: modwacsdownload:rssearchfailed
+msgid "Could not search WACS: %s"
+msgstr "No se pudo buscar en WACS: %s"
+
+#: modwacsdownload:rsstatefailed
+msgid "Could not get Primary/Active state from the BIEL Public Data API (%s); states are left blank."
+msgstr "No se pudo obtener el estado Principal/Activo de la BIEL Public Data API (%s); los estados se dejan en blanco."
+
+#: modwacsdownload:rsnothingchecked
+msgid "No repos checked."
+msgstr "No hay repositorios marcados."
+
+#: modwacsdownload:rsserver
+msgid "WACS: %s"
+msgstr "WACS: %s"
+
+#: modwacsdownload:rsasuser
+msgid "Logged in as %s."
+msgstr "Sesión iniciada como %s."
+
+#: modwacsdownload:rsanonymous
+msgid "Not logged in: only public repos can be downloaded."
+msgstr "Sesión no iniciada: solo se pueden descargar repositorios públicos."
+
+#: modwacsdownload:rscheckinorder
+msgid "Checking %d repos in the order given, each as if the ones before it had been downloaded."
+msgstr "Revisando %d repositorios en el orden indicado, cada uno como si los anteriores ya se hubieran descargado."
+
+#: modwacsdownload:rsduplicate
+msgid "%s is listed more than once; downloading it once."
+msgstr "%s aparece más de una vez; se descargará una sola vez."
+
+#: modwacsdownload:rsbadreponame
+msgid "%s is not an owner/name repo. Skipped."
+msgstr "%s no es un repositorio con formato propietario/nombre. Omitido."
+
+#: modwacsdownload:rsrepo
+msgid "Repo %s:"
+msgstr "Repositorio %s:"
+
+#: modwacsdownload:rsnotfound
+msgid "%s was not found on WACS (or it is private and you are not logged in as someone who can see it). Skipped."
+msgstr "%s no se encontró en WACS (o es privado y usted no ha iniciado sesión como alguien que pueda verlo). Omitido."
+
+#: modwacsdownload:rsemptyrepo
+msgid "%s is empty. Skipped."
+msgstr "%s está vacío. Omitido."
+
+#: modwacsdownload:rsclonefailed
+msgid "Could not download %s: %s"
+msgstr "No se pudo descargar %s: %s"
+
+#: modwacsdownload:rssummary
+msgid "%d of %d repo(s) done, %d failed."
+msgstr "%d de %d repositorio(s) completados, %d con error."
+
+#: modwacsdownload:rssearching
+msgid "Searching WACS for %s…"
+msgstr "Buscando %s en WACS…"
+
+#: modwacsdownload:rsgettingstates
+msgid "Getting Primary/Active states for %d repo(s) from the BIEL Public Data API (this can take a minute)…"
+msgstr "Obteniendo los estados Principal/Activo de %d repositorio(s) desde la BIEL Public Data API (esto puede tardar un minuto)…"
+
+#: modwacsupload:rstitle
+msgid "Upload to WACS"
+msgstr "Subir a WACS"
+
+#: modwacsupload:rsdescription
+msgid "Uploads the projects you check to WACS, one after another, as BTT-Writer's Upload does: creates the repo if needed and pushes. If the server has newer work, you choose whether to merge it first or skip that project. Check first to see what each project needs."
+msgstr "Sube a WACS los proyectos que usted marque, uno tras otro, como lo hace Subir en BTT-Writer: crea el repositorio si es necesario y envía los cambios. Si el servidor tiene trabajo más reciente, usted elige si combinarlo primero u omitir ese proyecto. Revise primero para ver qué necesita cada proyecto."
+
+#: modwacsupload:rsoptprojecthelp
+msgid "The project folders to upload"
+msgstr "Las carpetas de proyecto que se subirán"
+
+#: modwacsupload:rsoptownerhelp
+msgid "Upload into this organisation (or user) instead of your own account"
+msgstr "Subir a esta organización (o usuario) en lugar de a su propia cuenta"
+
+#: modwacsupload:rsoptwhenahead
+msgid "If WACS has newer work"
+msgstr "Si WACS tiene trabajo más reciente"
+
+#: modwacsupload:rsoptwhenaheadhelp
+msgid "skip: leave that project for later; merge: bring the server's work in first, then upload"
+msgstr "skip: dejar ese proyecto para después; merge: traer primero el trabajo del servidor y luego subir"
+
+#: modwacsupload:rsoptdryrunhelp
+msgid "Report what uploading would do without changing anything"
+msgstr "Informar qué haría la subida sin cambiar nada"
+
+#: modwacsupload:rscollanguage
+msgid "Language"
+msgstr "Idioma"
+
+#: modwacsupload:rscolbook
+msgid "Book"
+msgstr "Libro"
+
+#: modwacsupload:rscoltype
+msgid "Type"
+msgstr "Tipo"
+
+#: modwacsupload:rscolchanges
+msgid "Changes"
+msgstr "Cambios"
+
+#: modwacsupload:rscolonwacs
+msgid "On WACS"
+msgstr "En WACS"
+
+#: modwacsupload:rsuncommitted
+msgid "uncommitted"
+msgstr "sin confirmar"
+
+#: modwacsupload:rsnotloggedin
+msgid "Log in to WACS first (wacs-account)."
+msgstr "Inicie sesión primero en WACS (wacs-account)."
+
+#: modwacsupload:rslookupfailed
+msgid "Could not reach WACS: %s"
+msgstr "No se pudo conectar con WACS: %s"
+
+#: modwacsupload:rsuploadas
+msgid "Uploading to %s/%s as %s."
+msgstr "Subiendo a %s/%s como %s."
+
+#: modwacsupload:rsnoproject
+msgid "%s is not a project folder here. Skipped."
+msgstr "%s no es una carpeta de proyecto aquí. Omitido."
+
+#: modwacsupload:rsbadmanifest
+msgid "manifest.json could not be read (%s). Skipped."
+msgstr "No se pudo leer manifest.json (%s). Omitido."
+
+#: modwacsupload:rsnotrepo
+msgid "It has no git history, so it cannot be uploaded. Skipped."
+msgstr "No tiene historial de git, por lo que no se puede subir. Omitido."
+
+#: modwacsupload:rsmidmerge
+msgid "It has an unfinished merge; finish it in BTT-Writer first. Skipped."
+msgstr "Tiene una fusión sin terminar; termínela primero en BTT-Writer. Omitido."
+
+#: modwacsupload:rsconflicts
+msgid "It still has unresolved conflicts (%s); they are uploaded as they are, as BTT-Writer does."
+msgstr "Aún tiene conflictos sin resolver (%s); se suben tal como están, igual que lo hace BTT-Writer."
+
+#: modwacsupload:rsreponame
+msgid "Its WACS repo is %s (from manifest.json, not the folder name)."
+msgstr "Su repositorio en WACS es %s (según manifest.json, no el nombre de la carpeta)."
+
+#: modwacsupload:rswouldcommit
+msgid "Uncommitted changes would be committed first."
+msgstr "Primero se confirmarían los cambios sin confirmar."
+
+#: modwacsupload:rscommitted
+msgid "Committed uncommitted changes first."
+msgstr "Se confirmaron primero los cambios sin confirmar."
+
+#: modwacsupload:rscommitfailed
+msgid "Could not commit the uncommitted changes. Skipped."
+msgstr "No se pudieron confirmar los cambios sin confirmar. Omitido."
+
+#: modwacsupload:rswouldcreate
+msgid "The repo %s does not exist yet; it would be created."
+msgstr "El repositorio %s aún no existe; se crearía."
+
+#: modwacsupload:rscreated
+msgid "Created the repo %s."
+msgstr "Se creó el repositorio %s."
+
+#: modwacsupload:rscreatefailed
+msgid "Could not create the repo %s: %s"
+msgstr "No se pudo crear el repositorio %s: %s"
+
+#: modwacsupload:rsnopushright
+msgid "You cannot push to %s. Skipped."
+msgstr "Usted no puede enviar cambios a %s. Omitido."
+
+#: modwacsupload:rsfetchfailed
+msgid "Could not get the server copy of %s: %s"
+msgstr "No se pudo obtener la copia del servidor de %s: %s"
+
+#: modwacsupload:rsuptodate
+msgid "WACS already has everything in this project. Nothing to upload."
+msgstr "WACS ya tiene todo lo de este proyecto. No hay nada que subir."
+
+#: modwacsupload:rswouldpush
+msgid "Only new local work: it would be pushed."
+msgstr "Solo hay trabajo local nuevo: se enviaría."
+
+#: modwacsupload:rsserverahead
+msgid "WACS has newer work that this project does not have."
+msgstr "WACS tiene trabajo más reciente que este proyecto no tiene."
+
+#: modwacsupload:rsdiverged
+msgid "Both WACS and this project have work the other lacks."
+msgstr "Tanto WACS como este proyecto tienen trabajo que el otro no tiene."
+
+#: modwacsupload:rsskipahead
+msgid "Skipped (newer work on WACS is set to skip). Download and merge it, or upload with merge."
+msgstr "Omitido (el trabajo más reciente en WACS está configurado para omitirse). Descárguelo y fusiónelo, o suba con fusión."
+
+#: modwacsupload:rsskipconflicts
+msgid "Skipped: merging the server's work would leave conflicts (conflicts are set to skip)."
+msgstr "Omitido: al fusionar el trabajo del servidor quedarían conflictos (los conflictos están configurados para omitirse)."
+
+#: modwacsupload:rsnotyours
+msgid "%s does not exist, and it can only be created in your own account or an organisation. Skipped."
+msgstr "%s no existe, y solo se puede crear en su propia cuenta o en una organización. Omitido."
+
+#: modwacsupload:rswouldmerge
+msgid "The server's work would be merged in first, then pushed."
+msgstr "Primero se fusionaría el trabajo del servidor y luego se enviaría."
+
+#: modwacsupload:rspushed
+msgid "Pushed to %s."
+msgstr "Enviado a %s."
+
+#: modwacsupload:rspushfailed
+msgid "Could not push to %s: %s"
+msgstr "No se pudo enviar a %s: %s"
+
+#: modwacsupload:rssummary
+msgid "%d project(s): %d pushed, %d already up to date, %d skipped, %d failed."
+msgstr "%d proyecto(s): %d enviados, %d ya actualizados, %d omitidos, %d con error."
+
+#: modwacsupload:rssummarycheck
+msgid "%d project(s) checked: %d would be pushed, %d up to date, %d would be skipped, %d have problems."
+msgstr "%d proyecto(s) revisados: %d se enviarían, %d actualizados, %d se omitirían, %d con problemas."
+
+#: wbcommandline:rsmissingvalue
+msgid "Option --%s needs a value"
+msgstr "La opción --%s necesita un valor"
+
+#: wbcommandline:rsflagnovalue
+msgid "Option --%s does not take a value"
+msgstr "La opción --%s no admite un valor"
+
+#: wbcommandline:rsextraargument
+msgid "Unexpected argument: %s"
+msgstr "Argumento inesperado: %s"
+
+#: wbhttp:rsunreachable
+msgid "Could not reach %s (%s)."
+msgstr "No se pudo conectar con %s (%s)."
+
+#: wbhttp:rsbadlogin
+msgid "The server did not accept the user name and password (or the saved login has expired)."
+msgstr "El servidor no aceptó el nombre de usuario y la contraseña (o el inicio de sesión guardado ha caducado)."
+
+#: wbhttp:rsforbidden
+msgid "Not allowed: %s"
+msgstr "No permitido: %s"
+
+#: wbhttp:rsnotfound
+msgid "Not found: %s"
+msgstr "No encontrado: %s"
+
+#: wbhttp:rsserversaid
+msgid "The server answered %d: %s"
+msgstr "El servidor respondió %d: %s"
+
+#: wbhttp:rstimedout
+msgid "no answer in time"
+msgstr "no hubo respuesta a tiempo"
+
+#: wbhttp:rsnamenotresolved
+msgid "server name not found; check the internet connection"
+msgstr "no se encontró el nombre del servidor; revise la conexión a internet"
+
+#: wbhttp:rscannotconnect
+msgid "could not connect"
+msgstr "no se pudo conectar"
+
+#: wbhttp:rsconnectionerror
+msgid "the connection was broken off"
+msgstr "se interrumpió la conexión"
+
+#: wbhttp:rssecurefailure
+msgid "the secure connection failed (certificate or TLS problem)"
+msgstr "falló la conexión segura (problema de certificado o TLS)"
+
+#: wbhttp:rsbadurl
+msgid "not a valid address"
+msgstr "no es una dirección válida"
+
+#: wbhttp:rswindowserror
+msgid "Windows error %d"
+msgstr "Error de Windows %d"
+
+#: wbimport:rsbranchrenamed
+msgid "The git branch was main; moved it to master, the only branch BTT-Writer uses."
+msgstr "La rama de git era main; se movió a master, la única rama que usa BTT-Writer."
+
+#: wbimport:rsbranchwouldrename
+msgid "The git branch is main, but BTT-Writer only uses master; it would be moved to master (dry run)."
+msgstr "La rama de git es main, pero BTT-Writer solo usa master; se movería a master (simulación)."
+
+#: wbimport:rsbranchboth
+msgid "The project is on git branch main, and a master branch exists too; not changed. BTT-Writer only uses master, so merge main into master by hand."
+msgstr "El proyecto está en la rama main de git y también existe una rama master; no se cambió. BTT-Writer solo usa master, así que fusione main en master manualmente."
+
+#: wbimport:rsbranchother
+msgid "The git branch is %s, not master; BTT-Writer only uses master."
+msgstr "La rama de git es %s, no master; BTT-Writer solo usa master."
+
+#: wbimport:rsdetached
+msgid "git is not on any branch (detached HEAD); BTT-Writer only uses master."
+msgstr "git no está en ninguna rama (HEAD desacoplado); BTT-Writer solo usa master."
+
+#: wbimport:rsbranchfailed
+msgid "Could not move the git branch from main to master: %s"
+msgstr "No se pudo mover la rama de git de main a master: %s"
+
+#: wbimport:rsgitlost
+msgid "The .git folder has lost %s, though its history is there (branch %s, last commit %s)."
+msgstr "A la carpeta .git le falta %s, aunque su historial está ahí (rama %s, último commit %s)."
+
+#: wbimport:rsgitwouldrepair
+msgid "Run rebuilds them; the history and the files are not changed."
+msgstr "Al ejecutar se reconstruyen; el historial y los archivos no se modifican."
+
+#: wbimport:rsgitrepaired
+msgid "Rebuilt them: git sees the project again, with its history; the files were not changed."
+msgstr "Se reconstruyeron: git vuelve a ver el proyecto, con su historial; los archivos no se modificaron."
+
+#: wbimport:rsgitstilldirty
+msgid "Files that differ from the last commit (BTT-Writer will commit them): %d."
+msgstr "Archivos que difieren del último commit (BTT-Writer los confirmará): %d."
+
+#: wbimport:rsgitrepairfailed
+msgid "Could not rebuild them (%s); left as it was."
+msgstr "No se pudieron reconstruir (%s); se dejó como estaba."
+
+#: wbimport:rsgitnobranch
+msgid "The .git folder has no HEAD and no branch to point it at, so it cannot be rebuilt here."
+msgstr "La carpeta .git no tiene HEAD ni una rama a la cual apuntar, por lo que no se puede reconstruir aquí."
+
+#: wbimport:rsnoprojectmanifest
+msgid "%s has no manifest.json. Skipped."
+msgstr "%s no tiene manifest.json. Omitido."
+
+#: wbimport:rsbadprojectmanifest
+msgid "%s: manifest.json could not be read (%s). Skipped."
+msgstr "%s: no se pudo leer manifest.json (%s). Omitido."
+
+#: wbimport:rsoldprojectversion
+msgid "%s is an older project format (version %s). Import it with BTT-Writer, which can upgrade it. Skipped."
+msgstr "%s tiene un formato de proyecto más antiguo (versión %s). Impórtelo con BTT-Writer, que puede actualizarlo. Omitido."
+
+#: wbimport:rsmigratedv7
+msgid "Upgraded the project format from version 7 to 8, as BTT-Writer does."
+msgstr "Se actualizó el formato del proyecto de la versión 7 a la 8, como lo hace BTT-Writer."
+
+#: wbimport:rsrenamedbranch
+msgid "Renamed the package's branch \"%s\" to \"master\", which BTT-Writer expects."
+msgstr "Se renombró la rama \"%s\" del paquete a \"master\", que es la que BTT-Writer espera."
+
+#: wbimport:rsnewprojectversion
+msgid "%s uses a newer project format (version %s) than this tool knows. Skipped."
+msgstr "%s usa un formato de proyecto más nuevo (versión %s) del que esta herramienta conoce. Omitido."
+
+#: wbimport:rsnogitrepo
+msgid "%s has no git history in the package. Skipped."
+msgstr "%s no tiene historial de git en el paquete. Omitido."
+
+#: wbimport:rsproject
+msgid "Project %s: %s, %s (last change %s)."
+msgstr "Proyecto %s: %s, %s (último cambio %s)."
+
+#: wbimport:rspackagedirty
+msgid "The package had uncommitted changes; they were committed in the temporary copy."
+msgstr "El paquete tenía cambios sin confirmar; se confirmaron en la copia temporal."
+
+#: wbimport:rsnewproject
+msgid "New project: will be added as %s."
+msgstr "Proyecto nuevo: se agregará como %s."
+
+#: wbimport:rsadded
+msgid "Imported %s."
+msgstr "Se importó %s."
+
+#: wbimport:rsexists
+msgid "A project named %s already exists."
+msgstr "Ya existe un proyecto llamado %s."
+
+#: wbimport:rslocalnotrepo
+msgid "The existing %s is not a git repository, so it cannot be merged. Use overwrite (the old copy is backed up) or fix it first."
+msgstr "%s existente no es un repositorio git, por lo que no se puede fusionar. Use sobrescribir (se hace copia de seguridad de la copia anterior) o corríjalo primero."
+
+#: wbimport:rslocalmidmerge
+msgid "The existing %s has an unfinished merge. Finish or abort it in BTT-Writer first. Nothing changed."
+msgstr "%s existente tiene una fusión sin terminar. Termínela o cancélela primero en BTT-Writer. No se cambió nada."
+
+#: wbimport:rslocaldirty
+msgid "The existing project has uncommitted changes. A merge will commit them first; the conflict list below does not include them."
+msgstr "El proyecto existente tiene cambios sin confirmar. Una fusión los confirmará primero; la lista de conflictos de abajo no los incluye."
+
+#: wbimport:rsuptodate
+msgid "The existing project already contains everything in the package. Nothing to import."
+msgstr "El proyecto existente ya contiene todo lo del paquete. No hay nada que importar."
+
+#: wbimport:rsfastforward
+msgid "The package only adds newer work to the existing project. A merge will have no conflicts."
+msgstr "El paquete solo agrega trabajo más reciente al proyecto existente. Una fusión no tendrá conflictos."
+
+#: wbimport:rscleanmerge
+msgid "Both copies have changes. A merge will combine them with no conflicts."
+msgstr "Ambas copias tienen cambios. Una fusión los combinará sin conflictos."
+
+#: wbimport:rsunrelated
+msgid "The two copies were started separately (no shared history), so every chunk that differs will conflict."
+msgstr "Las dos copias se iniciaron por separado (sin historial compartido), por lo que cada fragmento que difiera tendrá conflicto."
+
+#: wbimport:rsconflictcount
+msgid "A merge would leave %d chunk(s) in conflict, to be resolved in BTT-Writer: %s"
+msgstr "Una fusión dejaría %d fragmento(s) en conflicto, que se resolverán en BTT-Writer: %s"
+
+#: wbimport:rsconflictfiles
+msgid "Other files in conflict: %s"
+msgstr "Otros archivos en conflicto: %s"
+
+#: wbimport:rsreopened
+msgid "These finished chunks would be marked unfinished again: %s"
+msgstr "Estos fragmentos terminados volverían a marcarse como sin terminar: %s"
+
+#: wbimport:rsmanifestmerged
+msgid "manifest.json differs; it is merged automatically (translators and finished chunks are combined)."
+msgstr "manifest.json difiere; se fusiona automáticamente (se combinan los traductores y los fragmentos terminados)."
+
+#: wbimport:rschooseaction
+msgid "To import it, choose merge or overwrite."
+msgstr "Para importarlo, elija fusionar o sobrescribir."
+
+#: wbimport:rsstopped
+msgid "%s already exists. Choose merge or overwrite to import it. Nothing changed."
+msgstr "%s ya existe. Elija fusionar o sobrescribir para importarlo. No se cambió nada."
+
+#: wbimport:rspreflightfailed
+msgid "Could not check the merge: %s"
+msgstr "No se pudo revisar la fusión: %s"
+
+#: wbimport:rssnapshot
+msgid "Committed uncommitted changes in the existing project first."
+msgstr "Primero se confirmaron los cambios sin confirmar del proyecto existente."
+
+#: wbimport:rsmerged
+msgid "Merged into %s."
+msgstr "Fusionado en %s."
+
+#: wbimport:rsmergedconflicts
+msgid "Merged into %s with %d chunk(s) in conflict. Open the project in BTT-Writer to choose between the versions."
+msgstr "Fusionado en %s con %d fragmento(s) en conflicto. Abra el proyecto en BTT-Writer para elegir entre las versiones."
+
+#: wbimport:rsmergefailed
+msgid "Merge failed: %s. The existing project was left as it was."
+msgstr "Falló la fusión: %s. El proyecto existente se dejó como estaba."
+
+#: wbimport:rsbackedup
+msgid "The existing project was moved to %s."
+msgstr "El proyecto existente se movió a %s."
+
+#: wbimport:rsoverwritten
+msgid "Replaced %s with the imported copy."
+msgstr "Se reemplazó %s con la copia importada."
+
+#: wbimport:rsexistsearlier
+msgid "%s is also in an earlier package; checking against that result."
+msgstr "%s también está en un paquete anterior; se revisa contra ese resultado."
+
+#: wbimport:rsstacked
+msgid "These chunks already have an unresolved conflict, so the conflicts will stack. BTT-Writer will offer every version to choose from: %s"
+msgstr "Estos fragmentos ya tienen un conflicto sin resolver, por lo que los conflictos se acumularán. BTT-Writer ofrecerá todas las versiones para elegir: %s"
+
+#: wbimport:rsrenamedbranchrepo
+msgid "Renamed the downloaded branch \"%s\" to \"master\", which BTT-Writer expects."
+msgstr "Se renombró la rama descargada \"%s\" a \"master\", que es la que BTT-Writer espera."
+
+#: wbimport:rsnogitreporepo
+msgid "%s has no git history on the server. Skipped."
+msgstr "%s no tiene historial de git en el servidor. Omitido."
+
+#: wbimport:rsrepodirty
+msgid "The downloaded copy had uncommitted changes; they were committed in the temporary copy."
+msgstr "La copia descargada tenía cambios sin confirmar; se confirmaron en la copia temporal."
+
+#: wbimport:rsuptodaterepo
+msgid "The existing project already contains everything in the server copy. Nothing to download."
+msgstr "El proyecto existente ya contiene todo lo de la copia del servidor. No hay nada que descargar."
+
+#: wbimport:rsfastforwardrepo
+msgid "The server copy only adds newer work to the existing project. A merge will have no conflicts."
+msgstr "La copia del servidor solo agrega trabajo más reciente al proyecto existente. Una fusión no tendrá conflictos."
+
+#: wbimport:rsexistsearlierrepo
+msgid "%s is also in an earlier repo; checking against that result."
+msgstr "%s también está en un repositorio anterior; se revisa contra ese resultado."
+
+#: wbimport:rssimulatefailedrepo
+msgid "Could not simulate downloading %s; checks of later repos for this project may be incomplete."
+msgstr "No se pudo simular la descarga de %s; las revisiones de repositorios posteriores para este proyecto pueden estar incompletas."
+
+#: wbimport:rswouldskipconflicts
+msgid "%s would not be merged, because it would leave conflicts and conflicts are set to skip."
+msgstr "%s no se fusionaría, porque dejaría conflictos y los conflictos están configurados para omitirse."
+
+#: wbimport:rsskippedconflicts
+msgid "%s was not merged, because it would leave conflicts (conflicts are set to skip). The existing project was not changed."
+msgstr "%s no se fusionó, porque habría dejado conflictos (los conflictos están configurados para omitirse). El proyecto existente no se modificó."
+
+#: wbimport:rssimulatefailed
+msgid "Could not simulate importing %s; checks of later packages for this project may be incomplete."
+msgstr "No se pudo simular la importación de %s; las revisiones de paquetes posteriores para este proyecto pueden estar incompletas."
+
+#: wblibraryupdate:rsfetching
+msgid "Downloading %s: %d of %d..."
+msgstr "Descargando %s: %d de %d..."
+
+#: wblibraryupdate:rsfetchfailed
+msgid "Could not download %s (%s); it is left out, as BTT-Writer leaves it out."
+msgstr "No se pudo descargar %s (%s); se deja fuera, como lo hace BTT-Writer."
+
+#: wblibraryupdate:rsbadcatalog
+msgid "%s is not what was expected (%s)."
+msgstr "%s no es lo que se esperaba (%s)."
+
+#: wblibraryupdate:rsindexing
+msgid "Writing %s..."
+msgstr "Escribiendo %s..."
+
+#: wblibraryupdate:rsinvalidentry
+msgid "%s: an entry BTT-Writer would refuse (%s); it stops there, and so does this."
+msgstr "%s: una entrada que BTT-Writer rechazaría (%s); se detiene ahí, y esto también."
+
+#: wblibraryupdate:rslanguagesfailed
+msgid "The language update stopped at %s, as BTT-Writer's does; nothing was changed."
+msgstr "La actualización de idiomas se detuvo en %s, como la de BTT-Writer; no se cambió nada."
+
+#: wblibraryupdate:rsnosqlite
+msgid "No SQLite library was found on this computer, so index.sqlite cannot be written."
+msgstr "No se encontró ninguna biblioteca SQLite en este equipo, por lo que no se puede escribir index.sqlite."
+
+#: wblibraryupdate:rsnoinput
+msgid "The language database was not found: %s"
+msgstr "No se encontró la base de datos de idiomas: %s"
+
+#: wblibraryupdate:rscannotcopy
+msgid "Cannot write %s: %s"
+msgstr "No se puede escribir %s: %s"
+
+#: wblibraryupdate:rsrunning
+msgid "BTT-Writer is running (%s). Close it first: it keeps index.sqlite in memory and would write the old one back. Nothing was changed."
+msgstr "BTT-Writer se está ejecutando (%s). Ciérrelo primero: mantiene index.sqlite en memoria y volvería a escribir el antiguo. No se cambió nada."
+
+#: wblibraryupdate:rsusinginplace
+msgid "Updating %s (SQLite %s)."
+msgstr "Actualizando %s (SQLite %s)."
+
+#: wblibraryupdate:rsusingcopy
+msgid "From %s, written to %s (SQLite %s)."
+msgstr "Desde %s, escrito en %s (SQLite %s)."
+
+#: wblibraryupdate:rsusingcheck
+msgid "Checking what an update of %s would change (SQLite %s)."
+msgstr "Revisando qué cambiaría una actualización de %s (SQLite %s)."
+
+#: wblibraryupdate:rsnochanges
+msgid "%s: no changes."
+msgstr "%s: sin cambios."
+
+#: wblibraryupdate:rsadded
+msgid "%s added: %d"
+msgstr "%s agregados: %d"
+
+#: wblibraryupdate:rsremoved
+msgid "%s removed: %d"
+msgstr "%s eliminados: %d"
+
+#: wblibraryupdate:rschanged
+msgid "%s changed: %d"
+msgstr "%s modificados: %d"
+
+#: wblibraryupdate:rschangedline
+msgid "  * %s  %s  ->  %s"
+msgstr "  * %s  %s  ->  %s"
+
+#: wblibraryupdate:rstargetlanguages
+msgid "Target languages"
+msgstr "Idiomas de destino"
+
+#: wblibraryupdate:rstemplanguages
+msgid "Temporary languages"
+msgstr "Idiomas temporales"
+
+#: wblibraryupdate:rsquestions
+msgid "New-language questions"
+msgstr "Preguntas de idioma nuevo"
+
+#: wblibraryupdate:rssourcelanguages
+msgid "Source languages"
+msgstr "Idiomas fuente"
+
+#: wblibraryupdate:rsresources
+msgid "Resources (language/project/resource)"
+msgstr "Recursos (idioma/proyecto/recurso)"
+
+#: wblibraryupdate:rstook
+msgid "Done in %.1f s."
+msgstr "Listo en %.1f s."
+
+#: wblibraryupdate:rscheckonly
+msgid "Check only: nothing was written."
+msgstr "Solo revisión: no se escribió nada."
+
+#: wblibraryupdate:rswrote
+msgid "Written to %s."
+msgstr "Escrito en %s."
+
+#: wblibraryupdate:rsreplaced
+msgid "%s updated; the old one is kept as %s."
+msgstr "%s actualizado; el anterior se conserva como %s."
+
+#: wblibraryupdate:rsreplacefailed
+msgid "Could not put the new index.sqlite in place (%s). %s is unchanged."
+msgstr "No se pudo colocar el nuevo index.sqlite (%s). %s no ha cambiado."
+
+#: wblibraryupdate:rsprojectsloselanguage
+msgid "Projects in %s whose language code this update removes (BTT-Writer will no longer know the code; the projects keep it):"
+msgstr "Proyectos en %s cuyo código de idioma elimina esta actualización (BTT-Writer ya no conocerá el código; los proyectos lo conservan):"
+
+#: wblibraryupdate:rsprojectline
+msgid "  %s: %s"
+msgstr "  %s: %s"
+
+#: wbmodule:rsmissingoption
+msgid "Missing required option: %s (%s)"
+msgstr "Falta una opción obligatoria: %s (%s)"
+
+#: wbmodule:rsbadchoice
+msgid "Option --%s must be one of: %s"
+msgstr "La opción --%s debe ser una de: %s"
+
+#: wbmodule:rsnochoices
+msgid "This module has no list to choose from for %s."
+msgstr "Este módulo no tiene una lista de opciones para %s."
+
+#: workbenchform:rsapptitle
+msgid "BTT Workbench"
+msgstr "BTT Workbench"
+
+#: workbenchform:rslanguage
+msgid "Language:"
+msgstr "Idioma:"
+
+#: workbenchform:rsmodules
+msgid "Modules"
+msgstr "Módulos"
+
+#: workbenchform:rsbrowse
+msgid "Browse…"
+msgstr "Examinar…"
+
+#: workbenchform:rsrun
+msgid "Run"
+msgstr "Ejecutar"
+
+#: workbenchform:rscheck
+msgid "Check"
+msgstr "Revisar"
+
+#: workbenchform:rscheckok
+msgid "Check finished. Nothing has been changed yet; press Run to go ahead."
+msgstr "Revisión terminada. Aún no se ha cambiado nada; presione Ejecutar para continuar."
+
+#: workbenchform:rscheckfail
+msgid "Check found problems (code %d). Nothing has been changed."
+msgstr "La revisión encontró problemas (código %d). No se ha cambiado nada."
+
+#: workbenchform:rswarningprefix
+msgid "Warning: "
+msgstr "Advertencia: "
+
+#: workbenchform:rserrorprefix
+msgid "Error: "
+msgstr "Error: "
+
+#: workbenchform:rsfinishedok
+msgid "Finished."
+msgstr "Terminado."
+
+#: workbenchform:rsfinishedfail
+msgid "Finished with errors (code %d)."
+msgstr "Terminado con errores (código %d)."
+
+#: workbenchform:rsnomodules
+msgid "No modules are installed."
+msgstr "No hay módulos instalados."
+
+#: workbenchform:rsfind
+msgid "Find"
+msgstr "Buscar"
+
+#: workbenchform:rsselectall
+msgid "Select all"
+msgstr "Seleccionar todo"
+
+#: workbenchform:rsselectnone
+msgid "None"
+msgstr "Ninguno"
+
+#: workbenchform:rsfound
+msgid "Found %d item(s). Check the ones you want, then press Run."
+msgstr "Se encontraron %d elemento(s). Marque los que desee y presione Ejecutar."
+
+#: workbenchform:rsworking
+msgid "Working…"
+msgstr "Trabajando…"
+
+#: workbenchform:rsstillrunning
+msgid "A task is still running. Quit anyway?"
+msgstr "Hay una tarea en ejecución. ¿Salir de todos modos?"
+
+#: workbenchform:rssavereport
+msgid "Save report…"
+msgstr "Guardar informe…"
+
+#: workbenchform:rssavereporttitle
+msgid "Save the report as a text file"
+msgstr "Guardar el informe como archivo de texto"
+
+#: workbenchform:rstextfiles
+msgid "Text files (*.txt)|*.txt|All files|*"
+msgstr "Archivos de texto (*.txt)|*.txt|Todos los archivos|*"
+
+#: workbenchform:rssavefailed
+msgid "Could not save the report to %s: %s"
+msgstr "No se pudo guardar el informe en %s: %s"
+
+#: workbenchform:rsreporttitle
+msgid "BTT Workbench %s - %s (%s)"
+msgstr "BTT Workbench %s - %s (%s)"
+
+#: workbenchform:rsreportdate
+msgid "Date: %s"
+msgstr "Fecha: %s"
+
+#: workbenchform:rsreportcheck
+msgid "Check only: nothing was changed."
+msgstr "Solo revisión: no se cambió nada."
+
+#: workbenchform:rsreportfind
+msgid "Find: %s"
+msgstr "Buscar: %s"
+
+#: workbenchform:rsreportoptions
+msgid "Options: %s"
+msgstr "Opciones: %s"

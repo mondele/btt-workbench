@@ -8,6 +8,10 @@ Each release's section below is also its release notes on GitHub.
 
 ## Unreleased
 
+- Spanish translation (`locale/es`), machine-made for testing the
+  translation support; it needs review by a Spanish speaker before it is
+  relied on. `btw --lang es`, or the GUI's language setting.
+
 - tstudio-import: a package whose entries are marked as made on macOS
   (as FPC's zip code writes them there) no longer unpacks with unreadable
   files ("Permission denied" on manifest.json).
