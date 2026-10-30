@@ -6,7 +6,8 @@ unit ModTextCheck;
    Versaw, Wycliffe Associates) on the text projects in targetTranslations,
    read straight from the chunk files (WBUsfmChecks). Each finding names
    verifyUSFM's check number, so results can be compared with its
-   issues.txt. Filters as in projects; --skip turns off groups of checks
+   issues.txt; Workbench's own quote-mark checks (WBQuoteMarks) give their
+   names instead. Filters as in projects; --skip turns off groups of checks
    (as verifyUSFM's suppress settings do). Changes nothing. *)
 
 interface
@@ -28,7 +29,8 @@ type
 implementation
 
 uses
-  WBSuggest,  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification, WBSources;
+  WBSuggest,  fpjson, WBJson, WBDataPaths, WBProject, WBUsfmChecks, WBVersification, WBSources,
+  WBQuoteMarks;
 
 resourcestring
   rsTitle = 'Translation text checks';
@@ -44,7 +46,7 @@ resourcestring
   rsOptSkip = 'Skip checks';
   rsOptSkipHelp = 'Groups of checks to leave out, comma-separated: structure, ' +
     'markers, punctuation, quotes, numbers, ascii, caps, source, words, headings, ' +
-    'footnotes, brackets';
+    'footnotes, brackets, quote-marks';
   rsOptProblemsOnly = 'Problems only';
   rsOptProblemsOnlyHelp = 'List only projects with findings';
   rsOptTargetDir = 'Projects folder';
@@ -87,6 +89,8 @@ resourcestring
   rsSpaceBeforePunct = 'Space before phrase-ending punctuation: %s';
   rsFreeFloating = 'Free-floating quote or bracket: %s';
   rsPunctAfterQuote = 'Punctuation after the closing quote: %s';
+  rsPunctAfterQuoteSource = 'Punctuation after the closing quote, as in the source verse ' +
+    '(%s): %s more verse(s), not listed';
   rsWordMedialPunct = 'Punctuation inside a word: %s';
   rsBackslash = 'Stray backslash in the text: %s';
   rsUnusualChar = 'Unusual characters in the text: %s';
@@ -126,6 +130,19 @@ resourcestring
   rsOptionalText = 'Brackets or parentheses in optional verses (optional or alternative text?): %s';
   rsFootnoteCommonHere = 'Brackets or parentheses where footnotes are common: %s';
   rsUntaggedFootnote = 'Optional text or untagged footnotes in brackets: %s';
+  rsQuoteStyle = 'Quote marks unlike the source''s, or mixed: %s here; %s in %s';
+  rsQuoteStyleMixed = 'Mixed quote marks: %s';
+  rsQuotePunct = 'Sentence-ending punctuation after the closing quote (”.) ' +
+    'rather than before it (.”): %d%% of %d here; %d%% of %d in %s';
+  rsQuotePunctMixed = 'Sentence-ending punctuation after the closing quote (”.) ' +
+    'rather than before it (.”): %d%% of %d (mixed)';
+  rsGuillemetSpacing = 'Guillemets with a space inside (« … ») rather than without ' +
+    '(«…»): %d%% of %d here; %d%% of %d in %s';
+  rsGuillemetSpacingMixed = 'Guillemets with a space inside (« … ») rather than ' +
+    'without («…»): %d%% of %d (mixed)';
+  rsQuotePairs = 'Quote marks that do not pair up within the chapter (where the ' +
+    'source''s do): %s';
+  rsFloatingQuote = 'Free-floating quote mark: %s';
   rsComparedWith = 'Compared with source %s.';
   rsNoSource = 'No source text found to compare with; short verses are judged by length.';
 
@@ -200,6 +217,12 @@ begin
     ciOptionalText: Result := rsOptionalText;
     ciFootnoteCommonHere: Result := rsFootnoteCommonHere;
     ciUntaggedFootnote: Result := rsUntaggedFootnote;
+    ciPunctAfterQuoteSource: Result := rsPunctAfterQuoteSource;
+    ciQuoteStyle: Result := rsQuoteStyle;
+    ciQuotePunctStyle: Result := rsQuotePunct;
+    ciGuillemetSpacing: Result := rsGuillemetSpacing;
+    ciQuotePairs: Result := rsQuotePairs;
+    ciFloatingQuote: Result := rsFloatingQuote;
   end;
 end;
 
@@ -229,6 +252,20 @@ begin
   end;
 end;
 
+{ A share message from "part/whole" counts: here, and the source's with
+  its name when Parts has them. }
+function ShareMessage(const WithSource, Mixed: string; const Parts: TStringArray): string;
+var
+  HereC, ThereC: TStringArray;
+begin
+  HereC := Parts[0].Split(['/']);
+  if Length(Parts) < 3 then
+    Exit(Format(Mixed, [Percent(StrToInt(HereC[0]), StrToInt(HereC[1])), StrToInt(HereC[1])]));
+  ThereC := Parts[1].Split(['/']);
+  Result := Format(WithSource, [Percent(StrToInt(HereC[0]), StrToInt(HereC[1])), StrToInt(HereC[1]),
+    Percent(StrToInt(ThereC[0]), StrToInt(ThereC[1])), StrToInt(ThereC[1]), Parts[2]]);
+end;
+
 { Messages for the hits, one line per check (missing verses: per chapter). }
 procedure ReportHits(const Hits: TCheckHits; R: TWBReporter);
 var
@@ -246,6 +283,32 @@ begin
         if Id = ciMissingVerses then
         begin
           R.Warn(Format(TemplateOf(Id), [H.Ref, H.Detail]) + ' [' + CheckNumber(Id) + ']');
+          Continue;
+        end;
+        Parts := H.Detail.Split([#9]);
+        case Id of
+          ciPunctAfterQuoteSource:
+            Item := Format(TemplateOf(Id), [Parts[1], Parts[0]]);
+          ciQuoteStyle:
+            if Length(Parts) < 3 then
+              Item := Format(rsQuoteStyleMixed, [Parts[0]])
+            else
+              Item := Format(TemplateOf(Id), [Parts[0], Parts[1], Parts[2]]);
+          ciQuotePunctStyle:
+            Item := ShareMessage(rsQuotePunct, rsQuotePunctMixed, Parts);
+          ciGuillemetSpacing:
+            Item := ShareMessage(rsGuillemetSpacing, rsGuillemetSpacingMixed, Parts);
+        else
+          Item := '';
+        end;
+        if Item <> '' then
+        begin
+          R.Warn(Item + ' [' + CheckNumber(Id) + ']');
+          Continue;
+        end;
+        if Id = ciQuotePairs then
+        begin
+          Items := Concat(Items, [H.Ref + ' (' + H.Detail + ')']);
           Continue;
         end;
         if Id = ciStraightQuotes then

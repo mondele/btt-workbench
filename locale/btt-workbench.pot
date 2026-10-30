@@ -1309,7 +1309,7 @@ msgstr ""
 msgid ""
 "Groups of checks to leave out, comma-separated: structure, markers, "
 "punctuation, quotes, numbers, ascii, caps, source, words, headings, "
-"footnotes, brackets"
+"footnotes, brackets, quote-marks"
 msgstr ""
 
 #: modtextcheck:rsoptproblemsonlyhelp
@@ -1438,6 +1438,12 @@ msgstr ""
 
 #: modtextcheck:rspunctafterquote
 msgid "Punctuation after the closing quote: %s"
+msgstr ""
+
+#: modtextcheck:rspunctafterquotesource
+msgid ""
+"Punctuation after the closing quote, as in the source verse (%s): %s more "
+"verse(s), not listed"
 msgstr ""
 
 #: modtextcheck:rswordmedialpunct
@@ -1594,6 +1600,48 @@ msgstr ""
 
 #: modtextcheck:rsuntaggedfootnote
 msgid "Optional text or untagged footnotes in brackets: %s"
+msgstr ""
+
+#: modtextcheck:rsquotestyle
+msgid "Quote marks unlike the source's, or mixed: %s here; %s in %s"
+msgstr ""
+
+#: modtextcheck:rsquotestylemixed
+msgid "Mixed quote marks: %s"
+msgstr ""
+
+#: modtextcheck:rsquotepunct
+msgid ""
+"Sentence-ending punctuation after the closing quote (”.) rather than before "
+"it (.”): %d%% of %d here; %d%% of %d in %s"
+msgstr ""
+
+#: modtextcheck:rsquotepunctmixed
+msgid ""
+"Sentence-ending punctuation after the closing quote (”.) rather than before "
+"it (.”): %d%% of %d (mixed)"
+msgstr ""
+
+#: modtextcheck:rsguillemetspacing
+msgid ""
+"Guillemets with a space inside (« … ») rather than without («…»): %d%% of %d "
+"here; %d%% of %d in %s"
+msgstr ""
+
+#: modtextcheck:rsguillemetspacingmixed
+msgid ""
+"Guillemets with a space inside (« … ») rather than without («…»): %d%% of %d "
+"(mixed)"
+msgstr ""
+
+#: modtextcheck:rsquotepairs
+msgid ""
+"Quote marks that do not pair up within the chapter (where the source's do): "
+"%s"
+msgstr ""
+
+#: modtextcheck:rsfloatingquote
+msgid "Free-floating quote mark: %s"
 msgstr ""
 
 #: modtextcheck:rscomparedwith

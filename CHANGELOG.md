@@ -6,6 +6,21 @@ commit count (see [README](README.md#building)).
 
 Each release's section below is also its release notes on GitHub.
 
+## Unreleased
+
+- text-check: quote-mark checks of Workbench's own (`--skip quote-marks`
+  turns them off). A book's quote style is compared with its source's,
+  with how consistently the book keeps to its own: the marks used (“…”,
+  „…“, «…», 「…」, "…", ''…''), sentence-ending punctuation after or before
+  the closing quote, and spaces inside guillemets. Also chapters whose
+  quote marks do not pair up where the source's do, and free-floating
+  ‹ „ ‚ 「 」, which usfm-tools' checks leave out.
+
+- text-check: punctuation after the closing quote (verifyUSFM's 50) is no
+  longer listed for a verse whose source verse has it too; such verses
+  are counted on one line. Of the Chibangwe books (pt-br sources), 861 of
+  912 were like their source.
+
 ## 0.3.0+60 — 2026-10-30
 
 - macOS: BTT Workbench runs on Macs (Apple Silicon and Intel, macOS 11

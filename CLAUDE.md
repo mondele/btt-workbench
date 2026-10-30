@@ -192,6 +192,17 @@ linker warnings are harmless.
   `WBPyText` (Python str semantics, `isCaseless`), `WBUnicodeNames`
   (generated from Python's unicodedata), `WBVersification` (generated
   from usfm_verses.py), `wbusfmchecks_enulb.inc` (footnotes.py list).
+- `WBQuoteMarks` (text-check group `quote-marks`) is Workbench's own, not
+  a port: never fold it into verifyUSFM's regexes, which must stay as
+  upstream. Quote style (marks, punctuation before/after the closing
+  quote, spaces inside guillemets) is counted for the book and its
+  source; reported when the main style differs from the source's, or the
+  book keeps to its own under 90% and over 10 points less than the source
+  keeps to its own (the pt-br sources are mixed themselves: Mark 73%
+  punctuation after the quote). Only the double level: ’ is the
+  apostrophe. Check 50 with a source counts, instead of listing, verses
+  whose source verse also matches; without one it is verifyUSFM's.
+  Calibrated on the Chibangwe books, October 2026.
 - Regexes use `WBRegExpr`, an altered copy of FPC's regexpr (marked as
   such, as its licence requires) whose `\w` excludes combining marks and
   whose `\s`/`\d` are Unicode, like Python's; do not switch back to

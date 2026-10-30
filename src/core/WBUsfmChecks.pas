@@ -39,7 +39,13 @@ unit WBUsfmChecks;
    section headings, so the section-title tests that need them (76.1
    inside verses) never fire, as with verifyUSFM given such a source.
    Not ported: paragraph and poetry structure, book and chapter titles,
-   chapter counts, \toc3, the said-word list and the output files. *)
+   chapter counts, \toc3, the said-word list and the output files.
+
+   Not verifyUSFM's, so the fixtures leave them alone: with a source, 50
+   (punctuation after the closing quote) is only counted for a verse
+   whose source verse has the same (ciPunctAfterQuoteSource); and the
+   quote-marks group (WBQuoteMarks): quote style against the source's,
+   chapters whose quote marks do not pair up, free-floating ‹ „ ‚ 「 」. *)
 
 interface
 
@@ -48,7 +54,7 @@ uses
 
 type
   TCheckGroup = (cgStructure, cgMarkers, cgPunctuation, cgQuotes, cgNumbers, cgAscii,
-    cgCaps, cgSource, cgWords, cgHeadings, cgFootnotes, cgBrackets);
+    cgCaps, cgSource, cgWords, cgHeadings, cgFootnotes, cgBrackets, cgQuoteMarks);
   TCheckGroups = set of TCheckGroup;
 
   TCheckId = (
@@ -64,7 +70,7 @@ type
     ciUnmatchedParen, ciUnmatchedAngle, ciUnmatchedSquare, ciUnmatchedBrace,
     { punctuation }
     ciPunctuation, ciSpaceBeforePunct, ciFreeFloating, ciPunctAfterQuote,
-    ciWordMedialPunct, ciBackslash, ciUnusualChar, ciOrphanPunct, ciStartsWithPunct,
+    ciPunctAfterQuoteSource, ciWordMedialPunct, ciBackslash, ciUnusualChar, ciOrphanPunct, ciStartsWithPunct,
     ciCurlyBraces,
     { quotes }
     ciRepeatedQuotes, ciStraightQuotes,
@@ -82,7 +88,9 @@ type
     ciSectionTitle, ciSectionTitleAtEnd, ciEmptySectionTitle, ciLoneSection,
     { footnotes }
     ciFootnoteReference, ciFootnoteWhereSource, ciOptionalText,
-    ciFootnoteCommonHere, ciUntaggedFootnote);
+    ciFootnoteCommonHere, ciUntaggedFootnote,
+    { quote marks (Workbench's own, WBQuoteMarks) }
+    ciQuoteStyle, ciQuotePunctStyle, ciGuillemetSpacing, ciQuotePairs, ciFloatingQuote);
 
   TCheckHit = record
     Id: TCheckId;
@@ -152,7 +160,7 @@ implementation
 
 uses
   WBRegExpr, Character, Generics.Collections, WBVersification,
-  WBSentences, WBSectionTitles;
+  WBSentences, WBSectionTitles, WBQuoteMarks;
 
 type
   TStrMap = specialize TDictionary<string, string>;
@@ -181,6 +189,7 @@ const
     (Number: '56.2'; Group: cgBrackets), (Number: '56.3'; Group: cgBrackets),
     (Number: '45'; Group: cgPunctuation), (Number: '48'; Group: cgPunctuation),
     (Number: '49'; Group: cgPunctuation), (Number: '50'; Group: cgPunctuation),
+    (Number: '50'; Group: cgPunctuation),
     (Number: '52'; Group: cgPunctuation), (Number: '52.2'; Group: cgPunctuation),
     (Number: '52.3'; Group: cgPunctuation), (Number: '58'; Group: cgPunctuation),
     (Number: '58.1'; Group: cgPunctuation), (Number: '75.1'; Group: cgPunctuation),
@@ -200,11 +209,16 @@ const
     (Number: '76.2'; Group: cgHeadings), (Number: '73.6'; Group: cgHeadings),
     (Number: '43'; Group: cgFootnotes), (Number: '43.1'; Group: cgFootnotes),
     (Number: '43.2'; Group: cgFootnotes), (Number: '43.3'; Group: cgFootnotes),
-    (Number: '43.4'; Group: cgFootnotes));
+    (Number: '43.4'; Group: cgFootnotes),
+    (Number: 'quote-style'; Group: cgQuoteMarks),
+    (Number: 'quote-punctuation'; Group: cgQuoteMarks),
+    (Number: 'guillemet-spaces'; Group: cgQuoteMarks),
+    (Number: 'quote-pairs'; Group: cgQuoteMarks),
+    (Number: 'floating-quote'; Group: cgQuoteMarks));
 
   GroupNames: array[TCheckGroup] of string = ('structure', 'markers',
     'punctuation', 'quotes', 'numbers', 'ascii', 'caps', 'source', 'words',
-    'headings', 'footnotes', 'brackets');
+    'headings', 'footnotes', 'brackets', 'quote-marks');
 
   { usfmReader.all_markers }
   AllMarkers =
@@ -714,6 +728,7 @@ type
     Footnoted, EnUlbFootnoted: TStrMap;   // "BOOK c:v" of footnoted verses
     SrcBookLen, BookLen: Int64;
     SuppressAscii: Boolean;
+    PunctAfterQuoteInSource: Integer;     // 50s left out: the source verse has one too
     { verifyUSFM's State }
     Chapter, Verse, LastVerse, BridgeStart, BridgeEnd: Integer;
     Reference: string;      // "BOOK c:v"
@@ -740,6 +755,7 @@ type
     procedure TakeText(const T: UnicodeString; Footnote: Boolean);
     procedure ReportUnmatched(const T: UnicodeString);
     procedure ReportPunctuation(const T: UnicodeString);
+    function SourceHas(R: TRe): Boolean;
     procedure ReportFootnotes(const T: UnicodeString);
     procedure ReportNumbers(const T: UnicodeString; Footnote: Boolean);
     procedure ReportCaps(const T: UnicodeString);
@@ -1070,6 +1086,15 @@ begin
   Result := False;
 end;
 
+{ The source verse of the current verse matches R. }
+function TChecker.SourceHas(R: TRe): Boolean;
+var
+  S: string;
+begin
+  Result := (Verse > 0) and SourceText.TryGetValue(IntToStr(Chapter) + ':' + IntToStr(Verse), S) and
+    Found(R, U(S));
+end;
+
 procedure TChecker.ReportPunctuation(const T: UnicodeString);
 var
   MS, ML: Integer;
@@ -1095,8 +1120,14 @@ begin
   if HasAny(T, '''"’”»›') and Found(reOutsideQuote, T) then
   begin
     I := Re(reOutsideQuote).MatchPos[0];
+    S := Re(reOutsideQuote).Match[1];
+    { Not verifyUSFM's: a verse whose source verse has the same is only
+      counted (ciPunctAfterQuoteSource). Without a source, as verifyUSFM. }
     if Copy(T, I + 1, 3) <> '...' then
-      Hit(ciPunctAfterQuote, ShortRef, A(Re(reOutsideQuote).Match[1]));
+      if SourceHas(reOutsideQuote) then
+        Inc(PunctAfterQuoteInSource)
+      else
+        Hit(ciPunctAfterQuote, ShortRef, A(S));
   end;
   Got := HasAny(T, '[]()''"«“‘’”»›');
   if not Got then
@@ -1471,6 +1502,8 @@ begin
 end;
 
 procedure TChecker.TakeText(const T: UnicodeString; Footnote: Boolean);
+var
+  Q: UnicodeString;
 begin
   if Found(reBadMarker, T) then
     Hit(ciUnsupportedMarker, ShortRef, A(Re(reBadMarker).Match[0]));
@@ -1480,6 +1513,8 @@ begin
   if Pos('Conflict Parsing Error', T) > 0 then
     Hit(ciConflictParsingError, ShortRef, '');
   ReportPunctuation(T);
+  if FloatingQuote(T, Q) then
+    Hit(ciFloatingQuote, ShortRef, A(Q));
   if Found(rePeriod, T) then
   begin
     if Length(T) <= Re(rePeriod).MatchLen[0] + 1 then
@@ -1725,6 +1760,138 @@ begin
 end;
 
 { --- the project --- }
+
+{ Workbench's own quote-mark checks (WBQuoteMarks) over the whole book:
+  its quote style against the source's, and chapters whose quote marks do
+  not pair up where the source's do. A style is reported when it is not
+  the source's, or when under MinShare percent of the book keeps to it and
+  the source keeps to its own more (by over Slack points: pt-br sources are
+  themselves mixed); only with MinMarks or more marks. }
+procedure ReportQuoteMarks(C: TChecker; const Texts: array of UnicodeString;
+  const ChapterOf: array of Integer; Source: TSourceChunking);
+const
+  MinMarks = 10;
+  MinShare = 90;
+  Slack = 10;
+type
+  TChapterTexts = specialize TDictionary<Integer, UnicodeString>;
+var
+  Here, There: TQuoteProfile;
+  Chapters: array of Integer;
+  HereText: array of UnicodeString;
+  SourceText: TChapterTexts;
+  Text, S: UnicodeString;
+  D: string;
+  I, J, Ch, N, SrcN: Integer;
+  SrcOk, Unlike: Boolean;
+
+  { Detail for a two-way count: "part/whole", and the source's after a tab. }
+  function Split(HereA, HereB, ThereA, ThereB: Integer): string;
+  begin
+    Result := IntToStr(HereA) + '/' + IntToStr(HereA + HereB);
+    if SrcOk then
+      Result := Result + #9 + IntToStr(ThereA) + '/' + IntToStr(ThereA + ThereB) + #9 + C.SourceId;
+  end;
+
+  { The larger share of a two-way count, in percent. }
+  function Kept(A, B: Integer): Integer;
+  begin
+    Result := Percent(A, A + B);
+    if Result < 50 then
+      Result := 100 - Result;
+  end;
+
+  { A share under MinShare, and clearly under the source's when there is one. }
+  function Mixed(Share, SourceShare: Integer): Boolean;
+  begin
+    Result := (Share < MinShare) and (not SrcOk or (Share + Slack < SourceShare));
+  end;
+
+begin
+  Here := Default(TQuoteProfile);
+  There := Default(TQuoteProfile);
+  Chapters := nil;
+  HereText := nil;
+  for I := 0 to High(Texts) do
+  begin
+    Text := WithoutFootnotes(Texts[I]);
+    AddQuoteProfile(Here, Text);
+    if (Length(Chapters) = 0) or (Chapters[High(Chapters)] <> ChapterOf[I]) then
+    begin
+      Chapters := Concat(Chapters, [ChapterOf[I]]);
+      SetLength(HereText, Length(HereText) + 1);
+    end;
+    HereText[High(HereText)] := HereText[High(HereText)] + ' ' + Text;
+  end;
+  SourceText := TChapterTexts.Create;
+  try
+    if Source <> nil then
+      for I := 0 to High(Source.Chunks) do
+      begin
+        Ch := StrToIntDef(Source.Chunks[I].Chapter, 0);
+        if Ch = 0 then
+          Continue;
+        for J := 0 to High(Source.Chunks[I].Texts) do
+        begin
+          Text := U(Source.Chunks[I].Texts[J]);
+          AddQuoteProfile(There, Text);
+          if SourceText.TryGetValue(Ch, S) then
+            Text := S + ' ' + Text;
+          SourceText.AddOrSetValue(Ch, Text);
+        end;
+      end;
+
+    { the marks used }
+    N := QuoteMarkTotal(Here);
+    SrcOk := QuoteMarkTotal(There) >= MinMarks;
+    if N >= MinMarks then
+    begin
+      Unlike := SrcOk and (MainQuoteStyle(There) <> MainQuoteStyle(Here));
+      if Unlike or Mixed(Percent(Here.Marks[MainQuoteStyle(Here)], N),
+        Percent(There.Marks[MainQuoteStyle(There)], QuoteMarkTotal(There))) then
+        if SrcOk then
+          C.Hit(ciQuoteStyle, '', DescribeQuoteStyles(Here) + #9 + DescribeQuoteStyles(There) + #9 + C.SourceId)
+        else
+          C.Hit(ciQuoteStyle, '', DescribeQuoteStyles(Here));
+    end;
+
+    { . ! ? after the closing quote or before it }
+    N := Here.PunctAfter + Here.PunctBefore;
+    SrcN := There.PunctAfter + There.PunctBefore;
+    SrcOk := SrcN >= MinMarks;
+    if N >= MinMarks then
+    begin
+      Unlike := SrcOk and ((Here.PunctAfter >= Here.PunctBefore) <> (There.PunctAfter >= There.PunctBefore));
+      if Unlike or Mixed(Kept(Here.PunctAfter, Here.PunctBefore), Kept(There.PunctAfter, There.PunctBefore)) then
+        C.Hit(ciQuotePunctStyle, '', Split(Here.PunctAfter, Here.PunctBefore, There.PunctAfter, There.PunctBefore));
+    end;
+
+    { spaces inside guillemets }
+    N := Here.Spaced + Here.Tight;
+    SrcN := There.Spaced + There.Tight;
+    SrcOk := SrcN >= MinMarks;
+    if N >= MinMarks then
+    begin
+      Unlike := SrcOk and ((Here.Spaced >= Here.Tight) <> (There.Spaced >= There.Tight));
+      if Unlike or Mixed(Kept(Here.Spaced, Here.Tight), Kept(There.Spaced, There.Tight)) then
+        C.Hit(ciGuillemetSpacing, '', Split(Here.Spaced, Here.Tight, There.Spaced, There.Tight));
+    end;
+
+    { chapters whose marks do not pair up, unless the source's do not either }
+    for I := 0 to High(Chapters) do
+    begin
+      D := UnpairedQuotes(HereText[I], Here.Marks[qsLow] > 0);
+      if D = '' then
+        Continue;
+      if (Source <> nil) and SourceText.TryGetValue(Chapters[I], Text) and
+         (UnpairedQuotes(Text, There.Marks[qsLow] > 0) <> '') then
+        Continue;
+      C.Hit(ciQuotePairs, IntToStr(Chapters[I]), D);
+    end;
+  finally
+    SourceText.Free;
+  end;
+end;
 
 function CheckChunks(const Book: string; const Chunks: TChunkTexts;
   Groups: TCheckGroups; Source: TSourceChunking): TCheckHits;
@@ -2049,6 +2216,10 @@ begin
     end;
 
     C.ReportMixedCase;
+    if C.PunctAfterQuoteInSource > 0 then
+      C.Hit(ciPunctAfterQuoteSource, '', IntToStr(C.PunctAfterQuoteInSource) + #9 + C.SourceId);
+    if cgQuoteMarks in Groups then
+      ReportQuoteMarks(C, Texts, ChapterOf, Source);
     Result := Copy(C.Hits, 0, C.HitCount);
   finally
     C.FirstRef.Free;

@@ -15,7 +15,7 @@ implementation
 
 uses
   Classes, SysUtils, fpjson, jsonparser, WBReporter, WBUsfmChecks, WBVersification, WBSources,
-  WBSectionTitles, WBSentences, WBPyText, WBRegExpr, TestUtil;
+  WBSectionTitles, WBSentences, WBPyText, WBRegExpr, WBQuoteMarks, TestUtil;
 
 function Chunk(const Ch, Ck, Text: string): TChunkText;
 begin
@@ -646,6 +646,138 @@ begin
     'unknown --skip group refused');
 end;
 
+{ A source for chapter 1 of a book: one chunk per verse, Texts[I] being
+  verse I + 1. }
+function SourceOf(const Container: string; const Texts: array of string): TSourceChunking;
+var
+  I: Integer;
+begin
+  Result := TSourceChunking.Create;
+  Result.Container := Container;
+  SetLength(Result.Chunks, Length(Texts));
+  for I := 0 to High(Texts) do
+  begin
+    Result.Chunks[I].Chapter := '01';
+    Result.Chunks[I].Chunk := Format('%.2d', [I + 1]);
+    Result.Chunks[I].Verses := [I + 1];
+    Result.Chunks[I].Texts := [Texts[I]];
+    Result.Chunks[I].Notes := [False];
+    Result.Chunks[I].NoteTexts := [''];
+  end;
+end;
+
+{ "number ref detail" lines of the hits, sorted, with a source. }
+function HitListWith(const Book: string; const Chunks: array of TChunkText;
+  Groups: TCheckGroups; Source: TSourceChunking): string;
+var
+  C: TChunkTexts;
+  H: TCheckHit;
+  L: TStringList;
+  I: Integer;
+begin
+  C := nil;
+  SetLength(C, Length(Chunks));
+  for I := 0 to High(Chunks) do
+    C[I] := Chunks[I];
+  L := TStringList.Create;
+  try
+    for H in CheckChunks(Book, C, Groups, Source) do
+      L.Add(CheckNumber(H.Id) + ' ' + H.Ref + ' ' + H.Detail);
+    L.Sort;
+    Result := L.Text;
+  finally
+    L.Free;
+  end;
+end;
+
+{ Workbench's own quote checks (WBQuoteMarks), and check 50 against the
+  source verse. }
+procedure TestQuoteMarks;
+var
+  P: TQuoteProfile;
+  Q: UnicodeString;
+  Hits: string;
+  Src: TSourceChunking;
+  Here: array of TChunkText;
+  SrcTexts: array of string;
+  I: Integer;
+begin
+  P := Default(TQuoteProfile);
+  AddQuoteProfile(P, UTF8Decode('He said, “Go.” She said «Come» and „Ja“ and ''''Yes'''' and "No".'));
+  Check((P.Marks[qsCurly] = 2) and (P.Marks[qsLow] = 2) and (P.Marks[qsGuillemet] = 2) and
+    (P.Marks[qsDoubledApostrophe] = 2) and (P.Marks[qsStraight] = 2) and (P.Marks[qsCorner] = 0),
+    'quote profile: marks of each style („…“ closers are not curly quotes)');
+  Check((P.PunctBefore = 1) and (P.PunctAfter = 1) and (P.Tight = 2) and (P.Spaced = 0),
+    'quote profile: punctuation before/after the closing quote, guillemet spacing');
+  P := Default(TQuoteProfile);
+  AddQuoteProfile(P, UTF8Decode('« a » « b » «c» “d” "e" "f"'));
+  Check((P.Spaced = 4) and (P.Tight = 2) and (MainQuoteStyle(P) = qsGuillemet) and
+    (DescribeQuoteStyles(P) = '«…» 50%, "…" 33%, “…” 17%') and (Percent(1, 3) = 33) and (Percent(2, 3) = 67),
+    'quote profile: main style and shares');
+  Check((UnpairedQuotes(UTF8Decode('“a” “b'), False) = '“×2 ”×1') and
+    (UnpairedQuotes(UTF8Decode('„a“ „b”'), True) = '') and
+    (UnpairedQuotes(UTF8Decode('"a" "b ''''c'''' ''''d'), False) = '"×3 ''''×3') and
+    (UnpairedQuotes(UTF8Decode('«a» 「b」'), False) = ''),
+    'quote marks that do not pair up');
+  Check(FloatingQuote(UTF8Decode('He said „ go'), Q) and (UTF8Encode(Q) = 'id „ go') and
+    FloatingQuote(UTF8Decode('「 x'), Q) and not FloatingQuote(UTF8Decode('„go“'), Q) and
+    not FloatingQuote(UTF8Decode('„'), Q),
+    'free-floating quote marks verifyUSFM leaves out');
+  Check(WithoutFootnotes('a \f + \ft "x" \f* b \fe + \ft y\fe* c') = 'a  b  c', 'footnotes left out of the profile');
+
+  { 50: verses whose source verse has the same are counted, not listed }
+  Src := SourceOf('pt-br_jud_ulb', ['Ele disse: "Vai".', 'Ele disse: Venha.']);
+  try
+    Hits := HitListWith('JUD', [Chunk('01', '01', '\c 1 \v 1 He said: "Go". \v 2 He said: "Come".')],
+      [cgPunctuation], Src);
+  finally
+    Src.Free;
+  end;
+  Check(Has(Hits, '50 1:2 ".') and not Has(Hits, '50 1:1 ".') and Has(Hits, '50  1'#9'pt-br_jud_ulb'),
+    'punctuation after the closing quote: left out where the source verse has it too');
+  Hits := HitList('JUD', [Chunk('01', '01', '\c 1 \v 1 He said: "Go".')], [cgPunctuation]);
+  Check(Has(Hits, '50 1:1 ".'), 'punctuation after the closing quote: every one without a source');
+
+  { quote style, punctuation and pairs against the source }
+  Here := nil;
+  SrcTexts := nil;
+  for I := 1 to 12 do
+  begin
+    Here := Concat(Here, [Chunk('01', Format('%.2d', [I]),
+      '\v ' + IntToStr(I) + ' He said, ''''Go''''.')]);
+    SrcTexts := Concat(SrcTexts, ['Ele disse, “Vai.”']);
+  end;
+  Src := SourceOf('pt-br_jud_ulb', SrcTexts);
+  try
+    Hits := HitListWith('JUD', Here, [cgQuoteMarks], Src);
+  finally
+    Src.Free;
+  end;
+  Check(Has(Hits, 'quote-style  ''''…'''' 100%'#9'“…” 100%'#9'pt-br_jud_ulb'),
+    'quote style unlike the source''s');
+  Check(Has(Hits, 'quote-punctuation  12/12'#9'0/12'#9'pt-br_jud_ulb'),
+    'punctuation after the closing quote where the source has it before');
+  Check(Pos('quote-pairs', Hits) = 0, 'balanced chapter: no quote-pairs');
+
+  Here := Concat(Here, [Chunk('01', '13', '\v 13 And “more.')]);
+  Hits := HitList('JUD', Here, [cgQuoteMarks]);
+  Check(Has(Hits, 'quote-pairs 1 “×1 ”×0') and (Pos('quote-style', Hits) = 0),
+    'quote marks that do not pair up in a chapter; 96% one style is not mixed');
+  SrcTexts := nil;
+  for I := 1 to 13 do
+    SrcTexts := Concat(SrcTexts, ['“Fala']);
+  Src := SourceOf('pt-br_jud_ulb', SrcTexts);
+  try
+    Hits := HitListWith('JUD', Here, [cgQuoteMarks], Src);
+  finally
+    Src.Free;
+  end;
+  Check(Pos('quote-pairs', Hits) = 0, 'no quote-pairs where the source''s marks do not pair up either');
+
+  Hits := HitList('JUD', [Chunk('01', '01', '\c 1 \v 1 He said „ go')], AllCheckGroups - [cgQuoteMarks]);
+  Check(Pos('floating-quote', Hits) = 0, '--skip quote-marks turns them off');
+end;
+
 { {m,n} after a single character or class: FPC 3.2.2's regexpr read the
   counts from the wrong place on aarch64, so a{3} matched like a{0,...}. }
 procedure TestRegExprBraces;
@@ -669,6 +801,7 @@ begin
   TestUnitsAgainstUsfmTools;
   TestVerseBridges;
   TestStructure;
+  TestQuoteMarks;
   TestModule(TempRoot);
 end;
 
