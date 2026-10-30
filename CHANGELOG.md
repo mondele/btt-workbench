@@ -6,7 +6,7 @@ commit count (see [README](README.md#building)).
 
 Each release's section below is also its release notes on GitHub.
 
-## Unreleased
+## 0.3.0+62 — 2026-10-30
 
 - text-check: quote-mark checks of Workbench's own (`--skip quote-marks`
   turns them off). A book's quote style is compared with its source's,
@@ -20,8 +20,6 @@ Each release's section below is also its release notes on GitHub.
   longer listed for a verse whose source verse has it too; such verses
   are counted on one line. Of the Chibangwe books (pt-br sources), 861 of
   912 were like their source.
-
-## 0.3.0+60 — 2026-10-30
 
 - macOS: BTT Workbench runs on Macs (Apple Silicon and Intel, macOS 11
   or later), as a disk image with the app; the command-line `btw` is
