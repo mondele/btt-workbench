@@ -6,7 +6,7 @@ commit count (see [README](README.md#building)).
 
 Each release's section below is also its release notes on GitHub.
 
-## Unreleased
+## 0.3.0+60 — 2026-10-30
 
 - macOS: BTT Workbench runs on Macs (Apple Silicon and Intel, macOS 11
   or later), as a disk image with the app; the command-line `btw` is

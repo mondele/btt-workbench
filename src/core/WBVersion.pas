@@ -11,7 +11,7 @@ unit WBVersion;
 interface
 
 const
-  WorkbenchRelease = '0.2.0';
+  WorkbenchRelease = '0.3.0';
   WorkbenchBuild = {$I %BTW_BUILD%};     // '26'; '' outside build.sh
   WorkbenchCommit = {$I %BTW_COMMIT%};   // '050c9d3', '050c9d3-modified'
   { Bump when the libbtw C ABI changes incompatibly. }
