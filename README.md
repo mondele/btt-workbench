@@ -1,7 +1,6 @@
 # BTT Workbench
 
-A technician's toolbox for BTT-Writer projects. It is the successor to
-[BTT-Manager](https://github.com/mondele/BTT-Manager), written in Free Pascal.
+A technician's toolbox for BTT-Writer projects. It is written in Free Pascal.
 
 Each tool is a **module**, and every module runs three ways:
 
